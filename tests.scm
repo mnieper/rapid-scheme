@@ -29,13 +29,14 @@
  (rename (rapid lists test) (run-tests run-rapid-lists-tests))
  (rename (rapid parameter-objects test)
 	 (run-tests run-rapid-parameter-objects-tests))
+ (rename (rapid read test) (run-tests run-rapid-read-tests))
  (rename (rapid records test) (run-tests run-rapid-records-tests))
- #;(rename (rapid syntax test) (run-tests run-rapid-syntax-tests))
+ (rename (rapid syntax test) (run-tests run-rapid-syntax-tests))
  (rename (rapid vectors test) (run-tests run-rapid-vectors-tests)))
 
 (test-begin "Rapid Scheme")
 
-(run-rapid-test-tests)       ;; PARAMETERIZE CURRENT_ERROR_PORT!
+(run-rapid-test-tests)
 (run-rapid-args-fold-tests)
 (run-rapid-boxes-tests)
 (run-rapid-comparators-tests)
@@ -44,8 +45,9 @@
 (run-rapid-immutable-sets-tests)
 (run-rapid-lists-tests)
 (run-rapid-parameter-objects-tests)
+(run-rapid-read-tests)
 (run-rapid-records-tests)
-#;(run-rapid-syntax-tests)
+(run-rapid-syntax-tests)
 (run-rapid-vectors-tests)
 
 (test-end "Rapid Scheme")

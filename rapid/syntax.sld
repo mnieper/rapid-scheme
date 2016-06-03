@@ -17,6 +17,7 @@
 
 (define-library (rapid syntax)
   (export make-syntax
+	  syntax?
           syntax-datum
 	  syntax-source-location
 	  syntax-context
@@ -29,13 +30,14 @@
 	  source-location-end-line
 	  source-location-start-column
 	  source-location-end-column
-	  syntax-note
-	  syntax-warning
-	  syntax-error
-	  syntax-fatal-error
-	  syntax-exception-guard)
+	  raise-syntax-note
+	  raise-syntax-warning
+	  raise-syntax-error
+	  raise-syntax-fatal-error
+	  with-syntax-exception-handler)
   (import (scheme case-lambda)
 	  (scheme process-context)
 	  (scheme write)
-	  (rapid base))
+	  (rapid base)
+	  (rapid format))
   (include "syntax.scm"))

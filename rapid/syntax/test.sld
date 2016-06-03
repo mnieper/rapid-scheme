@@ -24,7 +24,10 @@
     (define (run-tests)
       (test-begin "Syntax")
 
-      ;; TODO
+      (test-assert "syntax?"
+		   (syntax? (make-syntax #f #f #f #f)))
+
+      ;; TODO: Write many more tests.
       
       (test-end)
       #t)))

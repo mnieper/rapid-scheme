@@ -16,8 +16,11 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid read)
-  (export read-syntax)
-  (import (scheme base)
+  (export make-source-port
+	  source-port?
+	  read-syntax)
+  (import (scheme case-lambda)
 	  (scheme char)
+	  (rapid base)
 	  (rapid syntax))
   (include "read.scm"))

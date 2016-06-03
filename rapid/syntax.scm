@@ -107,30 +107,30 @@
    ((syntax-fatal-error? exception "fatal error"))
    (else (error "not a syntax exception" exception))))
 
-(define (syntax-note syntax message . object*)
+(define (raise-syntax-note syntax message . object*)
   (raise-continuable (make-syntax-note syntax
 				       (apply format message object*))))
-(define (syntax-warning syntax message . object*)
+(define (raise-syntax-warning syntax message . object*)
   (raise-continuable (make-syntax-warning syntax
 					  (apply format message object*))))
-(define (syntax-error syntax message . object*)
+(define (raise-syntax-error syntax message . object*)
   (error-message-count (+ (error-message-count) 1))
   (raise-continuable (make-syntax-error syntax
 					(apply format message object*))))
-(define (syntax-fatal-error syntax message . object*)
+(define (raise-syntax-fatal-error syntax message . object*)
   (raise (make-syntax-fatal-error syntax
 				  (apply format message object*))))
 
-(define (print-internal-error exception)
-  (flush-output (current-output-port))
+(define (print-internal-error)
+  (flush-output-port (current-output-port))
   (print-program-name)
   (write-string "internal error" (current-error-port))
   (newline (current-error-port)))
 
 (define (print-exception exception)
-  (flush-output (current-output-port))
-  (print-source-location (exception-syntax exception))
-  (write-string (exception-name exception) (current-error-port))
+  (flush-output-port (current-output-port))
+  (print-source-location (syntax-exception-syntax exception))
+  (write-string (syntax-exception-name exception) (current-error-port))
   (write-string ": " (current-error-port))
   (write-string (syntax-exception-message exception) (current-error-port))
   ;; TODO: Print context.
@@ -161,19 +161,21 @@
     (print-program-name))))
 
 (define (print-program-name)
-  (write-string (car (command-line)) (current-error-port))
-  (write-string ": " (current-error-port)))
+  (cond
+   ((command-line)
+    => (lambda (command-line)
+	 (write-string (car command-line) (current-error-port))
+	 (write-string ": " (current-error-port))))))
 
-(define-syntax syntax-exception-guard 
-  (syntax-rules ()
-    ((_ . body)
-     (parameterize ((error-message-count 0))
-       (guard (condition
-	       ((syntax-exception? condition)
-		(print-exception condition)
-		(when (syntax-fatal-error? condition)
-		  (exit #f)))
-	       (else
-		(print-internal-error)
-		(raise condition)))
-	 . body)))))
+(define (with-syntax-exception-handler thunk)
+  (with-exception-handler
+   (lambda (condition)
+     (cond
+      ((syntax-exception? condition)
+       (print-exception condition)
+       (when (syntax-fatal-error? condition)
+	 (exit #f)))
+      (else
+       (print-internal-error)
+       (raise condition))))
+   thunk))

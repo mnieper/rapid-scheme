@@ -1,5 +1,4 @@
 before_script:
-  - apt-get update -qq && apt-get upgrade -qq
   - git clone https://github.com/ashinn/chibi-scheme
   - cd chibi-scheme && make && make install && cd ..
 
