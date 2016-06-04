@@ -104,5 +104,9 @@
       (test-equal "Simple identifier"
 		  'list->vector
 		  (read-datum "list->vector"))
+
+      (test-equal "Peculiar identifier"
+		  '+soup+
+		  (read-datum "+soup+"))
       
       (test-end "Reader"))))

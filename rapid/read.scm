@@ -92,6 +92,17 @@
 	(else
 	 #f))))
 
+(define (sign? char)
+  (or (char=? char #\+)
+      (char=? char #\-)))
+
+(define (sign-subsequent? char)
+  (or (initial? char) (sign? char)))
+
+(define (dot-subsequent? char)
+  (or (sign-subsequent? char)
+      (char=? char #\.)))
+
 (define (hex-digit char)
   (cond
    ((char<=? #\0 char #\9)
@@ -235,17 +246,41 @@
 	      (reader-error "invalid character name ‘~a’" token)
 	      #f))))))
 
+     (define (check-identifier token)
+       (for-each (lambda (char)
+		   (unless (or (subsequent? char))
+		     (reader-error "unexpected character in identifier ‘~a’"
+				   char)))
+		 token))
+       
      (define (read-identifier)
        (let ((token (read-token)))
 	 (cond
 	  ((string->number token)
 	   => syntax)
 	  (else
-	   (for-each (lambda (char)
-		       (unless (or (subsequent? char))
-			 (reader-error "unexpected character in identifier ‘~a’"
-				       char)))
-		     token)
+	   (check-identifier token)
+	   (syntax (string->identifier token))))))
+
+     (define (read-peculiar-identifier)
+       (let ((token (read-token)))
+	 (cond
+	  ((string->number token)
+	   => syntax)
+	  ((string=? token ".")
+	   (error "dot is not handled yet"))
+	  (else
+	   (if (and (>= (string-length token) 2)
+		    (or (and (sign? (string-ref token 0))
+			     (or (and (char=? (string-ref token 1) #\.)
+				      (or (= (string-length token) 2)
+					  (not (dot-subsequent?
+						(string-ref token 2)))))
+				 (not (sign-subsequent? (string-ref token 1)))))
+			(and (char=? (string-ref token 0) #\.)
+			     (not (dot-subsequent? (string-ref token 1))))))
+	       (reader-error "invalid peculiar identifier")
+	       (check-identifier token))
 	   (syntax (string->identifier token))))))
      
      (define (read-nested-comment)
@@ -388,9 +423,16 @@
 	(let loop ()
 	  (start (position))
 	  (cond
+	   ;; Identifiers
 	   ((initial? (peek))
-	    (or (read-identifier) (loop)))
-	   (else	  
+	    (or (read-identifier)
+		(loop)))
+	   ;; Peculiar identifiers
+	   ((or (sign? (peek))
+		(char=? (peek) #\.))
+	    (or (read-peculiar-identifier)
+		(loop)))
+	   (else  
 	    (case (read)
 	      ;; Skip whitespace
 	      ((#\newline #\return #\space #\tab)
