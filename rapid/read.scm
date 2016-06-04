@@ -178,6 +178,16 @@
 	 (let ((char (read)))
 	   (cons char (loop))))))))
 
+  (define current-dot-handler
+    (make-parameter (lambda ()
+		      (reader-error "unexpected dot in source")
+		      #f)))
+
+  (define current-closing-parenthesis-handler
+    (make-parameter (lambda ()
+		      (reader-error "unexpected closing parenthesis in source")
+		      #f)))
+  
   (call-with-current-continuation
    (lambda (return)
      (define (with-eof-handler handler thunk) 
@@ -268,7 +278,7 @@
 	  ((string->number token)
 	   => syntax)
 	  ((string=? token ".")
-	   (error "dot is not handled yet"))
+	   ((current-dot-handler)))
 	  (else
 	   (if (and (>= (string-length token) 2)
 		    (or (and (sign? (string-ref token 0))
@@ -416,84 +426,112 @@
 		   (else
 		    => (lambda (char)
 			 (cons char (loop)))))))))))))
-     
+
+     (define (read-vector)
+       (with-eof-handler
+	(lambda ()
+	  (reader-error "unterminated vector"))
+	(lambda ()
+	  (call-with-current-continuation
+	   (lambda (return)
+	     (parameterize ((current-closing-parenthesis-handler #f))	     
+	       (let loop ((syntax* '()))
+		 (current-closing-parenthesis-handler
+		  (lambda ()
+		    (return (syntax (list->vector (reverse syntax*))))))
+		 (loop (cons (parameterize
+				 ((start #f))
+			       (read-syntax))
+			     syntax*)))))))))
+
+     (define (read-syntax)
+       (start (position))
+       (cond
+	((eof-object? (peek))
+	 (read))
+	;; Identifiers
+	((initial? (peek))
+	 (or (read-identifier)
+	     (read-syntax)))
+	;; Peculiar identifiers
+	((or (sign? (peek))
+	     (char=? (peek) #\.))
+	 (or (read-peculiar-identifier)
+	     (read-syntax)))
+	(else
+	 (case (read)
+	   ;; Skip whitespace
+	   ((#\newline #\return #\space #\tab)
+	    (read-syntax))
+	   ;; Skip line comments
+	   ((#\;)
+	    (let loop ()
+	      (case (read)
+		((#\newline)
+		 #f)
+		((#\return)
+		 (when (char=? (peek) #\newline)
+		   (read)))
+		(else
+		 (loop))))
+	    (read-syntax))
+	   ;; Strings
+	   ((#\")
+	    (read-string))
+	   ;; Identifiers enclosed in vertical lines
+	   ((#\|)
+	    (read-symbol))
+	   ;; Closing parenthesis
+	   ((#\))
+	    (begin ((current-closing-parenthesis-handler))
+		   (read-syntax)))
+	   ;; Sharp syntax
+	   ((#\#)
+	    (or
+	     (with-eof-handler
+	      (lambda ()
+		(reader-error "incomplete sharp syntax at end of input"))
+	      (lambda ()
+		(case (peek)
+		  ;; Booleans
+		  ((#\t #\f)
+		   (read-boolean))
+		  (else		
+		   (case (read)
+		     ;; Nested comment
+		     ((#\|)
+		      (read-nested-comment)
+		      #f)
+		     ;; Datum comment
+		     ((#\;)
+		      (with-eof-handler
+		       (lambda ()
+			 (reader-error "incomplete datum comment"))
+		       (lambda ()
+			 (parameterize ((start #f)) (read-syntax))))
+		      #f)
+		     ;; Directives
+		     ((#\!)
+		      (read-directive)
+		      #f)
+		     ;; Characters
+		     ((#\\)
+		      (read-character))
+		     ;; Vector
+		     ((#\()
+		      (read-vector))
+		     (else
+		      => (lambda (char)
+			   (reader-error "invalid sharp syntax ‘#~a’" char)
+			   #f)))))))
+	     (read-syntax)))
+	   ;; Invalid character
+	   (else
+	    => (lambda (char)
+		 (reader-error "unexpected character ‘~a’ in input" char)
+		 (read-syntax)))))))
+
      (with-eof-handler
       (lambda () (return #f))
-      (lambda ()
-	(let loop ()
-	  (start (position))
-	  (cond
-	   ;; Identifiers
-	   ((initial? (peek))
-	    (or (read-identifier)
-		(loop)))
-	   ;; Peculiar identifiers
-	   ((or (sign? (peek))
-		(char=? (peek) #\.))
-	    (or (read-peculiar-identifier)
-		(loop)))
-	   (else  
-	    (case (read)
-	      ;; Skip whitespace
-	      ((#\newline #\return #\space #\tab)
-	       (loop))
-	      ;; Skip line comments
-	      ((#\;)
-	       (let loop ()
-		 (case (read)
-		   ((#\newline)
-		    #f)
-		   ((#\return)
-		    (when (char=? (peek) #\newline)
-		      (read)))
-		   (else
-		    (loop))))
-	       (loop))
-	      ;; Strings
-	      ((#\")
-	       (read-string))
-	      ;; Identifiers enclosed in vertical lines
-	      ((#\|)
-	       (read-symbol))
-	      ;; Sharp syntax
-	      ((#\#)
-	       (or
-		(with-eof-handler
-		 (lambda ()
-		   (reader-error "incomplete sharp syntax at end of input"))
-		 (lambda ()
-		   (case (peek)
-		     ;; Booleans
-		     ((#\t #\f)
-		      (read-boolean))
-		     (else		
-		      (case (read)
-			;; Nested comment
-			((#\|)
-			 (read-nested-comment)
-			 #f)
-			;; Datum comment
-			((#\;)
-			 (with-eof-handler
-			  (lambda ()
-			    (reader-error "incomplete datum comment"))
-			  (lambda ()
-			    (parameterize ((start #f)) (loop))))
-			 #f)
-			;; Directives
-			((#\!)
-			 (read-directive)
-			 #f)
-			;; Characters
-			((#\\)
-			 (read-character))
-			(else
-			 => (lambda (char)
-			      (reader-error "invalid sharp syntax ‘#~a’" char)
-			      #f)))))))
-		(loop)))
-	      ;; Invalid character
-	      (else
-	       => (lambda (char)
-		    (reader-error "unexpected character ‘~a’ in input" char)
-		    (loop))))))))))))
+      read-syntax))))
+     

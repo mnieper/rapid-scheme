@@ -108,5 +108,9 @@
       (test-equal "Peculiar identifier"
 		  '+soup+
 		  (read-datum "+soup+"))
+
+      (test-equal "Vectors"
+		  #(a b c)
+		  (read-datum "#(a b c)"))
       
       (test-end "Reader"))))
