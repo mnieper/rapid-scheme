@@ -19,6 +19,7 @@
   (export cons*
 	  find any every map-in-order
 	  circular-list?
+	  append-reverse
 	  take
 	  drop
 	  take-right

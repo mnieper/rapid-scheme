@@ -63,7 +63,7 @@
 	      vector))
 	   ((pair? datum)
 	    (let ((pair (list #f)))
-	      (syntax-set-aux! pair)
+	      (syntax-set-aux! syntax pair)
 	      (set-car! pair (syntax->datum (car datum)))
 	      (do ((datum datum (cdr datum))
 		   (pair pair (cdr pair)))

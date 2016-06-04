@@ -33,6 +33,12 @@
 	element
 	(cons element (loop (car element*) (cdr element*))))))
 
+(define (append-reverse reversed-head tail)
+  (let loop ((reversed-head reversed-head) (tail tail))
+    (if (null? reversed-head)
+	tail
+	(loop (cdr reversed-head) (cons (car reversed-head) tail)))))
+  
 (define (take list k)
   (let loop ((list list) (k k))
     (if (zero? k)

@@ -212,7 +212,7 @@
 
      (define (read-directive)
        (let ((token (read-token)))
-	 (case (string->symbol token)
+	 (case (string->symbol (string-foldcase token))
 	   ((fold-case)
 	    (fold-case!))
 	   ((no-fold-case)
@@ -222,14 +222,14 @@
 
      (define (read-boolean)
        (let ((token (read-token)))
-	 (case (string->symbol token)
+	 (case (string->symbol (string-foldcase token))
 	   ((t true)
-	    (syntax #true))
+	    (syntax #t))
 	   ((f false)
-	    (syntax #false))
+	    (syntax #f))
 	   (else
 	    (reader-error "invalid boolean ‘~a’" token)))))
-
+     
      (define (read-character)
        (let ((token (read-token)))
 	 (cond
@@ -263,6 +263,14 @@
 				   char)))
 		 token))
        
+     (define (number token)
+       (cond
+	((string->number token)
+	 => syntax)
+	(else
+	 (reader-error "invalid number")
+	 #f)))
+     
      (define (read-identifier)
        (let ((token (read-token)))
 	 (cond
@@ -444,11 +452,81 @@
 			       (read-syntax))
 			     syntax*)))))))))
 
+     (define (read-bytevector)
+       (cond
+	((and (char=? (read) #\8) (char=? (read) #\())
+	 (with-eof-handler
+	  (lambda ()
+	    (reader-error "unterminated bytevector"))
+	  (lambda ()
+	    (call-with-current-continuation
+	     (lambda (return)
+	       (parameterize ((current-closing-parenthesis-handler #f))	     
+		 (let loop ((datum* '()))
+		   (current-closing-parenthesis-handler
+		    (lambda ()
+		      (return (syntax (apply bytevector (reverse datum*))))))
+		   (parameterize
+		       ((start #f))
+		     (let ((datum (syntax-datum (read-syntax))))
+		       (cond
+			((and (exact-integer? datum)
+			      (<= 0 datum 255))
+			 (loop (cons datum datum*)))
+			(else
+			 (reader-error "not a byte")
+			 (loop datum*))))))))))))
+	(else
+	 (reader-error "invalid bytevector")
+	 #f)))
+
+     (define (read-list)
+       (with-eof-handler
+	(lambda ()
+	  (reader-error "unterminated list"))
+	(lambda ()
+	  (call-with-current-continuation
+	   (lambda (return)
+	     (let*
+		 ((syntax*
+		   (call-with-current-continuation
+		    (lambda (k)		   
+		      (parameterize ((current-closing-parenthesis-handler #f)
+				     (current-dot-handler #f))
+			(let loop ((syntax* '()))
+			  (current-closing-parenthesis-handler
+			   (lambda ()
+			     (return (syntax (reverse syntax*)))))
+			  (current-dot-handler
+			   (lambda ()
+			     (k syntax*)))
+			  (loop (cons (parameterize
+					  ((start #f))
+					(read-syntax))
+				      syntax*)))))))
+		  (rest (parameterize ((start #f)) (read-syntax)))
+		  (datum (syntax-datum rest))
+		  (list (append-reverse syntax*
+					(if (or (pair? datum) (null? datum))
+					    datum
+					    rest))))
+	       (parameterize
+		   ((current-closing-parenthesis-handler
+		     (lambda ()
+		       (return (syntax list)))))
+		 (parameterize ((start #f)) (read-syntax))
+		 (reader-error "expected end of list after dot")
+		 (return (syntax list)))))))))
+     
      (define (read-syntax)
        (start (position))
        (cond
 	((eof-object? (peek))
 	 (read))
+	;; Numbers
+	((char<=? #\0 (peek) #\9)
+	 (or (number (read-token))
+	     (read-syntax)))
 	;; Identifiers
 	((initial? (peek))
 	 (or (read-identifier)
@@ -481,6 +559,10 @@
 	   ;; Identifiers enclosed in vertical lines
 	   ((#\|)
 	    (read-symbol))
+	   ;; Lists
+	   ((#\()
+	    (or (read-list)
+		(read-syntax)))
 	   ;; Closing parenthesis
 	   ((#\))
 	    (begin ((current-closing-parenthesis-handler))
@@ -492,12 +574,18 @@
 	      (lambda ()
 		(reader-error "incomplete sharp syntax at end of input"))
 	      (lambda ()
-		(case (peek)
+		(case (char-foldcase (peek))
 		  ;; Booleans
 		  ((#\t #\f)
 		   (read-boolean))
 		  (else		
-		   (case (read)
+		   (case (char-foldcase (read))
+		     ;; Numbers
+		     ((#\e #\i \#b #\o #\d #\x)
+		      => (lambda (char)
+			   (number (string-append "#"
+						  (string char) 
+						  (read-token)))))
 		     ;; Nested comment
 		     ((#\|)
 		      (read-nested-comment)
@@ -520,6 +608,9 @@
 		     ;; Vector
 		     ((#\()
 		      (read-vector))
+		     ;; Bytevector
+		     ((#\u)
+		      (read-bytevector))
 		     (else
 		      => (lambda (char)
 			   (reader-error "invalid sharp syntax ‘#~a’" char)

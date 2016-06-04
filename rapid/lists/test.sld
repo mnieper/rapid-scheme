@@ -13,6 +13,12 @@
 		(find (lambda (x)
 			(> x 2))
 		      '(1 2 3 4)))
+
+      (test-equal "append-reverse"
+		  '(1 2 . 3)
+		  (append-reverse '(2 1) 3))
+      
+      ;; TODO: Write many more tests.
       
       (test-end)
 

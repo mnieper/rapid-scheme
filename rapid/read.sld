@@ -22,6 +22,7 @@
   (import (scheme case-lambda)
 	  (scheme char)
 	  (rapid base)
+	  (rapid lists)
 	  (rapid and-let)
 	  (rapid syntax))
   (include "read.scm"))

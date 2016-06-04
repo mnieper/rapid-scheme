@@ -112,5 +112,25 @@
       (test-equal "Vectors"
 		  #(a b c)
 		  (read-datum "#(a b c)"))
+
+      (test-equal "Simple number"
+		  11
+		  (read-datum "11"))
+
+      (test-equal "Prefixed number"
+		  #xAA
+		  (read-datum "#xAA"))
+
+      (test-equal "Proper lists"
+		  '(1 2 3)
+		  (read-datum "(1 2 3)"))
+
+      (test-equal "Improper lists"
+		  '(1 2 . 3)
+		  (read-datum "(1 2 . 3)"))
+
+      (test-equal "Bytevectors"
+		  #u8(0 1 4 9)
+		  (read-datum "#u8(0 1 4 9)"))
       
       (test-end "Reader"))))
