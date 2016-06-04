@@ -61,5 +61,21 @@
       (test-equal "Escapes in strings"
 		  "\"scheme\""
 		  (read-datum "\"\\\"scheme\\\"\""))
+
+      (test-equal "Hex escapes in strings"
+		  "A"
+		  (read-datum "\"\\x41;\""))
+
+      (test-equal "Line endings in strings"
+		  "x\nscheme\nx"
+		  (read-datum "\"x\nscheme\r\nx\""))
+
+      (test-equal "Line endings preceded by backslash"
+		  "Here’s text containing just one line"
+		  (read-datum "\"Here’s text \\\n  containing just one line\""))
+
+      (test-equal "Identifiers enclosed in vertical lines"
+		  '|An identifier|
+		  (read-datum "|\\x41;n identifier|"))
       
       (test-end "Reader"))))

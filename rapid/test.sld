@@ -66,7 +66,6 @@
 	  test-runner-on-bad-end-name test-runner-on-bad-end-name!
 	  test-result-alist
 	  test-runner-aux-value test-runner-aux-value!
-	  test-on-test-begin-simple
 	  test-on-test-end-simple
 	  test-on-group-begin-simple
 	  test-on-group-end-simple

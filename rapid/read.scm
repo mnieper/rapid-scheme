@@ -126,9 +126,29 @@
 		 (loop)))
 	      (else
 	       (loop)))))))
+
+     (define (hex-digit char)
+       (cond
+	((char<=? #\0 char #\9)
+	 (- (char->integer char) #x30))
+	((char<=? #\A char #\F)
+	 (- (char->integer char) #x37))
+	((char<? #\a char #\f)
+	 (- (char->integer char) #x57))
+	(else
+	 #f)))
      
+     (define (read-hex-scalar-value)
+       (let loop ((value #f))
+	 (cond
+	  ((hex-digit (peek))
+	   => (lambda (digit)
+		(read)
+		(loop (+ (* 16 (or value 0)) digit))))
+	  (else
+	   value))))
+	     
      (define (read-escape)
-       ;; TODO: line endings, hex sequences  
        (case (read)
 	 ((#\a)
 	  #\alarm)
@@ -144,10 +164,55 @@
 	  #\")
 	 ((#\|)
 	  #\|)
+	 ((#\x)
+	  (cond
+	   ((read-hex-scalar-value)
+	    => (lambda (value)
+		 (cond		 
+		  ((parameterize ((start (position)))
+		     (case (read)
+		       ((#\;)
+			value)
+		       (else
+			=> (lambda (char)
+			     (error "semicolon expected, but found ‘~a’" char)
+			     #f))))
+		   => (lambda (value)
+			(cond
+			 ((or (< 0 value #xD7FF)
+			      (< #xE000 value #x10FFFF))
+			  (integer->char value))
+			 (else
+			  (reader-error "not a valid unicode code point ‘~a’" value)
+			  #f))))
+		  (else
+		   #f))))
+	   (else
+	    (reader-error "hex scalar value expected"))))
+
+	 ((#\space #\tab #\return #\newline)
+	  => (lambda (char)
+	       (let loop ((char char))
+		 (case char
+		   ((#\space #\tab)
+		    (loop (read)))
+		   ((#\return #\newline)
+		    => (lambda (char)
+			 (when (and (char=? char #\return)
+				    (char=? (peek) #\newline))
+			   (read))
+			 (let loop ()
+			   (case (peek)
+			     ((#\space #\tab)
+			      (read)
+			      (loop))))))
+		   (else
+		    (reader-error "unexpected character ‘~a’ before line ending"
+				  char))))
+	       #f))
 	 (else
 	  => (lambda (char)
-	       (reader-error "invalid escape ‘~a’" char)
-	       #f))))
+	       char))))
      
      (define (read-string)
        (with-eof-handler
@@ -167,10 +232,43 @@
 		     (if char
 			 (cons char (loop))
 			 (loop))))
+		  ((#\return)
+		   (when (char=? (peek) #\newline)
+		     (read))
+		   (cons #\newline (loop)))
 		  (else
 		   => (lambda (char)
 			(cons char (loop))))))))))))
 
+     (define (read-identifier)
+       (with-eof-handler
+	(lambda ()
+	  (reader-error "unterminated identifier"))
+	(lambda ()
+	  (syntax
+	   (string->symbol
+	    (list->string
+	     (parameterize ((start #f))
+	       (let loop ()
+		 (start (position))
+		 (case (read)
+		   ((#\|)
+		    '())
+		   ((#\\)
+		    (let
+			((char
+			  (case (peek)
+			    ((#\space #\tab #\return #\newline)
+			     (read))
+			    (else
+			     (read-escape)))))
+		      (if char
+			  (cons char (loop))
+			  (loop))))
+		   (else
+		    => (lambda (char)
+			 (cons char (loop)))))))))))))
+     
      (with-eof-handler
       (lambda () (return (eof-object)))
       (lambda ()
@@ -184,7 +282,8 @@
 	    ((#\;)
 	     (let loop ()
 	       (case (read)
-		 ((#\newline))
+		 ((#\newline)
+		  #f)
 		 ((#\return)
 		  (when (char=? (peek) #\newline)
 		    (read)))
@@ -194,6 +293,9 @@
 	    ;; Strings
 	    ((#\")
 	     (read-string))
+	    ;; Identifiers enclosed in vertical lines
+	    ((#\|)
+	     (read-identifier))
 	    ;; Sharp syntax
 	    ((#\#)
 	     (with-eof-handler

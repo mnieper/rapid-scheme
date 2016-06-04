@@ -43,7 +43,7 @@
 
 (define-library (rapid test test)
   (export run-tests)
-  (import (scheme base) (rapid test))
+  (import (scheme base) (rapid test) (scheme write))
   (begin
     (define (run-tests)
       
@@ -104,6 +104,7 @@
 
       (test-equal
        "2.1.2. Baseline test; FAIL with no optional args"
+       ;; FIXME: Larceny gives: '(("") ("") () () () (1 1 0 0 0))       
        '(() ("") () () () (0 1 0 0 0))
        (triv-runner
 	(lambda ()
@@ -786,10 +787,10 @@
 	  (test-runner-on-bad-end-name!
 	   r
 	   (lambda (runner begin end)
-	     (error (string-append "bad end grojup name " end
+	     (error (string-append "bad end group name " end
 				   " but expected " begin))))
 	  (test-runner-on-test-end! 
-	   r 
+	   r
 	   (lambda (runner)
 	     (let ((n (test-runner-test-name runner)))
 	       (case (test-result-kind runner)
