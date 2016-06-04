@@ -15,13 +15,21 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid read)
-  (export make-source-port
-	  source-port?
-	  read-syntax)
-  (import (scheme case-lambda)
-	  (scheme char)
-	  (rapid base)
-	  (rapid and-let)
-	  (rapid syntax))
-  (include "read.scm"))
+(define-syntax and-let*
+  (syntax-rules ()
+    ((and-let* () . body)
+     (begin #t . body))
+    ((and-let* ((var expr)))
+     expr)
+    ((and-let* ((expr)))
+     expr)
+    ((and-let* (expr))
+     expr)
+    ((and-let* ((var expr) . rest) . body)
+     (let ((var expr))
+       (and var (and-let* rest . body))))
+    ((and-let* ((expr) . rest) . body)
+     (and expr (and-let* rest . body)))
+    ((and-let* (expr . rest) . body)
+     (let ((tmp expr))
+       (and tmp (and-let* rest . body))))))

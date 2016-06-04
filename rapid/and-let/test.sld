@@ -15,13 +15,22 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid read)
-  (export make-source-port
-	  source-port?
-	  read-syntax)
-  (import (scheme case-lambda)
-	  (scheme char)
-	  (rapid base)
-	  (rapid and-let)
-	  (rapid syntax))
-  (include "read.scm"))
+(define-library (rapid and-let test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
+	  (rapid and-let))
+  (begin
+    (define (run-tests)
+      (test-begin "AND with local bindings")
+
+      (test-equal "Simple and-let* test"
+		  #f
+		  (let ((x 0))
+		    (and-let*
+			(x ((positive? x)))
+		      (+ x 1))))
+
+      ;; TODO: Write many more tests.
+      
+      (test-end))))

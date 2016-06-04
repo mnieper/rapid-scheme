@@ -20,6 +20,7 @@
  (scheme process-context)
  (rapid test)
  (rename (rapid test test) (run-tests run-rapid-test-tests))
+ (rename (rapid and-let test) (run-tests run-rapid-and-let-tests))
  (rename (rapid args-fold test) (run-tests run-rapid-args-fold-tests))
  (rename (rapid boxes test) (run-tests run-rapid-boxes-tests))
  (rename (rapid comparators test) (run-tests run-rapid-comparators-tests))
@@ -37,6 +38,7 @@
 (test-begin "Rapid Scheme")
 
 (run-rapid-test-tests)
+(run-rapid-and-let-tests)
 (run-rapid-args-fold-tests)
 (run-rapid-boxes-tests)
 (run-rapid-comparators-tests)

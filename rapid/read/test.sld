@@ -27,10 +27,13 @@
     
     (define (read-datum string)
       (define port (source-port-string string))
-      (syntax->datum
-       (with-syntax-exception-handler
-	(lambda ()
-	  (read-syntax port #f)))))
+      (cond
+       ((with-syntax-exception-handler
+	 (lambda ()
+	   (read-syntax port #f)))
+	=> syntax->datum)
+       (else
+	#f)))	    
 
     (define (run-tests)
       (test-begin "Reader")
@@ -85,5 +88,17 @@
       (test-equal "Booleans"
 		  #true
 		  (read-datum "#true"))
+
+      (test-equal "Simple character"
+		  #\a
+		  (read-datum "#\\a"))
+
+      (test-equal "Character name"
+		  #\alarm
+		  (read-datum "#\\alarm"))
+
+      (test-equal "Character hex scalar value"
+		  #\A
+		  (read-datum "#\\x41"))
       
       (test-end "Reader"))))

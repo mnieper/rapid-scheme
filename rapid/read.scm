@@ -113,6 +113,32 @@
        #t)
       (else
        (eof-object? char))))
+
+  (define (hex-digit char)
+    (cond
+     ((char<=? #\0 char #\9)
+      (- (char->integer char) #x30))
+     ((char<=? #\A char #\F)
+      (- (char->integer char) #x37))
+     ((char<? #\a char #\f)
+      (- (char->integer char) #x57))
+     (else
+      #f)))
+
+  (define (hex-scalar-value token)
+    (and-let*
+	(((> (string-length token) 0))
+	 (char (string-ref token 0))
+	 ((or (char=? char #\x) (char=? char #\X))))	  
+      (let loop ((value #f) (digits (cdr (string->list token))))
+	(cond
+	 ((null? digits)
+	  value)
+	 ((hex-digit (car digits))
+	  => (lambda (digit)
+	       (loop (+ (* 16 (or value 0)) digit) (cdr digits))))
+	 (else
+	  #f)))))
   
   (define (read-token)
     (list->string
@@ -132,11 +158,20 @@
 	  (cond
 	   ((eof-object? condition)
 	    (handler)
-	    (return condition))
+	    (return #f))
 	   (else
 	    (raise-continuable condition))))
 	thunk))
-     
+
+     (define (code-point->character value)
+       (cond
+	((or (< 0 value #xD7FF)
+	     (< #xE000 value #x10FFFF))
+	 (integer->char value))
+	(else
+	 (reader-error "not a valid unicode code point ‘~a’" value)
+	 #f)))
+
      (define (read-directive)
        (let ((token (read-token)))
 	 (case (string->symbol token)
@@ -156,6 +191,32 @@
 	    (syntax #false))
 	   (else
 	    (reader-error "invalid boolean ‘~a’" token)))))
+
+     (define (read-character)
+       (let ((token (read-token)))
+	 (cond
+	  ((= (string-length token) 1)
+	   (syntax (string-ref token 0)))
+	  ((hex-scalar-value token)
+	   => (lambda (value)
+		(let ((char (code-point->character value)))
+		  (if char
+		      (syntax char)
+		      char))))
+	  (else
+	   (case (string->identifier token)
+	     ((alarm) (syntax #\alarm))
+	     ((backspace) (syntax #\backspace))
+	     ((delete) (syntax #\delete))
+	     ((escape) (syntax #\escape))
+	     ((newline) (syntax #\newline))
+	     ((null) (syntax #\null))
+	     ((return) (syntax #\return))
+	     ((space) (syntax #\space))
+	     ((tab) (syntax #\tab))
+	     (else
+	      (reader-error "invalid character name ‘~a’" token)
+	      #f))))))
      
      (define (read-nested-comment)
        (with-eof-handler
@@ -174,17 +235,6 @@
 	      (else
 	       (loop)))))))
 
-     (define (hex-digit char)
-       (cond
-	((char<=? #\0 char #\9)
-	 (- (char->integer char) #x30))
-	((char<=? #\A char #\F)
-	 (- (char->integer char) #x37))
-	((char<? #\a char #\f)
-	 (- (char->integer char) #x57))
-	(else
-	 #f)))
-     
      (define (read-hex-scalar-value)
        (let loop ((value #f))
 	 (cond
@@ -197,21 +247,14 @@
 	     
      (define (read-escape)
        (case (read)
-	 ((#\a)
-	  #\alarm)
-	 ((#\b)
-	  #\backspace)
-	 ((#\t)
-	  #\tab)
-	 ((#\n)
-	  #\newline)
-	 ((#\r)
-	  #\return)
-	 ((#\")
-	  #\")
-	 ((#\|)
-	  #\|)
-	 ((#\x)
+	 ((#\a) #\alarm)
+	 ((#\b) #\backspace)
+	 ((#\t) #\tab)
+	 ((#\n) #\newline)
+	 ((#\r) #\return)
+	 ((#\") #\")
+	 ((#\|) #\|)
+	 ((#\x #\X)
 	  (cond
 	   ((read-hex-scalar-value)
 	    => (lambda (value)
@@ -224,14 +267,7 @@
 			=> (lambda (char)
 			     (error "semicolon expected, but found ‘~a’" char)
 			     #f))))
-		   => (lambda (value)
-			(cond
-			 ((or (< 0 value #xD7FF)
-			      (< #xE000 value #x10FFFF))
-			  (integer->char value))
-			 (else
-			  (reader-error "not a valid unicode code point ‘~a’" value)
-			  #f))))
+		   => code-point->character)
 		  (else
 		   #f))))
 	   (else
@@ -317,7 +353,7 @@
 			 (cons char (loop)))))))))))))
      
      (with-eof-handler
-      (lambda () (return (eof-object)))
+      (lambda () (return #f))
       (lambda ()
 	(let loop ()
 	  (start (position))
@@ -345,32 +381,41 @@
 	     (read-identifier))
 	    ;; Sharp syntax
 	    ((#\#)
-	     (with-eof-handler
-	      (lambda ()
-		(reader-error "incomplete sharp syntax at end of input"))
-	      (lambda ()
-		(case (peek)
-		  ;; Booleans
-		  ((#\t #\f)
-		   (read-boolean))
-		  (else		
-		   (case (read)
-		     ;; Nested comment
-		     ((#\|)
-		      (read-nested-comment)
-		      (loop))
-		     ;; Datum comment
-		     ((#\;)
-		      (parameterize ((start #f)) (loop))
-		      (loop))
-		     ;; Directives
-		     ((#\!)
-		      (read-directive)
-		      (loop))
-		     (else
-		      => (lambda (char)
-			   (reader-error "invalid sharp syntax ‘#~a’" char)
-			   (loop)))))))))
+	     (or
+	      (with-eof-handler
+	       (lambda ()
+		 (reader-error "incomplete sharp syntax at end of input"))
+	       (lambda ()
+		 (case (peek)
+		   ;; Booleans
+		   ((#\t #\f)
+		    (read-boolean))
+		   (else		
+		    (case (read)
+		      ;; Nested comment
+		      ((#\|)
+		       (read-nested-comment)
+		       #f)
+		      ;; Datum comment
+		      ((#\;)
+		       (with-eof-handler
+			(lambda ()
+			  (reader-error "incomplete datum comment"))
+			(lambda ()
+			  (parameterize ((start #f)) (loop))))
+		       #f)
+		      ;; Directives
+		      ((#\!)
+		       (read-directive)
+		       #f)
+		      ;; Characters
+		      ((#\\)
+		       (read-character))
+		      (else
+		       => (lambda (char)
+			    (reader-error "invalid sharp syntax ‘#~a’" char)
+			    #f)))))))
+	      (loop)))
 	    ;; Invalid character
 	    (else
 	     => (lambda (char)
