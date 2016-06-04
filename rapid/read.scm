@@ -518,6 +518,11 @@
 		 (reader-error "expected end of list after dot")
 		 (return (syntax list)))))))))
      
+     (define (read-abbreviation identifier)
+       (let ((head (syntax identifier)))
+	 (syntax (list head
+		       (parameterize ((start #f)) (read-syntax))))))
+     
      (define (read-syntax)
        (start (position))
        (cond
@@ -567,6 +572,20 @@
 	   ((#\))
 	    (begin ((current-closing-parenthesis-handler))
 		   (read-syntax)))
+	   ;; Quote
+	   ((#\')
+	    (read-abbreviation 'quote))
+	   ;; Quasiquote
+	   ((#\`)
+	    (read-abbreviation 'quasiquote))
+	   ;; Unquote
+	   ((#\,)
+	    (cond
+	     ((char=? (peek) #\@)
+	      (read)
+	      (read-abbreviation 'unquote-splicing))
+	     (else
+	      (read-abbreviation 'unquote))))
 	   ;; Sharp syntax
 	   ((#\#)
 	    (or
@@ -611,6 +630,7 @@
 		     ;; Bytevector
 		     ((#\u)
 		      (read-bytevector))
+		     
 		     (else
 		      => (lambda (char)
 			   (reader-error "invalid sharp syntax ‘#~a’" char)
@@ -625,4 +645,3 @@
      (with-eof-handler
       (lambda () (return #f))
       read-syntax))))
-     

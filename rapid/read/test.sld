@@ -132,5 +132,17 @@
       (test-equal "Bytevectors"
 		  #u8(0 1 4 9)
 		  (read-datum "#u8(0 1 4 9)"))
+
+      (test-equal "Unquote"
+		  '(unquote a)
+		  (read-datum ",a"))
+
+      (test-equal "Unquote-splicing"
+		  '(unquote-splicing a)
+		  (read-datum ",@a"))
+
+      #;(test-equal "Datum labels"
+		  '#0=(a . #0#)
+		  (read-datum '#0=(a . #0#)))
       
       (test-end "Reader"))))
