@@ -77,5 +77,13 @@
       (test-equal "Identifiers enclosed in vertical lines"
 		  '|An identifier|
 		  (read-datum "|\\x41;n identifier|"))
+
+      (test-equal "Case-folded identifiers"
+		  '|scheme|
+		  (read-datum "#!fold-case|SCHEME|"))
+
+      (test-equal "Booleans"
+		  #true
+		  (read-datum "#true"))
       
       (test-end "Reader"))))

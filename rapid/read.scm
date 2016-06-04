@@ -80,6 +80,16 @@
 	  (raise char)
 	  char)))
 
+  (define (fold-case!) (source-port-fold-case! source-port))
+
+  (define (no-fold-case!) (source-port-no-fold-case! source-port))
+
+  (define (ci?) (source-port-ci? source-port))
+  
+  (define (string->identifier string)
+    (let ((string (if (ci?) (string-foldcase string) string)))
+      (string->symbol string)))
+  
   (define start (make-parameter #f))
 
   (define (position) (source-port-position source-port))
@@ -97,6 +107,23 @@
   (define (reader-error message . obj*)
     (apply raise-syntax-error (syntax #f) message obj*))
 
+  (define (delimiter? char)
+    (case char
+      ((#\space #\tab #\return #\newline #\| #\( #\) #\" #\;)
+       #t)
+      (else
+       (eof-object? char))))
+  
+  (define (read-token)
+    (list->string
+     (let loop ()
+       (cond
+	((delimiter? (peek))
+	 '())
+	(else
+	 (let ((char (read)))
+	   (cons char (loop))))))))
+
   (call-with-current-continuation
    (lambda (return)
      (define (with-eof-handler handler thunk) 
@@ -109,6 +136,26 @@
 	   (else
 	    (raise-continuable condition))))
 	thunk))
+     
+     (define (read-directive)
+       (let ((token (read-token)))
+	 (case (string->symbol token)
+	   ((fold-case)
+	    (fold-case!))
+	   ((no-fold-case)
+	    (no-fold-case!))
+	   (else
+	    (reader-error "invalid directive ‘~a’" token)))))
+
+     (define (read-boolean)
+       (let ((token (read-token)))
+	 (case (string->symbol token)
+	   ((t true)
+	    (syntax #true))
+	   ((f false)
+	    (syntax #false))
+	   (else
+	    (reader-error "invalid boolean ‘~a’" token)))))
      
      (define (read-nested-comment)
        (with-eof-handler
@@ -246,7 +293,7 @@
 	  (reader-error "unterminated identifier"))
 	(lambda ()
 	  (syntax
-	   (string->symbol
+	   (string->identifier
 	    (list->string
 	     (parameterize ((start #f))
 	       (let loop ()
@@ -302,19 +349,28 @@
 	      (lambda ()
 		(reader-error "incomplete sharp syntax at end of input"))
 	      (lambda ()
-		(case (read)
-		  ;; Nested comment
-		  ((#\|)
-		   (read-nested-comment)
-		   (loop))
-		  ;; Datum comment
-		  ((#\;)
-		   (parameterize ((start #f)) (loop))
-		   (loop))
-		  (else
-		   => (lambda (char)
-			(reader-error "invalid sharp syntax ‘#~a’" char)
-			(loop)))))))
+		(case (peek)
+		  ;; Booleans
+		  ((#\t #\f)
+		   (read-boolean))
+		  (else		
+		   (case (read)
+		     ;; Nested comment
+		     ((#\|)
+		      (read-nested-comment)
+		      (loop))
+		     ;; Datum comment
+		     ((#\;)
+		      (parameterize ((start #f)) (loop))
+		      (loop))
+		     ;; Directives
+		     ((#\!)
+		      (read-directive)
+		      (loop))
+		     (else
+		      => (lambda (char)
+			   (reader-error "invalid sharp syntax ‘#~a’" char)
+			   (loop)))))))))
 	    ;; Invalid character
 	    (else
 	     => (lambda (char)

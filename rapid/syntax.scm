@@ -155,7 +155,7 @@
 	   (unless (= start-line end-line)
 	     (display end-line (current-error-port))
 	     (write-string "." (current-error-port)))
-	   (display end-column (current-error-port))
+	   (display (+ end-column 1) (current-error-port))
 	   (write-string ": " (current-error-port)))))
    (else
     (print-program-name))))
