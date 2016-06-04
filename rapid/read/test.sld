@@ -100,5 +100,9 @@
       (test-equal "Character hex scalar value"
 		  #\A
 		  (read-datum "#\\x41"))
+
+      (test-equal "Simple identifier"
+		  'list->vector
+		  (read-datum "list->vector"))
       
       (test-end "Reader"))))

@@ -68,6 +68,41 @@
 (define (source-port-make-location source-port start end)
   (make-source-location (source-port-source source-port) start end))
 
+(define (delimiter? char)
+  (case char
+    ((#\space #\tab #\return #\newline #\| #\( #\) #\" #\;)
+     #t)
+    (else
+     (eof-object? char))))
+
+(define (initial? char)
+  (or (char<=? #\A char #\Z)
+      (char<=? #\a char #\z)
+      (case char
+	((#\! #\$ #\% #\& #\* #\/ #\: #\< #\= #\> #\? #\^ #\_ #\~ #\@)
+	 #t)
+	(else #f))))
+
+(define (subsequent? char)
+  (or (initial? char)
+      (char<=? #\0 char #\9)
+      (case char
+	((#\+ #\- #\.)
+	 #t)
+	(else
+	 #f))))
+
+(define (hex-digit char)
+  (cond
+   ((char<=? #\0 char #\9)
+    (- (char->integer char) #x30))
+   ((char<=? #\A char #\F)
+    (- (char->integer char) #x37))
+   ((char<? #\a char #\f)
+    (- (char->integer char) #x57))
+   (else
+    #f)))
+
 (define (read-syntax source-port context)
 
   (define source (source-port-source source-port))
@@ -106,24 +141,6 @@
 
   (define (reader-error message . obj*)
     (apply raise-syntax-error (syntax #f) message obj*))
-
-  (define (delimiter? char)
-    (case char
-      ((#\space #\tab #\return #\newline #\| #\( #\) #\" #\;)
-       #t)
-      (else
-       (eof-object? char))))
-
-  (define (hex-digit char)
-    (cond
-     ((char<=? #\0 char #\9)
-      (- (char->integer char) #x30))
-     ((char<=? #\A char #\F)
-      (- (char->integer char) #x37))
-     ((char<? #\a char #\f)
-      (- (char->integer char) #x57))
-     (else
-      #f)))
 
   (define (hex-scalar-value token)
     (and-let*
@@ -217,6 +234,19 @@
 	     (else
 	      (reader-error "invalid character name ‘~a’" token)
 	      #f))))))
+
+     (define (read-identifier)
+       (let ((token (read-token)))
+	 (cond
+	  ((string->number token)
+	   => syntax)
+	  (else
+	   (for-each (lambda (char)
+		       (unless (or (subsequent? char))
+			 (reader-error "unexpected character in identifier ‘~a’"
+				       char)))
+		     token)
+	   (syntax (string->identifier token))))))
      
      (define (read-nested-comment)
        (with-eof-handler
@@ -323,7 +353,7 @@
 		   => (lambda (char)
 			(cons char (loop))))))))))))
 
-     (define (read-identifier)
+     (define (read-symbol)
        (with-eof-handler
 	(lambda ()
 	  (reader-error "unterminated identifier"))
@@ -357,67 +387,71 @@
       (lambda ()
 	(let loop ()
 	  (start (position))
-	  (case (read)
-	    ;; Skip whitespace
-	    ((#\newline #\return #\space #\tab)
-	     (loop))
-	    ;; Skip line comments
-	    ((#\;)
-	     (let loop ()
-	       (case (read)
-		 ((#\newline)
-		  #f)
-		 ((#\return)
-		  (when (char=? (peek) #\newline)
-		    (read)))
-		 (else
-		  (loop))))
-	     (loop))
-	    ;; Strings
-	    ((#\")
-	     (read-string))
-	    ;; Identifiers enclosed in vertical lines
-	    ((#\|)
-	     (read-identifier))
-	    ;; Sharp syntax
-	    ((#\#)
-	     (or
-	      (with-eof-handler
-	       (lambda ()
-		 (reader-error "incomplete sharp syntax at end of input"))
-	       (lambda ()
-		 (case (peek)
-		   ;; Booleans
-		   ((#\t #\f)
-		    (read-boolean))
-		   (else		
-		    (case (read)
-		      ;; Nested comment
-		      ((#\|)
-		       (read-nested-comment)
-		       #f)
-		      ;; Datum comment
-		      ((#\;)
-		       (with-eof-handler
-			(lambda ()
-			  (reader-error "incomplete datum comment"))
-			(lambda ()
-			  (parameterize ((start #f)) (loop))))
-		       #f)
-		      ;; Directives
-		      ((#\!)
-		       (read-directive)
-		       #f)
-		      ;; Characters
-		      ((#\\)
-		       (read-character))
-		      (else
-		       => (lambda (char)
-			    (reader-error "invalid sharp syntax ‘#~a’" char)
-			    #f)))))))
-	      (loop)))
-	    ;; Invalid character
-	    (else
-	     => (lambda (char)
-		  (reader-error "unexpected character ‘~a’ in input" char)
-		  (loop))))))))))
+	  (cond
+	   ((initial? (peek))
+	    (or (read-identifier) (loop)))
+	   (else	  
+	    (case (read)
+	      ;; Skip whitespace
+	      ((#\newline #\return #\space #\tab)
+	       (loop))
+	      ;; Skip line comments
+	      ((#\;)
+	       (let loop ()
+		 (case (read)
+		   ((#\newline)
+		    #f)
+		   ((#\return)
+		    (when (char=? (peek) #\newline)
+		      (read)))
+		   (else
+		    (loop))))
+	       (loop))
+	      ;; Strings
+	      ((#\")
+	       (read-string))
+	      ;; Identifiers enclosed in vertical lines
+	      ((#\|)
+	       (read-symbol))
+	      ;; Sharp syntax
+	      ((#\#)
+	       (or
+		(with-eof-handler
+		 (lambda ()
+		   (reader-error "incomplete sharp syntax at end of input"))
+		 (lambda ()
+		   (case (peek)
+		     ;; Booleans
+		     ((#\t #\f)
+		      (read-boolean))
+		     (else		
+		      (case (read)
+			;; Nested comment
+			((#\|)
+			 (read-nested-comment)
+			 #f)
+			;; Datum comment
+			((#\;)
+			 (with-eof-handler
+			  (lambda ()
+			    (reader-error "incomplete datum comment"))
+			  (lambda ()
+			    (parameterize ((start #f)) (loop))))
+			 #f)
+			;; Directives
+			((#\!)
+			 (read-directive)
+			 #f)
+			;; Characters
+			((#\\)
+			 (read-character))
+			(else
+			 => (lambda (char)
+			      (reader-error "invalid sharp syntax ‘#~a’" char)
+			      #f)))))))
+		(loop)))
+	      ;; Invalid character
+	      (else
+	       => (lambda (char)
+		    (reader-error "unexpected character ‘~a’ in input" char)
+		    (loop))))))))))))
