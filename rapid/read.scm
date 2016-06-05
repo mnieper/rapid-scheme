@@ -109,7 +109,7 @@
     (- (char->integer char) #x30))
    ((char<=? #\A char #\F)
     (- (char->integer char) #x37))
-   ((char<? #\a char #\f)
+   ((char<=? #\a char #\f)
     (- (char->integer char) #x57))
    (else
     #f)))
@@ -230,8 +230,8 @@
   
   (define (code-point->character value)
     (cond
-     ((or (< 0 value #xD7FF)
-	  (< #xE000 value #x10FFFF))
+     ((or (<= 0 value #xD7FF)
+	  (<= #xE000 value #x10FFFF))
       (integer->char value))
      (else
       (reader-error "not a valid unicode code point ‘~a’" value)
@@ -258,7 +258,9 @@
 	 (reader-error "invalid boolean ‘~a’" token)))))
   
   (define (read-character)
-    (let ((token (read-token)))
+    (let*
+	((char (read))
+	 (token (string-append (string char) (read-token))))
       (cond
        ((= (string-length token) 1)
 	(syntax (string-ref token 0)))
@@ -317,14 +319,13 @@
        (else
 	(if (and (>= (string-length token) 2)
 		 (or (and (sign? (string-ref token 0))
-			  (or (and (char=? (string-ref token 1) #\.)
-				   (or (= (string-length token) 2)
-				       (not (dot-subsequent?
-					     (string-ref token 2)))))
-			      (not (sign-subsequent? (string-ref token 1)))))
+			  (if (char=? (string-ref token 1) #\.)
+			      (or (= (string-length token) 2)
+				  (not (dot-subsequent? (string-ref token 2)))))
+			      (not (sign-subsequent? (string-ref token 1))))
 		     (and (char=? (string-ref token 0) #\.)
 			  (not (dot-subsequent? (string-ref token 1))))))
-	    (reader-error "invalid peculiar identifier")
+	    (reader-error "invalid peculiar identifier ‘~a’" token)
 	    (check-identifier token))
 	(syntax (string->identifier token))))))
   
@@ -348,7 +349,7 @@
 		     value)
 		    (else
 		     => (lambda (char)
-			  (error "semicolon expected, but found ‘~a’" char)
+			  (reader-error "semicolon expected, but found ‘~a’" char)
 			  #f))))
 		=> code-point->character)
 	       (else
@@ -684,7 +685,7 @@
 		    (read)		
 		    (case char
 		      ;; Numbers
-		      ((#\e #\i \#b #\o #\d #\x)
+		      ((#\e #\i #\b #\o #\d #\x)
 		       => (lambda (char)
 			    (number (string-append "#"
 						   (string char) 
