@@ -729,3 +729,24 @@
      (with-eof-handler
       (lambda () (return #f))
       read-syntax))))
+
+(define (read-file source ci? context)
+  (make-coroutine-generator
+   (lambda (yield)
+     (lambda (exit)
+       (with-exception-handler
+	(lambda (condition)
+	  (cond
+	   ((file-error? condition)
+	    (raise-syntax-error context "file error occured with file ‘~a’" source)
+	    (exit))
+	   (else
+	    (raise-continuable condition)))))
+       (lambda ()
+	 (call-with-input-file source
+	   (lambda (port)
+	     (let ((source-port (make-source-port port source ci?)))
+	       (let loop ()
+		 (and-let* ((syntax (read-syntax source-port context)))
+		   (yield syntax)
+		   (loop)))))))))))

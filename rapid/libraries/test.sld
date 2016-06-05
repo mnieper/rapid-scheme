@@ -15,19 +15,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid read)
-  (export make-source-port
-	  source-port?
-	  read-syntax
-	  read-file)
-  (import (scheme case-lambda)
-	  (scheme char)
-	  (scheme file)
-	  (rapid base)
-	  (rapid generators)
-	  (rapid comparators)
-	  (rapid immutable-maps)
-	  (rapid lists)
-	  (rapid and-let)
-	  (rapid syntax))
-  (include "read.scm"))
+(define-library (rapid libraries test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
+	  (rapid libraries))
+  (begin
+    (define (run-tests)
+      (test-begin "Libraries")
+
+      ;; FIXME: Write tests.
+
+      (test-end))))
