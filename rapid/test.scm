@@ -134,7 +134,7 @@
 		      (display " ")
 		      (display (car result))
 		      (display ": ")
-		      (display (cdr result))
+		      (write-shared (cdr result))
 		      (newline))))
 		 results)))))
 (define (test-on-group-begin-simple runner suite-name count) #f)

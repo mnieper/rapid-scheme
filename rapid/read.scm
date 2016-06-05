@@ -114,6 +114,30 @@
    (else
     #f)))
 
+(define (make-label)
+  (vector #f (list '())))
+(define (label-syntax label)
+  (vector-ref label 0))
+(define (label-references label)
+  (car (vector-ref label 1)))
+(define (label-set-syntax! label syntax)
+  (vector-set! label 0 syntax))
+(define (label-add-reference! label reference)
+  (let ((reference** (vector-ref label 1)))
+    (set-car! reference** (cons reference (car reference**)))))
+(define (label-delete-references! label)
+  (vector-set! label 1 #f))
+(define (label-add-references! label references)
+  (vector-set! label 1 (cons references (vector-ref label 1))))
+(define (label-for-each-reference proc label)
+  (for-each
+   (lambda (references)
+     (for-each proc references))
+   (vector-ref label 1)))
+
+
+(define label-comparator (make-comparator integer? = < #f))
+
 (define (read-syntax source-port context)
 
   (define source (source-port-source source-port))
@@ -187,7 +211,175 @@
     (make-parameter (lambda ()
 		      (reader-error "unexpected closing parenthesis in source")
 		      #f)))
+
+  (define (read-number)
+    (let loop ((value #f))
+      (if (char<=? #\0 (peek) #\9)
+	  (loop (+ (* 10 (or value 0)) (- (char->integer (read)) #x30)))
+	  value)))
+
+  (define (read-hex-scalar-value)
+    (let loop ((value #f))
+      (cond
+       ((hex-digit (peek))
+	=> (lambda (digit)
+	     (read)
+	     (loop (+ (* 16 (or value 0)) digit))))
+       (else
+	value))))
   
+  (define (code-point->character value)
+    (cond
+     ((or (< 0 value #xD7FF)
+	  (< #xE000 value #x10FFFF))
+      (integer->char value))
+     (else
+      (reader-error "not a valid unicode code point ‘~a’" value)
+      #f)))
+
+  (define (read-directive)
+    (let ((token (read-token)))
+      (case (string->symbol (string-foldcase token))
+	((fold-case)
+	 (fold-case!))
+	((no-fold-case)
+	 (no-fold-case!))
+	(else
+	 (reader-error "invalid directive ‘~a’" token)))))
+
+  (define (read-boolean)
+    (let ((token (read-token)))
+      (case (string->symbol (string-foldcase token))
+	((t true)
+	 (syntax #t))
+	((f false)
+	 (syntax #f))
+	(else
+	 (reader-error "invalid boolean ‘~a’" token)))))
+  
+  (define (read-character)
+    (let ((token (read-token)))
+      (cond
+       ((= (string-length token) 1)
+	(syntax (string-ref token 0)))
+       ((hex-scalar-value token)
+	=> (lambda (value)
+	     (let ((char (code-point->character value)))
+	       (if char
+		   (syntax char)
+		   char))))
+       (else
+	(case (string->identifier token)
+	  ((alarm) (syntax #\alarm))
+	  ((backspace) (syntax #\backspace))
+	  ((delete) (syntax #\delete))
+	  ((escape) (syntax #\escape))
+	  ((newline) (syntax #\newline))
+	  ((null) (syntax #\null))
+	  ((return) (syntax #\return))
+	  ((space) (syntax #\space))
+	  ((tab) (syntax #\tab))
+	  (else
+	   (reader-error "invalid character name ‘~a’" token)
+	   #f))))))
+
+  (define (check-identifier token)
+    (for-each (lambda (char)
+		(unless (or (subsequent? char))
+		  (reader-error "unexpected character in identifier ‘~a’"
+				char)))
+	      token))
+  
+  (define (number token)
+    (cond
+     ((string->number token)
+      => syntax)
+     (else
+      (reader-error "invalid number")
+      #f)))
+  
+  (define (read-identifier)
+    (let ((token (read-token)))
+      (cond
+       ((string->number token)
+	=> syntax)
+       (else
+	(check-identifier token)
+	(syntax (string->identifier token))))))
+
+  (define (read-peculiar-identifier)
+    (let ((token (read-token)))
+      (cond
+       ((string->number token)
+	=> syntax)
+       ((string=? token ".")
+	((current-dot-handler)))
+       (else
+	(if (and (>= (string-length token) 2)
+		 (or (and (sign? (string-ref token 0))
+			  (or (and (char=? (string-ref token 1) #\.)
+				   (or (= (string-length token) 2)
+				       (not (dot-subsequent?
+					     (string-ref token 2)))))
+			      (not (sign-subsequent? (string-ref token 1)))))
+		     (and (char=? (string-ref token 0) #\.)
+			  (not (dot-subsequent? (string-ref token 1))))))
+	    (reader-error "invalid peculiar identifier")
+	    (check-identifier token))
+	(syntax (string->identifier token))))))
+  
+  (define (read-escape)
+    (case (read)
+      ((#\a) #\alarm)
+      ((#\b) #\backspace)
+      ((#\t) #\tab)
+      ((#\n) #\newline)
+      ((#\r) #\return)
+      ((#\") #\")
+      ((#\|) #\|)
+      ((#\x #\X)
+       (cond
+	((read-hex-scalar-value)
+	 => (lambda (value)
+	      (cond		 
+	       ((parameterize ((start (position)))
+		  (case (read)
+		    ((#\;)
+		     value)
+		    (else
+		     => (lambda (char)
+			  (error "semicolon expected, but found ‘~a’" char)
+			  #f))))
+		=> code-point->character)
+	       (else
+		#f))))
+	(else
+	 (reader-error "hex scalar value expected"))))
+
+      ((#\space #\tab #\return #\newline)
+       => (lambda (char)
+	    (let loop ((char char))
+	      (case char
+		((#\space #\tab)
+		 (loop (read)))
+		((#\return #\newline)
+		 => (lambda (char)
+		      (when (and (char=? char #\return)
+				 (char=? (peek) #\newline))
+			(read))
+		      (let loop ()
+			(case (peek)
+			  ((#\space #\tab)
+			   (read)
+			   (loop))))))
+		(else
+		 (reader-error "unexpected character ‘~a’ before line ending"
+			       char))))
+	    #f))
+      (else
+       => (lambda (char)
+	    char))))
+
   (call-with-current-continuation
    (lambda (return)
      (define (with-eof-handler handler thunk) 
@@ -200,106 +392,6 @@
 	   (else
 	    (raise-continuable condition))))
 	thunk))
-
-     (define (code-point->character value)
-       (cond
-	((or (< 0 value #xD7FF)
-	     (< #xE000 value #x10FFFF))
-	 (integer->char value))
-	(else
-	 (reader-error "not a valid unicode code point ‘~a’" value)
-	 #f)))
-
-     (define (read-directive)
-       (let ((token (read-token)))
-	 (case (string->symbol (string-foldcase token))
-	   ((fold-case)
-	    (fold-case!))
-	   ((no-fold-case)
-	    (no-fold-case!))
-	   (else
-	    (reader-error "invalid directive ‘~a’" token)))))
-
-     (define (read-boolean)
-       (let ((token (read-token)))
-	 (case (string->symbol (string-foldcase token))
-	   ((t true)
-	    (syntax #t))
-	   ((f false)
-	    (syntax #f))
-	   (else
-	    (reader-error "invalid boolean ‘~a’" token)))))
-     
-     (define (read-character)
-       (let ((token (read-token)))
-	 (cond
-	  ((= (string-length token) 1)
-	   (syntax (string-ref token 0)))
-	  ((hex-scalar-value token)
-	   => (lambda (value)
-		(let ((char (code-point->character value)))
-		  (if char
-		      (syntax char)
-		      char))))
-	  (else
-	   (case (string->identifier token)
-	     ((alarm) (syntax #\alarm))
-	     ((backspace) (syntax #\backspace))
-	     ((delete) (syntax #\delete))
-	     ((escape) (syntax #\escape))
-	     ((newline) (syntax #\newline))
-	     ((null) (syntax #\null))
-	     ((return) (syntax #\return))
-	     ((space) (syntax #\space))
-	     ((tab) (syntax #\tab))
-	     (else
-	      (reader-error "invalid character name ‘~a’" token)
-	      #f))))))
-
-     (define (check-identifier token)
-       (for-each (lambda (char)
-		   (unless (or (subsequent? char))
-		     (reader-error "unexpected character in identifier ‘~a’"
-				   char)))
-		 token))
-       
-     (define (number token)
-       (cond
-	((string->number token)
-	 => syntax)
-	(else
-	 (reader-error "invalid number")
-	 #f)))
-     
-     (define (read-identifier)
-       (let ((token (read-token)))
-	 (cond
-	  ((string->number token)
-	   => syntax)
-	  (else
-	   (check-identifier token)
-	   (syntax (string->identifier token))))))
-
-     (define (read-peculiar-identifier)
-       (let ((token (read-token)))
-	 (cond
-	  ((string->number token)
-	   => syntax)
-	  ((string=? token ".")
-	   ((current-dot-handler)))
-	  (else
-	   (if (and (>= (string-length token) 2)
-		    (or (and (sign? (string-ref token 0))
-			     (or (and (char=? (string-ref token 1) #\.)
-				      (or (= (string-length token) 2)
-					  (not (dot-subsequent?
-						(string-ref token 2)))))
-				 (not (sign-subsequent? (string-ref token 1)))))
-			(and (char=? (string-ref token 0) #\.)
-			     (not (dot-subsequent? (string-ref token 1))))))
-	       (reader-error "invalid peculiar identifier")
-	       (check-identifier token))
-	   (syntax (string->identifier token))))))
      
      (define (read-nested-comment)
        (with-eof-handler
@@ -317,68 +409,6 @@
 		 (loop)))
 	      (else
 	       (loop)))))))
-
-     (define (read-hex-scalar-value)
-       (let loop ((value #f))
-	 (cond
-	  ((hex-digit (peek))
-	   => (lambda (digit)
-		(read)
-		(loop (+ (* 16 (or value 0)) digit))))
-	  (else
-	   value))))
-	     
-     (define (read-escape)
-       (case (read)
-	 ((#\a) #\alarm)
-	 ((#\b) #\backspace)
-	 ((#\t) #\tab)
-	 ((#\n) #\newline)
-	 ((#\r) #\return)
-	 ((#\") #\")
-	 ((#\|) #\|)
-	 ((#\x #\X)
-	  (cond
-	   ((read-hex-scalar-value)
-	    => (lambda (value)
-		 (cond		 
-		  ((parameterize ((start (position)))
-		     (case (read)
-		       ((#\;)
-			value)
-		       (else
-			=> (lambda (char)
-			     (error "semicolon expected, but found ‘~a’" char)
-			     #f))))
-		   => code-point->character)
-		  (else
-		   #f))))
-	   (else
-	    (reader-error "hex scalar value expected"))))
-
-	 ((#\space #\tab #\return #\newline)
-	  => (lambda (char)
-	       (let loop ((char char))
-		 (case char
-		   ((#\space #\tab)
-		    (loop (read)))
-		   ((#\return #\newline)
-		    => (lambda (char)
-			 (when (and (char=? char #\return)
-				    (char=? (peek) #\newline))
-			   (read))
-			 (let loop ()
-			   (case (peek)
-			     ((#\space #\tab)
-			      (read)
-			      (loop))))))
-		   (else
-		    (reader-error "unexpected character ‘~a’ before line ending"
-				  char))))
-	       #f))
-	 (else
-	  => (lambda (char)
-	       char))))
      
      (define (read-string)
        (with-eof-handler
@@ -522,6 +552,57 @@
        (let ((head (syntax identifier)))
 	 (syntax (list head
 		       (parameterize ((start #f)) (read-syntax))))))
+
+     (define labels (imap label-comparator))
+
+     (define (read-label)
+       (let ((number (read-number)))
+	 (case (read)
+	   ((#\=)
+	    (cond
+	     ((imap-ref/default labels number #f)
+	      (reader-error "duplicate label")
+	      #f)
+	     (else
+	      (let ((label (make-label)))
+		(set! labels (imap-replace labels number label))
+		(and-let* ((referenced-syntax (read-syntax)))
+		  (label-set-syntax! label referenced-syntax)
+		  (cond
+		   ((syntax-reference referenced-syntax)
+		    ;; The referenced systax is a reference itself.
+		    => (lambda (referenced-label)
+			 (cond
+			  ((eq? referenced-label label)
+			   (reader-error "invalid self-reference")
+			   #f)
+			  (else
+			   (label-add-references! referenced-label
+						  (label-references label))))))
+		   (else
+		    ;; The references can be patched
+		    (let ((datum (syntax-datum referenced-syntax)))
+		      (label-for-each-reference
+		       (lambda (reference)
+			 (syntax-set-datum! reference datum)
+			 (syntax-set-reference! reference referenced-syntax))
+		       label))
+		    (label-delete-references! label)))
+		  referenced-syntax)))))
+	   ((#\#)
+	    (and-let*
+		((label
+		  (imap-ref labels number (lambda ()
+					    (reader-error "unknown reference")
+					    #f))))
+	      (or (and-let* ((referenced-syntax (label-syntax label)))
+		    (syntax (syntax-datum referenced-syntax) referenced-syntax))
+		  (let ((referencing-syntax (syntax label)))
+		    (label-add-reference! label referencing-syntax)
+		    referencing-syntax))))
+	   (else
+	    (reader-error "expected ‘#’ or ‘=’ after label")
+	    #f))))
      
      (define (read-syntax)
        (start (position))
@@ -593,48 +674,50 @@
 	      (lambda ()
 		(reader-error "incomplete sharp syntax at end of input"))
 	      (lambda ()
-		(case (char-foldcase (peek))
-		  ;; Booleans
-		  ((#\t #\f)
-		   (read-boolean))
-		  (else		
-		   (case (char-foldcase (read))
-		     ;; Numbers
-		     ((#\e #\i \#b #\o #\d #\x)
-		      => (lambda (char)
-			   (number (string-append "#"
-						  (string char) 
-						  (read-token)))))
-		     ;; Nested comment
-		     ((#\|)
-		      (read-nested-comment)
-		      #f)
-		     ;; Datum comment
-		     ((#\;)
-		      (with-eof-handler
-		       (lambda ()
-			 (reader-error "incomplete datum comment"))
-		       (lambda ()
-			 (parameterize ((start #f)) (read-syntax))))
-		      #f)
-		     ;; Directives
-		     ((#\!)
-		      (read-directive)
-		      #f)
-		     ;; Characters
-		     ((#\\)
-		      (read-character))
-		     ;; Vector
-		     ((#\()
-		      (read-vector))
-		     ;; Bytevector
-		     ((#\u)
-		      (read-bytevector))
-		     
-		     (else
-		      => (lambda (char)
-			   (reader-error "invalid sharp syntax ‘#~a’" char)
-			   #f)))))))
+		(let ((char (char-foldcase (peek))))
+		  (cond
+		   ((member char '(#\t #\f) char=?)
+		    (read-boolean))
+		   ((char<=? #\0 char #\9)
+		    (read-label))
+		   (else
+		    (read)		
+		    (case char
+		      ;; Numbers
+		      ((#\e #\i \#b #\o #\d #\x)
+		       => (lambda (char)
+			    (number (string-append "#"
+						   (string char) 
+						   (read-token)))))
+		      ;; Nested comment
+		      ((#\|)
+		       (read-nested-comment)
+		       #f)
+		      ;; Datum comment
+		      ((#\;)
+		       (with-eof-handler
+			(lambda ()
+			  (reader-error "incomplete datum comment"))
+			(lambda ()
+			  (parameterize ((start #f)) (read-syntax))))
+		       #f)
+		      ;; Directives
+		      ((#\!)
+		       (read-directive)
+		       #f)
+		      ;; Characters
+		      ((#\\)
+		       (read-character))
+		      ;; Vector
+		      ((#\()
+		       (read-vector))
+		      ;; Bytevector
+		      ((#\u)
+		       (read-bytevector))
+		      (else
+		       => (lambda (char)
+			    (reader-error "invalid sharp syntax ‘#~a’" char)
+			    #f))))))))
 	     (read-syntax)))
 	   ;; Invalid character
 	   (else

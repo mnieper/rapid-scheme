@@ -18,10 +18,10 @@
 (define-library (rapid syntax)
   (export make-syntax
 	  syntax?
-          syntax-datum
+          syntax-datum syntax-set-datum!
 	  syntax-source-location
 	  syntax-context
-	  syntax-reference
+	  syntax-reference syntax-set-reference!
 	  syntax->datum
 	  make-source-location
 	  source-location?

@@ -31,14 +31,22 @@
 		      (car associations)
 		      (cadr associations)))))
 
-(define (imap-ref map key)
-  (cond
-   ((assoc key
-	   (imap-associations map)
-	   (comparator-equality-predicate (imap-comparator map)))
-    => cdr)
-   (else
-    (error "imap-ref: no value associated to key" key))))
+(define imap-ref
+  (case-lambda
+   ((map key)
+    (imap-ref map key (lambda ()
+			(error "imap-ref: no value associated to key" key))))
+   ((map key failure)
+    (cond
+     ((assoc key
+	     (imap-associations map)
+	     (comparator-equality-predicate (imap-comparator map)))
+      => cdr)
+     (else
+      (failure))))))
+
+(define (imap-ref/default map key default)
+  (imap-ref map key (lambda () default)))
 
 (define (imap-replace map key value)
   (%imap (imap-comparator map) (cons (cons key value)

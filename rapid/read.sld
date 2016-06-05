@@ -22,6 +22,8 @@
   (import (scheme case-lambda)
 	  (scheme char)
 	  (rapid base)
+	  (rapid comparators)
+	  (rapid immutable-maps)
 	  (rapid lists)
 	  (rapid and-let)
 	  (rapid syntax))

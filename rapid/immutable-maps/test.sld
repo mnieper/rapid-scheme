@@ -38,5 +38,10 @@
       (test-error "Trying to reference non-associated keys raises an error"
 		  (imap-ref (imap (make-eq-comparator) 'a 1) 'b))
       
+
+      (test-equal "Default values"
+		  2
+		  (imap-ref/default (imap (make-eq-comparator) 'a 1) 'b 2))
+      
       (test-end)
       #t)))

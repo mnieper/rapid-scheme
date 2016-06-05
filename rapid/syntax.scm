@@ -40,7 +40,7 @@
   (datum syntax-datum syntax-set-datum!)
   (source-location syntax-source-location)
   (context syntax-context syntax-set-context!)
-  (reference syntax-reference)
+  (reference syntax-reference syntax-set-reference!)
   (aux syntax-aux syntax-set-aux!))
 
 (define syntax->datum

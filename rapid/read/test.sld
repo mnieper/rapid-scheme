@@ -141,8 +141,8 @@
 		  '(unquote-splicing a)
 		  (read-datum ",@a"))
 
-      #;(test-equal "Datum labels"
-		  '#0=(a . #0#)
-		  (read-datum '#0=(a . #0#)))
+      (test-equal "Datum labels"
+		  '(#0=#1=(a) #1#)
+		  (read-datum "(#0=#1=(a) #1#)"))
       
       (test-end "Reader"))))
