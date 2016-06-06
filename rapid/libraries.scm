@@ -19,13 +19,13 @@
   (%make-library exports imports body)
   library?
   (exports library-exports library-set-exports!)
-  (imports library-imports)  ; will be a procedure
+  (imports library-environment)
   (body library-body))
 
 (define symbol-comparator (make-eq-comparator))
 
 (define (make-library)
-  (%make-library (imap symbol-comparator) #f (list-queue)))
+  (%make-library (imap symbol-comparator) (make-environment) (list-queue)))
 		      
 (define (add-export-spec! library syntax)
   (define (add! binding-syntax external-syntax)
@@ -55,8 +55,7 @@
       (raise-syntax-error syntax "bad export spec")))))
 	
 (define (add-import-set! library syntax)
-  ;; TODO
-  #f)
+  (environment-add-import-set! (library-environment library) syntax))
 
 (define (add-body-form! library syntax)
   (list-queue-add-back! (library-body library) syntax))
@@ -91,11 +90,49 @@
 				 (library-declaration! library syntax))
 			       (read-file* (cdr declaration) #f)))
 	  ((cond-expand)
-		#f			; TODO
-	   )
+	   (do ((clause-syntax* (cdr declaration) (cdr clause-syntax*)))
+	       ((null? clause-syntax*))
+	     (let* ((clause-syntax (car clause-syntax*))
+		    (clause (syntax-datum clause-syntax)))
+	       (cond
+		((or (null? clause) (not (list? clause)))
+		 (raise-syntax-error clause-syntax "bad cond-expand clause"))
+		((eq? (syntax-datum (car clause)) 'else)
+		 (if (null? (cdr clause-syntax*))
+		     (for-each (lambda (syntax)
+				 (library-declaration! library syntax))
+			       (cdr clause))
+		     (raise-syntax-error clause-syntax "else clause not last")))
+		((feature? (car clause))
+		 (for-each (lambda (syntax)
+			     (library-declaration! library syntax))
+			   (cdr clause)))))))
 	  (else
 	   (raise-syntax-error (car declaration)
 			       "invalid library declaration"))))))
+
+(define (feature? syntax)
+  (let ((datum (syntax-datum syntax)))
+    (cond
+     ((symbol? datum)
+      (memq datum (rapid-features)))
+     ((and (not (null? datum)) (list? datum))
+      (case (syntax-datum (car datum))
+	;; TODO: library
+	;; TODO: and
+	;; TODO: or	
+	((not)
+	 (cond
+	  ((= (length datum) 2)
+	   (not (feature? (cadr datum))))
+	  (else
+	   (raise-syntax-error syntax "bad not feature requirement"))))
+	(else
+	 (raise-syntax-error syntax "invalid feature requirement")
+	 #f)))
+     (else
+      (raise-syntax-error syntax "bad feature requirement")
+      #f))))
 
 (define current-library-directories
   (make-parameter '("." "./lib")))

@@ -15,25 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid libraries)
-  (export make-library
-	  library?
-	  library-exports
-	  library-environment
-	  library-body
-          read-library
-	  current-library-directories)
-  (import (scheme file)
-	  (rapid base)
-	  (rapid and-let)
-	  (rapid lists)
-	  (rapid list-queues)
-	  (rapid comparators)
-	  (rapid generators)
-	  (rapid immutable-maps)
-	  (rapid features)
-	  (rapid syntax)
-	  (rapid environments)
-	  (rapid read)
-	  (rapid paths))
-  (include "libraries.scm"))
+(define-library (rapid features)
+  (export rapid-features)
+  (import (scheme base))
+  (include "features.scm"))
