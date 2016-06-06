@@ -16,17 +16,86 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-record-type <library-definition>
-  (make-library exports imports body)
+  (%make-library exports imports body)
   library?
-  (exports library-exports)
-  ;; exports is an imap mapping exported names to library internal
-  ;; imports is WHAT? (something like a function; needs to load libs)
-  ;; body is a list
-  
-  (imports library-imports)
+  (exports library-exports library-set-exports!)
+  (imports library-imports)  ; will be a procedure
   (body library-body))
 
 (define symbol-comparator (make-eq-comparator))
+
+(define (make-library)
+  (%make-library (imap symbol-comparator) #f (list-queue)))
+		      
+(define (add-export-spec! library syntax)
+  (define (add! binding-syntax external-syntax)
+    (let
+	((exports (library-exports library))
+	 (external-symbol (syntax-datum external-syntax)))
+      (if (imap-ref/default exports external-symbol #f)
+	  (raise-syntax-error external-syntax
+			      "name ‘~a’ already exported" external-symbol)
+	  (library-set-exports! library
+				(imap-replace exports
+					      external-symbol
+					      (syntax-datum binding-syntax))))))
+  (let ((export-spec (syntax-datum syntax)))
+    (cond
+     ((symbol? export-spec)
+      (add! syntax syntax))
+     ((and-let*
+	  (((tagged-list? export-spec 'rename 3))
+	   ((= (length export-spec) 3))
+	   (binding-syntax (list-ref export-spec 1))
+	   (external-syntax (list-ref export-spec 2))
+	   (symbol? (syntax-datum binding-syntax))
+	   (symbol? (syntax-datum external-syntax)))
+	(add! (list-ref export-spec 1) (list-ref export-spec 2))))
+     (else
+      (raise-syntax-error syntax "bad export spec")))))
+	
+(define (add-import-set! library syntax)
+  ;; TODO
+  #f)
+
+(define (add-body-form! library syntax)
+  (list-queue-add-back! (library-body library) syntax))
+
+(define (library-declaration! library syntax)
+  (let ((declaration (syntax-datum syntax)))
+    (if (or (null? declaration) (not (list? declaration)))
+	(raise-syntax-error syntax "bad library declaration")
+	(case (syntax-datum (car declaration))
+	  ((export)
+	   (for-each (lambda (syntax)
+		       (add-export-spec! library syntax))
+		     (cdr declaration)))
+	  ((import)
+	   (for-each (lambda (syntax)
+		       (add-import-set! library syntax))
+		     (cdr declaration)))
+	  ((begin)
+	   (for-each (lambda (syntax)
+		       (add-body-form! library syntax))
+		     (cdr declaration)))
+	  ((include)
+	   (generator-for-each (lambda (syntax)
+				 (add-body-form! library syntax))
+			       (read-file* (cdr declaration) #f)))
+	  ((include-ci)
+	   (generator-for-each (lambda (syntax)
+				 (add-body-form! library syntax))
+			       (read-file* (cdr declaration) #t)))
+	  ((include-library-declarations)
+	   (generator-for-each (lambda (syntax)
+				 (library-declaration! library syntax))
+			       (read-file* (cdr declaration) #f)))
+	  ((cond-expand)
+		#f			; TODO
+	   )
+	  (else
+	   (raise-syntax-error (car declaration)
+			       "invalid library declaration"))))))
 
 (define current-library-directories
   (make-parameter '("." "./lib")))
@@ -34,15 +103,11 @@
 (define (read-library library-name-syntax)
   (and-let*
       ((library-definition-syntax
-	(read-library-definition library-name-syntax)))
-    (do ((declarations (cddr (syntax-datum library-definition-syntax))
-		       (cdr declarations))
-	 (exports (imap symbol-comparator))
-	 (imports #f)
-	 (body (list-queue)))
-	((null? declarations)
-	 (make-library exports imports body))
-      )))
+	(read-library-definition library-name-syntax))
+       (library (make-library)))
+    (for-each (lambda (syntax)
+		(library-declaration! library syntax))
+	      (cddr (syntax-datum library-definition-syntax)))))
 
 (define (read-library-definition library-name-syntax)
 
@@ -103,3 +168,28 @@
 	(begin (raise-syntax-error syntax "bad library name")
 	       #f))))
 
+(define (read-file* string-syntax* ci?)
+  (apply gappend (map-in-order
+		  (lambda (string-syntax)
+		    (cond
+		     ((locate-file string-syntax)
+		      => (lambda (filename)
+			   (read-file filename string-syntax ci?)))
+		     (else
+		      (generator))))
+		  string-syntax*)))
+
+(define (locate-file syntax)
+  (let ((filename (syntax-datum syntax)))
+    (cond
+     ((string? filename)
+      (cond
+       ((syntax-source-location syntax)
+	=> (lambda (location)
+	     (path-join (path-directory (source-location-source location))
+			filename)))
+       (else
+	filename)))
+     (else
+      (raise-syntax-error syntax "bad string literal")
+      #f))))

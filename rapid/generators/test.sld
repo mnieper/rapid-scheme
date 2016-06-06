@@ -46,6 +46,18 @@
 
       (test-end "make-range-generator")
 
+      (test-assert "generator"
+		   (eof-object? ((generator))))
+
+      (test-equal "generator-for-each"
+		  '(3 2 1)
+		  (let ((list '())
+			(generator (make-range-generator 1 4)))
+		    (generator-for-each (lambda (element)
+					  (set! list (cons element list)))
+					generator)
+		    list))
+      
       (test-begin "gappend")
       
       (test-equal "Append generators"

@@ -18,6 +18,8 @@
 (define-library (rapid generators)
   (export make-coroutine-generator
 	  make-range-generator
+	  generator
+	  generator-for-each
 	  gappend
 	  generator->list
 	  generator-fold)

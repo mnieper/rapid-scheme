@@ -48,6 +48,17 @@
 	   ((>= value end))
 	 (yield value)))))))
 
+(define (generator)
+  (lambda ()
+    (eof-object)))
+
+(define (generator-for-each proc generator)
+  (let loop ()
+    (let ((element (generator)))
+      (unless (eof-object? element)
+	(proc element)
+	(loop)))))
+
 (define (gappend . gen*)
   (make-coroutine-generator
    (lambda (yield)
