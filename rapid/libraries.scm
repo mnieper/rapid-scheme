@@ -15,6 +15,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+(define-record-type <library-definition>
+  (make-library exports imports body)
+  library?
+  (exports library-exports)
+  (imports library-imports)
+  (body library-body))
+
 (define current-library-directories
   (make-parameter '("." "./lib")))
 
@@ -22,7 +29,7 @@
   (and-let*
       ((library-definition-syntax
 	(read-library-definition library-name-syntax)))
-    ;; TODO: Do something with it
+    ;; FIXME: Do something with it.
     library-definition-syntax))
 
 (define (read-library-definition library-name-syntax)
@@ -40,20 +47,47 @@
 		  (cdr library-name))))))
   
   (let directory-loop ((directories (current-library-directories)))
-    (and-let*
-	(((or (not (null? directories))
-	      (begin (raise-syntax-error library-name-syntax
-					 "library definition of ‘~a’ not found"
-					 library-name)
-		     #f)))
-	 (source (locate-library (car directories)))
-	 ((file-exists? source))
-	 (reader (read-file source #f library-name-syntax)))
-      (let loop ()
-	(let ((syntax (reader)))
-	  (cond
-	   ((eof-object? syntax)
-	    (directory-loop (cdr directories)))
-	   (else
-	    ;; check whether header or loop ...
-	    #f)))))))
+    (cond
+     ((null? directories)
+      (raise-syntax-error library-name-syntax
+			  "library definition of ‘~a’ not found"
+			  library-name)
+      #f)
+     (else
+      (or (and-let*
+	      ((source (locate-library (car directories)))
+	       ((file-exists? source))
+	       (reader (read-file source #f library-name-syntax)))
+	    (let loop ()
+	      (let ((syntax (reader)))
+		(and (not (eof-object? syntax))
+		     (or (and-let*
+			     ((datum (syntax-datum syntax))
+			      ((or (tagged-list? datum 'define-library 2)
+				   (begin (raise-syntax-error
+					   syntax
+					   "invalid library definition")
+				       (loop))))
+			      ((library-name? (cadr datum)))
+			      ((equal? (syntax->datum (cadr datum)) library-name)))
+			   syntax)
+			 (loop))))))
+	  (directory-loop (cdr directories)))))))
+
+(define (tagged-list? datum tag n)
+  (and (list? datum)
+       (>= (length datum) n)
+       (eq? (syntax-datum (car datum)) tag)))
+
+(define (library-name? syntax)
+  (let ((datum (syntax-datum syntax)))
+    (or (and (list? datum)
+	     (let loop ((datum datum))
+	       (or (null? datum)
+		   (let ((element (syntax-datum (car datum))))
+		     (and (or (and (exact-integer? element) (>= element 0))
+			      (symbol? element))
+			  (loop (cdr datum)))))))
+	(begin (raise-syntax-error syntax "bad library name")
+	       #f))))
+

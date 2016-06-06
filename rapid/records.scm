@@ -166,6 +166,8 @@
 		 (imap-ref fieldspec-map fieldspec))
 	       (vector->list fieldspecs))))
     (lambda args
+      (unless (= (length args) (length indexes))
+	(error "not enough arguments" (length args)))
       (let ((fields (make-vector size)))
 	(for-each (lambda (index arg)
 		    (vector-set! fields index arg))

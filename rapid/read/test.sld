@@ -349,5 +349,10 @@
 		    (vector-set! v 1 (list v))
 		    v)
 		  (read-datum "#125=#(#213=(1 2 #125# 4 . #213#) (#125#) #213#)"))
+
+      (test-equal "read-file"
+		  'define-library
+		  (let ((reader (read-file "rapid/read/test.sld" #f #f)))
+		    (car (syntax->datum (reader)))))
       
       (test-end "Reader"))))

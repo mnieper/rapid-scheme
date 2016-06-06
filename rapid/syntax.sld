@@ -23,6 +23,7 @@
 	  syntax-context
 	  syntax-reference syntax-set-reference!
 	  syntax->datum
+	  derive-syntax
 	  make-source-location
 	  source-location?
 	  source-location-source

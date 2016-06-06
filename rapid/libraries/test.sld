@@ -19,11 +19,15 @@
   (export run-tests)
   (import (scheme base)
 	  (rapid test)
+	  (rapid syntax)
 	  (rapid libraries))
   (begin
     (define (run-tests)
       (test-begin "Libraries")
 
-      ;; FIXME: Write tests.
-
+      (test-assert "Read library definition"
+		   (with-syntax-exception-handler
+		    (lambda ()
+		      (read-library (derive-syntax '(rapid libraries test))))))
+      
       (test-end))))

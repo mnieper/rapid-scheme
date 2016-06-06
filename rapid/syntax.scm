@@ -75,6 +75,27 @@
 	   (else
 	    (converter datum))))))))))
 
+(define derive-syntax
+  (case-lambda
+   ((datum)
+    (derive-syntax datum #f #f))
+   ((datum syntax)
+    (derive-syntax datum syntax (if syntax (syntax-context syntax) #f)))
+   ((datum syntax context)
+    (let ((location (if syntax (syntax-source-location syntax) #f)))
+      (let loop ((datum datum))
+	(cond
+	 ;; XXX: Does not handle vectors or improper lists
+	 ((syntax? datum)
+	  (make-syntax (syntax-datum datum)
+		       (syntax-source-location datum)
+		       context
+		       #f))
+	 ((list? datum)
+	  (make-syntax (map loop datum) location context #f))
+	 (else
+	  (make-syntax datum location context #f))))))))
+		     
 (define error-message-count (make-parameter 0))
 
 (define-record-type <syntax-exception>
