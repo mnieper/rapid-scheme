@@ -19,6 +19,10 @@
   (make-library exports imports body)
   library?
   (exports library-exports)
+  ;; exports is an imap mapping exported names to library internal
+  ;; imports is WHAT? (something like a function; needs to load libs)
+  ;; body is a list
+  
   (imports library-imports)
   (body library-body))
 

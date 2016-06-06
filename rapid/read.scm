@@ -471,17 +471,18 @@
 	(lambda ()
 	  (reader-error "unterminated vector"))
 	(lambda ()
-	  (call-with-current-continuation
-	   (lambda (return)
-	     (parameterize ((current-closing-parenthesis-handler #f))	     
-	       (let loop ((syntax* '()))
-		 (current-closing-parenthesis-handler
-		  (lambda ()
-		    (return (syntax (list->vector (reverse syntax*))))))
-		 (loop (cons (parameterize
-				 ((start #f))
-			       (read-syntax))
-			     syntax*)))))))))
+	  (syntax	  
+	   (call-with-current-continuation
+	    (lambda (return)
+	      (parameterize ((current-closing-parenthesis-handler #f))	     
+		(let loop ((syntax* '()))
+		  (current-closing-parenthesis-handler
+		   (lambda ()
+		     (return (list->vector (reverse syntax*)))))
+		  (loop (cons (parameterize
+				  ((start #f))
+				(read-syntax))
+			      syntax*))))))))))
 
      (define (read-bytevector)
        (cond
@@ -490,23 +491,24 @@
 	  (lambda ()
 	    (reader-error "unterminated bytevector"))
 	  (lambda ()
-	    (call-with-current-continuation
-	     (lambda (return)
-	       (parameterize ((current-closing-parenthesis-handler #f))	     
-		 (let loop ((datum* '()))
-		   (current-closing-parenthesis-handler
-		    (lambda ()
-		      (return (syntax (apply bytevector (reverse datum*))))))
-		   (parameterize
-		       ((start #f))
-		     (let ((datum (syntax-datum (read-syntax))))
-		       (cond
-			((and (exact-integer? datum)
-			      (<= 0 datum 255))
-			 (loop (cons datum datum*)))
-			(else
-			 (reader-error "not a byte")
-			 (loop datum*))))))))))))
+	    (syntax
+	     (call-with-current-continuation
+	      (lambda (return)
+		(parameterize ((current-closing-parenthesis-handler #f))	     
+		  (let loop ((datum* '()))
+		    (current-closing-parenthesis-handler
+		     (lambda ()
+		       (return (apply bytevector (reverse datum*)))))
+		    (parameterize
+			((start #f))
+		      (let ((datum (syntax-datum (read-syntax))))
+			(cond
+			 ((and (exact-integer? datum)
+			       (<= 0 datum 255))
+			  (loop (cons datum datum*)))
+			 (else
+			  (reader-error "not a byte")
+			  (loop datum*)))))))))))))
 	(else
 	 (reader-error "invalid bytevector")
 	 #f)))
@@ -516,38 +518,39 @@
 	(lambda ()
 	  (reader-error "unterminated list"))
 	(lambda ()
-	  (call-with-current-continuation
-	   (lambda (return)
-	     (let*
-		 ((syntax*
-		   (call-with-current-continuation
-		    (lambda (k)		   
-		      (parameterize ((current-closing-parenthesis-handler #f)
-				     (current-dot-handler #f))
-			(let loop ((syntax* '()))
-			  (current-closing-parenthesis-handler
-			   (lambda ()
-			     (return (syntax (reverse syntax*)))))
-			  (current-dot-handler
-			   (lambda ()
-			     (k syntax*)))
-			  (loop (cons (parameterize
-					  ((start #f))
-					(read-syntax))
-				      syntax*)))))))
-		  (rest (parameterize ((start #f)) (read-syntax)))
-		  (datum (syntax-datum rest))
-		  (list (append-reverse syntax*
-					(if (or (pair? datum) (null? datum))
-					    datum
-					    rest))))
-	       (parameterize
-		   ((current-closing-parenthesis-handler
-		     (lambda ()
-		       (return (syntax list)))))
-		 (parameterize ((start #f)) (read-syntax))
-		 (reader-error "expected end of list after dot")
-		 (return (syntax list)))))))))
+	  (syntax
+	   (call-with-current-continuation
+	    (lambda (return)
+	      (let*
+		  ((syntax*
+		    (call-with-current-continuation
+		     (lambda (k)		   
+		       (parameterize ((current-closing-parenthesis-handler #f)
+				      (current-dot-handler #f))
+			 (let loop ((syntax* '()))
+			   (current-closing-parenthesis-handler
+			    (lambda ()
+			      (return (reverse syntax*))))
+			   (current-dot-handler
+			    (lambda ()
+			      (k syntax*)))
+			   (loop (cons (parameterize
+					   ((start #f))
+					 (read-syntax))
+				       syntax*)))))))
+		   (rest (parameterize ((start #f)) (read-syntax)))
+		   (datum (syntax-datum rest))
+		   (list (append-reverse syntax*
+					 (if (or (pair? datum) (null? datum))
+					     datum
+					     rest))))
+		(parameterize
+		    ((current-closing-parenthesis-handler
+		      (lambda ()
+			(return list))))
+		  (parameterize ((start #f)) (read-syntax))
+		  (reader-error "expected end of list after dot")
+		  (return (syntax list))))))))))
      
      (define (read-abbreviation identifier)
        (let ((head (syntax identifier)))
