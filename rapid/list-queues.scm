@@ -15,21 +15,24 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid libraries)
-  (export make-library
-	  library?
-	  library-exports
-	  library-imports
-	  library-body
-          read-library
-	  current-library-directories)
-  (import (scheme file)
-	  (rapid base)
-	  (rapid and-let)
-	  (rapid comparators)
-	  (rapid list-queues)
-	  (rapid immutable-maps)
-	  (rapid syntax)
-	  (rapid read)
-	  (rapid paths))
-  (include "libraries.scm"))
+(define-record-type <list-queue>
+  (%make-list-queue first last)
+  list-queue?
+  (first list-queue-list list-queue-set-first!)
+  (last list-queue-last list-queue-set-last!))
+
+(define (list-queue)
+  (%make-list-queue '() '()))
+
+(define (list-queue-add-back! list-queue element)
+  (let ((last (list-queue-last list-queue)))
+    (cond
+     ((null? last)
+      (let ((first (list element)))
+	(list-queue-set-first! list-queue first)
+	(list-queue-set-last! list-queue first)))
+     (else
+      (set-cdr! last (list element)) 
+      (list-queue-set-last! list-queue (cdr last))))))
+
+

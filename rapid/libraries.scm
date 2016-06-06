@@ -26,6 +26,8 @@
   (imports library-imports)
   (body library-body))
 
+(define symbol-comparator (make-eq-comparator))
+
 (define current-library-directories
   (make-parameter '("." "./lib")))
 
@@ -33,8 +35,14 @@
   (and-let*
       ((library-definition-syntax
 	(read-library-definition library-name-syntax)))
-    ;; FIXME: Do something with it.
-    library-definition-syntax))
+    (do ((declarations (cddr (syntax-datum library-definition-syntax))
+		       (cdr declarations))
+	 (exports (imap symbol-comparator))
+	 (imports #f)
+	 (body (list-queue)))
+	((null? declarations)
+	 (make-library exports imports body))
+      )))
 
 (define (read-library-definition library-name-syntax)
 

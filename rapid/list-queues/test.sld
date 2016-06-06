@@ -15,21 +15,20 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid libraries)
-  (export make-library
-	  library?
-	  library-exports
-	  library-imports
-	  library-body
-          read-library
-	  current-library-directories)
-  (import (scheme file)
-	  (rapid base)
-	  (rapid and-let)
-	  (rapid comparators)
-	  (rapid list-queues)
-	  (rapid immutable-maps)
-	  (rapid syntax)
-	  (rapid read)
-	  (rapid paths))
-  (include "libraries.scm"))
+(define-library (rapid list-queues test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
+	  (rapid list-queues))
+  (begin
+    (define (run-tests)
+      (test-assert "list-queue?"
+		   (list-queue? (list-queue)))
+
+      (test-equal "list-queue-add-back!"
+		  '(1 2 3)
+		  (let ((lq (list-queue)))
+		    (list-queue-add-back! lq 1)
+		    (list-queue-add-back! lq 2)
+		    (list-queue-add-back! lq 3)		    
+		    (list-queue-list lq))))))

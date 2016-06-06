@@ -15,21 +15,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid libraries)
-  (export make-library
-	  library?
-	  library-exports
-	  library-imports
-	  library-body
-          read-library
-	  current-library-directories)
-  (import (scheme file)
-	  (rapid base)
-	  (rapid and-let)
-	  (rapid comparators)
-	  (rapid list-queues)
-	  (rapid immutable-maps)
-	  (rapid syntax)
-	  (rapid read)
-	  (rapid paths))
-  (include "libraries.scm"))
+(define-library (rapid list-queues)
+  (export list-queue
+	  list-queue?
+	  list-queue-list
+	  list-queue-add-back!)
+  (cond-expand
+   ((library (srfi 117))
+    (import (srfi 117)))
+   (else
+    (import (scheme base))
+    (include "list-queues.scm"))))
+
