@@ -35,7 +35,8 @@
 	  raise-syntax-warning
 	  raise-syntax-error
 	  raise-syntax-fatal-error
-	  with-syntax-exception-handler)
+	  with-syntax-exception-handler
+	  with-syntax-exception-guard)
   (import (scheme case-lambda)
 	  (scheme process-context)
 	  (scheme write)

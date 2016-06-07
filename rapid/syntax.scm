@@ -200,3 +200,17 @@
        (print-internal-error)
        (raise condition))))
    thunk))
+
+(define (with-syntax-exception-guard thunk)
+  (with-exception-handler
+   (lambda (condition)
+     (cond
+      ((syntax-error? condition)
+       #f)
+      ((syntax-fatal-error? condition)
+       (print-exception condition)
+       (exit #f))
+      (else
+       #f)))
+   thunk))
+     

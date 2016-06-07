@@ -29,5 +29,7 @@
 		   (with-syntax-exception-handler
 		    (lambda ()
 		      (read-library (derive-syntax '(rapid libraries test))))))
+
+      ;; FIXME: Write more tests, testing loaded libraries for exported features.
       
       (test-end))))

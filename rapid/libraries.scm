@@ -118,9 +118,30 @@
       (memq datum (rapid-features)))
      ((and (not (null? datum)) (list? datum))
       (case (syntax-datum (car datum))
-	;; TODO: library
-	;; TODO: and
-	;; TODO: or	
+	((library)
+	 (cond
+	  ((= (length datum) 2)
+	   (and (library-name? (cadr datum) raise-syntax-error)
+		(with-syntax-exception-guard
+		 (lambda ()
+		   (read-library-definition (cadr datum))))))
+	  (else
+	   (raise-syntax-error syntax "bad library feature requirement")
+	   #f)))
+	((and)
+	 (let loop ((syntax* (cdr datum)))
+	   (if (null? syntax*)
+	       #t
+	       (let* ((r1 (feature? (car syntax*)))
+		      (r2 (loop (cdr syntax*))))
+		 (and r1 r2)))))
+	((or)
+	 (let loop ((syntax* (cdr datum)))
+	   (if (null? syntax*)
+	       #f
+	       (let* ((r1 (feature? (car syntax*)))
+		      (r2 (loop (cdr syntax*))))
+		 (and r1 r2)))))
 	((not)
 	 (cond
 	  ((= (length datum) 2)
@@ -178,11 +199,11 @@
 		     (or (and-let*
 			     ((datum (syntax-datum syntax))
 			      ((or (tagged-list? datum 'define-library 2)
-				   (begin (raise-syntax-error
+				   (begin (raise-syntax-warning
 					   syntax
 					   "invalid library definition")
 				       (loop))))
-			      ((library-name? (cadr datum)))
+			      ((library-name? (cadr datum) raise-syntax-warning))
 			      ((equal? (syntax->datum (cadr datum)) library-name)))
 			   syntax)
 			 (loop))))))
@@ -193,7 +214,7 @@
        (>= (length datum) n)
        (eq? (syntax-datum (car datum)) tag)))
 
-(define (library-name? syntax)
+(define (library-name? syntax raise)
   (let ((datum (syntax-datum syntax)))
     (or (and (list? datum)
 	     (let loop ((datum datum))
@@ -202,7 +223,7 @@
 		     (and (or (and (exact-integer? element) (>= element 0))
 			      (symbol? element))
 			  (loop (cdr datum)))))))
-	(begin (raise-syntax-error syntax "bad library name")
+	(begin (raise syntax "bad library name")
 	       #f))))
 
 (define (read-file* string-syntax* ci?)
