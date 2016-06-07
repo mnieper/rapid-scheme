@@ -33,6 +33,7 @@
 	  (rapid immutable-maps)
 	  (rapid features)
 	  (rapid syntax)
+	  (rapid import-sets)
 	  (rapid environments)
 	  (rapid read)
 	  (rapid paths))

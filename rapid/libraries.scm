@@ -19,13 +19,14 @@
   (%make-library exports imports body)
   library?
   (exports library-exports library-set-exports!)
-  (imports library-environment)
+  (imports library-environment)         ; FIXME: This will become a list-queue
+					; of import-sets
   (body library-body))
 
-(define symbol-comparator (make-eq-comparator))
+(define identifier-comparator (make-eq-comparator))
 
 (define (make-library)
-  (%make-library (imap symbol-comparator) (make-environment) (list-queue)))
+  (%make-library (imap identifier-comparator) (make-environment) (list-queue)))
 		      
 (define (add-export-spec! library syntax)
   (define (add! binding-syntax external-syntax)
@@ -38,7 +39,7 @@
 	  (library-set-exports! library
 				(imap-replace exports
 					      external-symbol
-					      (syntax-datum binding-syntax))))))
+					      binding-syntax)))))
   (let ((export-spec (syntax-datum syntax)))
     (cond
      ((symbol? export-spec)
@@ -215,18 +216,6 @@
   (and (list? datum)
        (>= (length datum) n)
        (eq? (syntax-datum (car datum)) tag)))
-
-(define (library-name? syntax raise)
-  (let ((datum (syntax-datum syntax)))
-    (or (and (list? datum)
-	     (let loop ((datum datum))
-	       (or (null? datum)
-		   (let ((element (syntax-datum (car datum))))
-		     (and (or (and (exact-integer? element) (>= element 0))
-			      (symbol? element))
-			  (loop (cdr datum)))))))
-	(begin (raise syntax "bad library name")
-	       #f))))
 
 (define (read-file* string-syntax* ci?)
   (apply gappend (map-in-order

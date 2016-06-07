@@ -17,7 +17,13 @@
 
 (define-library (rapid import-sets)
   (export make-import-set
-	  import-set?)
+	  import-set?
+	  import-set-modifier
+	  library-name?)
   (import (scheme base)
+	  (scheme case-lambda)
+	  (rapid lists)
+	  (rapid comparators)
+	  (rapid immutable-maps)
 	  (rapid syntax))
   (include "import-sets.scm"))
