@@ -119,6 +119,8 @@
      ((and (not (null? datum)) (list? datum))
       (case (syntax-datum (car datum))
 	((library)
+	 ;; XXX: How do we want to handle libraries that are not on the
+	 ;; file system, e.g. a library of primitives?
 	 (cond
 	  ((= (length datum) 2)
 	   (and (library-name? (cadr datum) raise-syntax-error)

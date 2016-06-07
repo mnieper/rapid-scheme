@@ -16,11 +16,17 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-record-type <environment>
-  (%make-environment)
-  environment?)
+  (%make-environment libraries)
+  environment?
+  (libraries environment-libraries))
+
+(define library-name-comparator (make-equal-comparator))
 
 (define (make-environment)
-  (%make-environment))
+  (%make-environment (imap library-name-comparator)))
+
+
 
 (define (environment-add-import-set! environment syntax)
+  ;; TODO
   #f)

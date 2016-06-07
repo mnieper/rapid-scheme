@@ -15,16 +15,9 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid features test)
-  (export run-tests)
+(define-library (rapid import-sets)
+  (export make-import-set
+	  import-set?)
   (import (scheme base)
-	  (rapid test)
-	  (rapid features))
-  (begin
-    (define (run-tests)
-      (test-begin "Features")
-
-      (test-assert "r7rs"
-		   (memq 'r7rs (rapid-features)))
-
-      (test-end))))
+	  (rapid syntax))
+  (include "import-sets.scm"))

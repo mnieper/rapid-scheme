@@ -20,5 +20,7 @@
 	  environment?
 	  environment-add-import-set!)
   (import (scheme base)
+	  (rapid comparators)
+	  (rapid immutable-maps)
 	  (rapid syntax))
   (include "environments.scm"))
