@@ -23,25 +23,83 @@
 	  (rapid immutable-maps))
   (begin
     (define (run-tests)
+      (define comparator (make-comparator symbol? symbol=?
+					  (lambda (x y)
+					    (string<? (symbol->string x)
+						      (symbol->string y)))
+					  #f))
+
+      (define integers (make-comparator integer? = < #f))
+      (define (make-random-list length n)
+	(let loop ((length length) (k 1))
+	  (if (= length 0)
+	      '()
+	      (cons k (loop (- length 1) (modulo (* k 89) n))))))
+
       (test-begin "Immutable maps")
 
       (test-assert "Constructing an immutable maps yields an immutable map"
-		   (imap? (imap (make-eq-comparator))))
+		   (imap? (imap comparator)))
 
       (test-equal "Replacing associations in a map"
 		  2
-		  (imap-ref (imap-replace (imap (make-eq-comparator) 'a 1)
+		  (imap-ref (imap-replace (imap comparator 'a 1)
 					  'a
 					  2)
 			    'a))
 
       (test-error "Trying to reference non-associated keys raises an error"
-		  (imap-ref (imap (make-eq-comparator) 'a 1) 'b))
+		  (imap-ref (imap comparator 'a 1) 'b))
       
 
       (test-equal "Default values"
 		  2
-		  (imap-ref/default (imap (make-eq-comparator) 'a 1) 'b 2))
+		  (imap-ref/default (imap comparator 'a 1) 'b 2))
       
+
+ 
+      (test-assert "Immutable maps contain their added elements"
+		   (imap-contains? (imap-replace (imap integers) 42 'x)
+				   42))
+
+      (test-assert "Immutable maps only contain their added elements"
+		   (not (imap-contains? (imap-replace (imap integers) 42 'x)
+					43)))
+
+      (test-assert "Inserting random elements in list"
+		   (let*
+		       ((random-list
+			 (make-random-list 1000 1000000))
+			(map
+			 (let loop ((map (imap integers))
+				    (random-list random-list))
+			   (if (null? random-list)
+			       map
+			       (loop (imap-replace map (car random-list) #f)
+				     (cdr random-list))))))
+		     (let loop ((random-list random-list))
+		       (or (null? random-list)
+			   (and (imap-contains? map (car random-list))
+				(loop (cdr random-list)))))))
+      
+      (test-assert "Deleting random elements in list"
+		   (let*
+		       ((random-list
+			 (make-random-list 1000 1000000))
+			(map
+			 (let loop ((map (imap integers))
+				    (random-list random-list))
+			   (if (null? random-list)
+			       map
+			       (loop (imap-replace map (car random-list) #f)
+				     (cdr random-list))))))
+		     (let loop ((random-list random-list) (map map))
+		       (or (null? random-list)
+			   (let ((map (imap-delete map (car random-list))))
+			     (and (not (imap-contains? map (car random-list)))
+				  (loop (cdr random-list) map)))))))
+
+      ;; TODO: CHECK BALANCE OF TREES
+
       (test-end)
       #t)))

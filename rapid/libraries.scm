@@ -23,8 +23,6 @@
 					; of import-sets
   (body library-body))
 
-(define identifier-comparator (make-eq-comparator))
-
 (define (make-library)
   (%make-library (imap identifier-comparator) (make-environment) (list-queue)))
 		      

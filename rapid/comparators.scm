@@ -31,13 +31,13 @@
    (if hash hash (lambda (x) (error "hashing not supported")))))
 
 (define (make-eq-comparator)
-  (%make-comparator (lambda (obj) #t) eq? #f #f))
+  (make-comparator (lambda (obj) #t) eq? #f #f))
 
 (define (make-eqv-comparator)
-  (%make-comparator (lambda (obj) #t) eqv? #f #f))
+  (make-comparator (lambda (obj) #t) eqv? #f #f))
 
 (define (make-equal-comparator)
-  (%make-comparator (lambda (obj) #t) equal? #f #f))
+  (make-comparator (lambda (obj) #t) equal? #f #f))
 
 (define (comparator-test-type comparator obj)
   ((comparator-type-test-predicate comparator) obj))
@@ -54,3 +54,31 @@
   (let loop ((obj1 obj1) (obj2 obj2) (obj* obj*))
     (and (or (null? obj*) (loop obj2 (car obj*) (cdr obj*)))
 	 (equality obj1 obj2))))
+
+(define (<? comparator obj1 obj2 . obj*)
+  (let ((ordering (comparator-ordering-predicate comparator)))
+    (let loop ((obj1 obj1) (obj2 obj2) (obj* obj*))
+      (and (or (null? obj*) (loop obj2 (car obj*) (cdr obj*)))
+	   (ordering obj1 obj2)))))
+
+(define-syntax comparator-if<=>
+  (syntax-rules ()
+    ((comparator-if<=> object1 object2 less-than equal-to greater-than)
+     (comparator-if<=> (make-default-comparator)
+	 object1 object2 less-than equal-to greater-than))
+    ((comparator-if<=> comparator object1 object2
+       less-than
+       equal-to
+       greater-than)
+     (let ((c comparator) (o1 object1) (o2 object2))
+       (cond
+	((<? c o1 o2)
+	 less-than)
+	((=? c o1 o2)
+	 equal-to)
+	(else
+	 greater-than))))))
+      
+;; Local Variables:
+;; eval: (put 'comparator-if<=> 'scheme-indent-function 3)
+;; End:

@@ -133,7 +133,11 @@
   (rtd record-rtd)
   (fields record-fields))
 
-(define field-comparator (make-eq-comparator))
+(define field-comparator
+  (make-comparator symbol? symbol=?
+		   (lambda (x y)
+		     (string<? (symbol->string x) (symbol->string y)))
+		   #f))
 
 (define root (%make-rtd (imap field-comparator) 0 (iset field-comparator)))
 

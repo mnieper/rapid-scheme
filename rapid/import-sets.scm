@@ -88,7 +88,24 @@
 
 (define (except-modifier modifier syntax*)
   (lambda (exports)
-    (modifier exports)))
+    (let loop ((exports (modifier exports))
+	       (syntax* syntax*))
+      (if (null? syntax*)
+	  exports
+	  (let*-values
+	      (((datum) (syntax-datum (car syntax*)))
+	       ((exports ok)	    
+		(imap-search
+		 exports
+		 datum
+		 (lambda (insert ignore)
+		   (raise-syntax-error
+		    (car syntax*)
+		    "identifier in except modifier set not found")
+		   (ignore #f))
+		 (lambda (key update remove)
+		   (remove #t)))))
+	    (and ok (loop exports (cdr syntax*))))))))
 
 (define (prefix-modifier modifier syntax*)
   (lambda (exports)
@@ -130,4 +147,8 @@
       (raise-syntax-error syntax "bad rename")
       #f))))
 
-(define identifier-comparator (make-eq-comparator))
+(define identifier-comparator
+  (make-comparator symbol? symbol=?
+		   (lambda (x y)
+		     (string<? (symbol->string x) (symbol->string y)))
+		   #f))

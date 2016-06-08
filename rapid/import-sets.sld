@@ -19,7 +19,8 @@
   (export make-import-set
 	  import-set?
 	  import-set-modifier
-	  library-name?)
+	  library-name?
+	  identifier-comparator)
   (import (scheme base)
 	  (scheme case-lambda)
 	  (rapid lists)

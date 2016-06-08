@@ -16,8 +16,18 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid immutable-maps)
-  (export imap imap? imap-ref imap-ref/default imap-replace)
+  (export imap
+	  imap?
+	  imap-empty?
+	  imap-contains?
+	  imap-ref
+	  imap-ref/default
+	  imap-replace
+	  imap-delete
+	  imap-search
+	  imap-key-not-found?)
   (import (scheme base)
 	  (scheme case-lambda)
+	  (rapid and-let)
 	  (rapid comparators))
   (include "immutable-maps.scm"))

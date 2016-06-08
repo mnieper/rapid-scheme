@@ -22,21 +22,27 @@
 	  (rapid comparators)
 	  (rapid immutable-sets))
   (begin
+    (define comparator (make-comparator symbol? symbol=?
+					(lambda (x y)
+					  (string<? (symbol->string x)
+						    (symbol->string y)))
+					#f))
+    
     (define (run-tests)
       (test-begin "Immutable sets")
 
       (test-assert "Constructing an immutable set yields an immutable set"
-		   (iset? (iset (make-eq-comparator))))
+		   (iset? (iset comparator)))
 
       (test-assert "An adjoined element is a member of a set"
-		   (iset-member? (iset-adjoin (iset (make-eq-comparator)) 'a) 'a))
+		   (iset-member? (iset-adjoin (iset comparator) 'a) 'a))
 
       (test-assert "A non-element is not a member"
-		   (not (iset-member? (iset-adjoin (iset (make-eq-comparator)) 'a)
+		   (not (iset-member? (iset-adjoin (iset comparator) 'a)
 				      'b)))
 
       (test-assert "Constructor for non-empty sets"
-		   (iset-member? (iset (make-eq-comparator) 'a 'b 'c) 'b))
+		   (iset-member? (iset comparator 'a 'b 'c) 'b))
 
       (test-end)
       #t)))

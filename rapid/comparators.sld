@@ -18,7 +18,8 @@
 (define-library (rapid comparators)
   (export make-comparator comparator? comparator-equality-predicate
 	  make-eq-comparator make-eqv-comparator make-equal-comparator
-	  =?)
+	  <? =?
+	  comparator-if<=>)
   (cond-expand
    ((library (srfi 128))
     (import (srfi 128)))
