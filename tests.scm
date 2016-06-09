@@ -21,6 +21,7 @@
  (rapid test)
  (rename (rapid test test) (run-tests run-rapid-test-tests))
  (rename (rapid and-let test) (run-tests run-rapid-and-let-tests))
+ (rename (rapid receive test) (run-tests run-rapid-receive-tests))
  (rename (rapid args-fold test) (run-tests run-rapid-args-fold-tests))
  (rename (rapid boxes test) (run-tests run-rapid-boxes-tests))
  (rename (rapid generators test) (run-tests run-rapid-generators-tests))
@@ -46,6 +47,7 @@
 
 (run-rapid-test-tests)
 (run-rapid-and-let-tests)
+(run-rapid-receive-tests)
 (run-rapid-args-fold-tests)
 (run-rapid-boxes-tests)
 (run-rapid-generators-tests)

@@ -239,7 +239,7 @@
 		  key
 		  ;; update
 		  (lambda (new-value ret)
-		    (values (node c a (make-item key new-value) b)
+		    (values (node c a (make-item obj new-value) b)
 			    ret
 			    identity))
 		  ;; remove
