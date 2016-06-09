@@ -29,5 +29,6 @@
   (import (scheme base)
 	  (scheme case-lambda)
 	  (rapid and-let)
+	  (rapid receive)
 	  (rapid comparators))
   (include "immutable-maps.scm"))

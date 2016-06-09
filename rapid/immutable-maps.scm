@@ -211,67 +211,63 @@
 ;;; Update procedures for trees
 
 (define (search comparator tree obj failure success)
-  (let-values
-      (((tree ret op)
-	(let search ((tree (redden tree)))
-	  (tree-match tree
-	    
-	    ((black)
-	     (failure
-	      ;; insert
-	      (lambda (new-value ret)
-		(values (red (black) (make-item obj new-value) (black))
-			ret
-			balance))
-	      ;; ignore
-	      (lambda (ret)
-		(values (black) ret identity))))
-	    
-	    ((and t (node c a x b))
-	     (let ((key (item-key x)))
-	       (comparator-if<=> comparator obj key
-		 
-		 (let-values
-		     (((a ret op) (search a)))
-		   (values (op (node c a x b)) ret op))
-
-		 (success
-		  key
-		  ;; update
-		  (lambda (new-value ret)
-		    (values (node c a (make-item obj new-value) b)
-			    ret
-			    identity))
-		  ;; remove
-		  (lambda (ret)
-		    (values
-		     (tree-match t
-		       ((red (black) x (black))
-			(black))
-		       ((black (red a x b) _ (black))
-			(black a x b))
-		       ((black (black) _ (black))
-			(white))
-		       (_
-			(let-values (((x b) (min+delete b)))
-			  (rotate (node c a x b)))))
-		     ret
-		     rotate)))
-
-		 (let-values
-		     (((b ret op) (search b)))
-		   (values (op (node c a x b)) ret op)))))))))
+  (receive (tree ret op)
+      (let search ((tree (redden tree)))
+	(tree-match tree
+	  
+	  ((black)
+	   (failure
+	    ;; insert
+	    (lambda (new-value ret)
+	      (values (red (black) (make-item obj new-value) (black))
+		      ret
+		      balance))
+	    ;; ignore
+	    (lambda (ret)
+	      (values (black) ret identity))))
+	  
+	  ((and t (node c a x b))
+	   (let ((key (item-key x)))
+	     (comparator-if<=> comparator obj key
+	       
+	       (receive (a ret op) (search a)
+		 (values (op (node c a x b)) ret op))
+	       
+	       (success
+		key
+		;; update
+		(lambda (new-value ret)
+		  (values (node c a (make-item obj new-value) b)
+			  ret
+			  identity))
+		;; remove
+		(lambda (ret)
+		  (values
+		   (tree-match t
+		     ((red (black) x (black))
+		      (black))
+		     ((black (red a x b) _ (black))
+		      (black a x b))
+		     ((black (black) _ (black))
+		      (white))
+		     (_
+		      (receive (x b) (min+delete b)
+			(rotate (node c a x b)))))
+		   ret
+		   rotate)))
+	       
+	       (receive (b ret op) (search b)
+		 (values (op (node c a x b)) ret op)))))))
     (values (blacken tree) ret)))
 
 (define (replace comparator tree key value)
-  (let-values
-      (((tree ret)
-	(search
-	 comparator tree key
-	 (lambda (insert ignore)
-	   (insert value #f))
-	 (lambda (key update remove)
-	   (update value #f)))))
+  (receive (tree ret)
+      (search
+       comparator tree key
+       (lambda (insert ignore)
+	 (insert value #f))
+       (lambda (key update remove)
+	 (update value #f)))
     tree))
 
 ;;; Helper procedures for deleting and balancing
@@ -285,7 +281,7 @@
     ((black (black) x (red a y b))
      (values x (black a y b)))
     ((node c a x b)
-     (let-values (((v a) (min+delete a)))
+     (receive (v a) (min+delete a)
        (values v (rotate (node c a x b)))))))
 
 (define (balance tree)
@@ -378,13 +374,12 @@
     (values (%imap comparator tree) ret)))
 
 (define (imap-delete map key)
-  (let-values
-      (((map ret)
-	(imap-search map key
-		     (lambda (insert ignore)
-		       (ignore #f))
-		     (lambda (key update remove)
-		       (remove #f)))))
+  (receive (map ret)
+      (imap-search map key
+		   (lambda (insert ignore)
+		     (ignore #f))
+		   (lambda (key update remove)
+		     (remove #f)))
     map))
 
 ;; Local Variables:
