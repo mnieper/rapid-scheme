@@ -69,7 +69,7 @@
       (test-assert "Inserting random elements in list"
 		   (let*
 		       ((random-list
-			 (make-random-list 1000 1000000))
+			 (make-random-list 100 100000))
 			(map
 			 (let loop ((map (imap integers))
 				    (random-list random-list))
@@ -85,7 +85,7 @@
       (test-assert "Deleting random elements in list"
 		   (let*
 		       ((random-list
-			 (make-random-list 1000 1000000))
+			 (make-random-list 100 100000))
 			(map
 			 (let loop ((map (imap integers))
 				    (random-list random-list))
