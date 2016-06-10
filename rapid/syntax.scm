@@ -45,37 +45,35 @@
   (reference syntax-reference syntax-set-reference!)
   (aux syntax-aux syntax-set-aux!))
 
-(define syntax->datum
-  (case-lambda
-   ((syntax) (syntax->datum syntax (lambda (datum) datum)))
-   ((syntax converter)
-    (let syntax->datum ((syntax syntax))
+(define (syntax->datum syntax)
+  (cond
+   ((syntax-reference syntax) => syntax-aux)
+   (else
+    (let ((datum (syntax-datum syntax)))
       (cond
-       ((syntax-reference syntax) => syntax-aux)
+       ((vector? datum)
+	(let* ((n (vector-length datum))
+	       (vector (make-vector n)))
+	  (syntax-set-aux! syntax vector)
+	  (do ((i 0 (+ i 1)))
+	      ((>= i n))
+	    (vector-set! vector i (syntax->datum (vector-ref datum i))))
+	  vector))
+       ((pair? datum)
+	(let ((pair (list #f)))
+	  (syntax-set-aux! syntax pair)
+	  (set-car! pair (syntax->datum (car datum)))
+	  (do ((datum datum (cdr datum))
+	       (pair pair (cdr pair)))
+	      ((not (pair? (cdr datum)))
+	       (unless (null? (cdr datum))
+		 (set-cdr! pair (syntax->datum (cdr datum)))))
+	    (set-cdr! pair (list (syntax->datum (cadr datum)))))
+	  pair))
+       ((identifier? datum)
+	(identifier->symbol datum))
        (else
-	(let ((datum (syntax-datum syntax)))
-	  (cond
-	   ((vector? datum)
-	    (let* ((n (vector-length datum))
-		   (vector (make-vector n)))
-	      (syntax-set-aux! syntax vector)
-	      (do ((i 0 (+ i 1)))
-		  ((>= i n))
-		(vector-set! vector i (syntax->datum (vector-ref datum i))))
-	      vector))
-	   ((pair? datum)
-	    (let ((pair (list #f)))
-	      (syntax-set-aux! syntax pair)
-	      (set-car! pair (syntax->datum (car datum)))
-	      (do ((datum datum (cdr datum))
-		   (pair pair (cdr pair)))
-		  ((not (pair? (cdr datum)))
-		   (unless (null? (cdr datum))
-		     (set-cdr! pair (syntax->datum (cdr datum)))))
-		(set-cdr! pair (list (syntax->datum (cadr datum)))))
-	      pair))
-	   (else
-	    (converter datum))))))))))
+	datum))))))
 
 (define derive-syntax
   (case-lambda

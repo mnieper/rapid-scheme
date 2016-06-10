@@ -31,7 +31,7 @@
 	      (if (and (> (length datum) 1) (list? (syntax-datum (cadr datum))))
 		  (let-values (((library-name-syntax modifier)
 				(loop (cadr syntax))))
-		    (case (syntax-datum (car datum))
+		    (case (syntax->datum (car datum))
 		      ((only)
 		       (and (every identifier? (cddr datum))
 			    (values library-name-syntax
@@ -124,7 +124,7 @@
       (or (and (list? datum)
 	       (let loop ((datum datum))
 		 (or (null? datum)
-		     (let ((element (syntax-datum (car datum))))
+		     (let ((element (syntax->datum (car datum))))
 		       (and (or (and (exact-integer? element) (>= element 0))
 				(symbol? element))
 			    (loop (cdr datum)))))))
@@ -146,9 +146,3 @@
      (else
       (raise-syntax-error syntax "bad rename")
       #f))))
-
-(define identifier-comparator
-  (make-comparator symbol? symbol=?
-		   (lambda (x y)
-		     (string<? (symbol->string x) (symbol->string y)))
-		   #f))

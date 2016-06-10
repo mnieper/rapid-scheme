@@ -29,5 +29,6 @@
 	  (rapid immutable-maps)
 	  (rapid lists)
 	  (rapid and-let)
+	  (rapid identifiers)
 	  (rapid syntax))
   (include "read.scm"))

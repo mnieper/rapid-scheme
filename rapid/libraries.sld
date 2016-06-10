@@ -32,6 +32,7 @@
 	  (rapid generators)
 	  (rapid immutable-maps)
 	  (rapid features)
+	  (rapid identifiers)
 	  (rapid syntax)
 	  (rapid import-sets)
 	  (rapid environments)

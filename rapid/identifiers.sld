@@ -21,7 +21,8 @@
 	  identifier->symbol
 	  symbol->identifier
 	  bound-identifier=?
-	  identifier-comparator)
+	  identifier-comparator
+	  current-identity-counter)
   (import (scheme case-lambda)
 	  (rapid base)
 	  (rapid comparators))

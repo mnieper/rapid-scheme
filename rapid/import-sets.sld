@@ -19,12 +19,12 @@
   (export make-import-set
 	  import-set?
 	  import-set-modifier
-	  library-name?
-	  identifier-comparator)
+	  library-name?)
   (import (scheme base)
 	  (scheme case-lambda)
 	  (rapid lists)
 	  (rapid comparators)
 	  (rapid immutable-maps)
+	  (rapid identifiers)
 	  (rapid syntax))
   (include "import-sets.scm"))

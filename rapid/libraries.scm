@@ -25,7 +25,7 @@
 
 (define (make-library)
   (%make-library (imap identifier-comparator) (make-environment) (list-queue)))
-		      
+	      
 (define (add-export-spec! library syntax)
   (define (add! binding-syntax external-syntax)
     (let
@@ -40,15 +40,15 @@
 					      binding-syntax)))))
   (let ((export-spec (syntax-datum syntax)))
     (cond
-     ((symbol? export-spec)
+     ((identifier? export-spec)
       (add! syntax syntax))
      ((and-let*
 	  (((tagged-list? export-spec 'rename 3))
 	   ((= (length export-spec) 3))
 	   (binding-syntax (list-ref export-spec 1))
 	   (external-syntax (list-ref export-spec 2))
-	   (symbol? (syntax-datum binding-syntax))
-	   (symbol? (syntax-datum external-syntax)))
+	   (identifier? (syntax-datum binding-syntax))
+	   (identifier? (syntax-datum external-syntax)))
 	(add! (list-ref export-spec 1) (list-ref export-spec 2))))
      (else
       (raise-syntax-error syntax "bad export spec")))))
@@ -63,7 +63,7 @@
   (let ((declaration (syntax-datum syntax)))
     (if (or (null? declaration) (not (list? declaration)))
 	(raise-syntax-error syntax "bad library declaration")
-	(case (syntax-datum (car declaration))
+	(case (syntax->datum (car declaration))
 	  ((export)
 	   (for-each (lambda (syntax)
 		       (add-export-spec! library syntax))
@@ -96,7 +96,7 @@
 	       (cond
 		((or (null? clause) (not (list? clause)))
 		 (raise-syntax-error clause-syntax "bad cond-expand clause"))
-		((eq? (syntax-datum (car clause)) 'else)
+		((eq? (syntax->datum (car clause)) 'else)
 		 (if (null? (cdr clause-syntax*))
 		     (for-each (lambda (syntax)
 				 (library-declaration! library syntax))
@@ -113,19 +113,19 @@
 (define (feature? syntax)
   (let ((datum (syntax-datum syntax)))
     (cond
-     ((symbol? datum)
+     ((identifier? datum)
       (memq datum (rapid-features)))
      ((and (not (null? datum)) (list? datum))
-      (case (syntax-datum (car datum))
+      (case (syntax->datum (car datum))
 	((library)
-	 ;; XXX: How do we want to handle libraries that are not on the
-	 ;; file system, e.g. a library of primitives?
 	 (cond
 	  ((= (length datum) 2)
 	   (and (library-name? (cadr datum) raise-syntax-error)
-		(with-syntax-exception-guard
-		 (lambda ()
-		   (read-library-definition (cadr datum))))))
+		(or (equal? (syntax->datum (cadr datum))
+			    '(rapid primitive))
+		    (with-syntax-exception-guard
+		     (lambda ()
+		       (read-library-definition (cadr datum)))))))
 	  (else
 	   (raise-syntax-error syntax "bad library feature requirement")
 	   #f)))
@@ -213,7 +213,7 @@
 (define (tagged-list? datum tag n)
   (and (list? datum)
        (>= (length datum) n)
-       (eq? (syntax-datum (car datum)) tag)))
+       (eq? (syntax->datum (car datum)) tag)))
 
 (define (read-file* string-syntax* ci?)
   (apply gappend (map-in-order

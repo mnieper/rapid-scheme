@@ -135,7 +135,6 @@
      (for-each proc references))
    (vector-ref label 1)))
 
-
 (define label-comparator (make-comparator integer? = < #f))
 
 (define (read-syntax source-port context)
@@ -158,7 +157,7 @@
   
   (define (string->identifier string)
     (let ((string (if (ci?) (string-foldcase string) string)))
-      (string->symbol string)))
+      (symbol->identifier (string->symbol string))))
   
   (define start (make-parameter #f))
 
@@ -271,7 +270,7 @@
 		   (syntax char)
 		   char))))
        (else
-	(case (string->identifier token)
+	(case (string->symbol (if (ci?) (string-foldcase string) token))
 	  ((alarm) (syntax #\alarm))
 	  ((backspace) (syntax #\backspace))
 	  ((delete) (syntax #\delete))
@@ -659,18 +658,18 @@
 		   (read-syntax)))
 	   ;; Quote
 	   ((#\')
-	    (read-abbreviation 'quote))
+	    (read-abbreviation (symbol->identifier 'quote)))
 	   ;; Quasiquote
 	   ((#\`)
-	    (read-abbreviation 'quasiquote))
+	    (read-abbreviation (symbol->identifier 'quasiquote)))
 	   ;; Unquote
 	   ((#\,)
 	    (cond
 	     ((char=? (peek) #\@)
 	      (read)
-	      (read-abbreviation 'unquote-splicing))
+	      (read-abbreviation (symbol->identifier 'unquote-splicing)))
 	     (else
-	      (read-abbreviation 'unquote))))
+	      (read-abbreviation (symbol->identifier 'unquote)))))
 	   ;; Sharp syntax
 	   ((#\#)
 	    (or
