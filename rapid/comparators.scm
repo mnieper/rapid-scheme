@@ -15,6 +15,16 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+(define (string-hash obj)
+  (let ((acc (make-hasher))
+        (len (string-length obj)))
+    (do ((n 0 (+ n 1)))
+	((= n len) (acc))
+      (acc (char->integer (string-ref obj n))))))
+
+(define (symbol-hash symbol)
+  (string-hash (symbol->string symbol)))
+
 (define-record-type <comparator>
   (%make-comparator type-test equality ordering hash)
   comparator?
@@ -78,7 +88,24 @@
 	 equal-to)
 	(else
 	 greater-than))))))
-      
+
+(define-syntax hash-bound
+  (syntax-rules ()
+    ((hash-bound) 33554432)))
+
+(define salt (make-parameter 16064047))
+
+(define-syntax hash-salt
+  (syntax-rules ()
+    ((hash-salt) (salt))))
+
+(define (make-hasher)
+  (let ((result (salt)))
+    (case-lambda
+     (() result)
+     ((n) (set! result (+ (modulo (* result 33) (hash-bound)) n))
+          result))))
+
 ;; Local Variables:
 ;; eval: (put 'comparator-if<=> 'scheme-indent-function 3)
 ;; End:

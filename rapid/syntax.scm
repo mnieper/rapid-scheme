@@ -15,6 +15,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Source locations
+
 (define-record-type <source-location>
   (make-source-location source start end)
   source-location?

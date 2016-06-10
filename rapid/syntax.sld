@@ -41,5 +41,6 @@
 	  (scheme process-context)
 	  (scheme write)
 	  (rapid base)
-	  (rapid format))
+	  (rapid format)
+	  (rapid identifiers))
   (include "syntax.scm"))

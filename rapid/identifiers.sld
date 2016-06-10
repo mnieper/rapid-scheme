@@ -15,16 +15,14 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid comparators)
-  (export hash-bound hash-salt string-hash symbol-hash
-          make-comparator comparator? comparator-equality-predicate
-	  make-eq-comparator make-eqv-comparator make-equal-comparator
-	  <? =?
-	  comparator-if<=>)
-  (cond-expand
-   ((library (srfi 128))
-    (import (srfi 128)))
-   (else
-    (import (scheme base)
-	    (scheme case-lambda))
-    (include "comparators.scm"))))
+(define-library (rapid identifiers)
+  (export make-synthetic-identifier
+	  identifier?
+	  identifier->symbol
+	  symbol->identifier
+	  bound-identifier=?
+	  identifier-comparator)
+  (import (scheme case-lambda)
+	  (rapid base)
+	  (rapid comparators))
+  (include "identifiers.scm"))
