@@ -220,7 +220,7 @@
 	   ((acc (loop acc a))
 	    (acc (loop acc b)))
 	 (proc (item-key x) (item-value x) acc))))))
-       
+
 ;;; Update procedures for trees
 
 (define (search comparator tree obj failure success)

@@ -15,18 +15,58 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-record-type <environment>
-  (%make-environment libraries)
-  environment?
-  (libraries environment-libraries))
+;;; The table of read libraries
 
-(define library-name-comparator (make-equal-comparator))
+(define identifier<? (comparator-ordering-predicate identifier-comparator))
+(define identifier-hash (comparator-hash-function identifier-comparator))
+
+(define (library-element-type-test obj)
+   (lambda (obj)
+     (or (identifier? obj)
+	 (and (exact-integer? obj) (>= obj 0)))))
+
+(define (library-element=? element1 element2)
+  (if (identifier? element1)
+      (and (identifier? element2)
+	   (bound-identifier=? element1 element2))
+      (and (exact-integer? element2)
+	   (= element1 element2))))
+
+(define (library-element<? element1 element2)
+  (if (identifier? element1)
+      (or (exact-integer? element2)
+	  (identifier<? element1 element2))
+      (and (exact-integer? element2)
+	   (< element1 element2))))
+
+(define (library-element-hash element)
+  (if (identifier? element)
+      (identifier-hash element)
+      (number-hash element)))
+
+(define library-element-comparator
+  (make-comparator library-element-type-test
+		   library-element=?
+		   library-element<?
+		   library-element-hash))
+
+(define library-name-comparator
+  (make-list-comparator library-element-comparator list? null? car cdr))
+
+(define (make-library-table)
+  (imap library-name-comparator))
+
+(define current-library-table (make-parameter (make-library-table)))
+
+(define-syntax with-new-library-table
+  (syntax-rules ()
+    ((with-new-library-table body1 body2 ...)
+     (parameterize ((current-library-table (make-library-table)))
+       body1 body2 ...))))
+
+(define-record-type <environment>
+  (%make-environment)
+  environment?)
 
 (define (make-environment)
-  (%make-environment (imap library-name-comparator)))
-
-
-
-(define (environment-add-import-set! environment syntax)
-  ;; TODO
-  #f)
+  (%make-environment))

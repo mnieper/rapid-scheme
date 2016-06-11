@@ -16,15 +16,14 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-record-type <library-definition>
-  (%make-library export-mapping imports body)
+  (%make-library export-mapping import-sets body)
   library?
   (export-mapping library-export-mapping)
-  (imports library-environment)         ; FIXME: This will become a list-queue
-					; of import-sets
+  (import-sets library-import-sets)
   (body library-body))
 
 (define (make-library)
-  (%make-library (make-export-mapping) (make-environment) (list-queue)))
+  (%make-library (make-export-mapping) (list-queue) (list-queue)))
 	      
 (define (add-export-spec! library syntax)
   (let ((export-mapping (library-export-mapping library))
@@ -45,7 +44,8 @@
       (raise-syntax-error syntax "bad export spec")))))
 	
 (define (add-import-set! library syntax)
-  (environment-add-import-set! (library-environment library) syntax))
+  (list-queue-add-back! (library-import-sets library)
+			(make-import-set syntax)))
 
 (define (add-body-form! library syntax)
   (list-queue-add-back! (library-body library) syntax))

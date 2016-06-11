@@ -16,9 +16,11 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid comparators)
-  (export hash-bound hash-salt string-hash symbol-hash
+  (export hash-bound hash-salt string-hash symbol-hash number-hash
           make-comparator comparator? comparator-equality-predicate
+	  comparator-ordering-predicate comparator-hash-function
 	  make-eq-comparator make-eqv-comparator make-equal-comparator
+	  make-list-comparator
 	  <? =?
 	  comparator-if<=>)
   (cond-expand
@@ -26,5 +28,7 @@
     (import (srfi 128)))
    (else
     (import (scheme base)
-	    (scheme case-lambda))
+	    (scheme case-lambda)
+	    (scheme complex)
+	    (scheme inexact))
     (include "comparators.scm"))))

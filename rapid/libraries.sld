@@ -19,7 +19,7 @@
   (export make-library
 	  library?
 	  library-export-mapping
-	  library-environment
+	  library-import-sets
 	  library-body
           read-library
 	  current-library-directories)
@@ -35,7 +35,6 @@
 	  (rapid identifiers)
 	  (rapid syntax)
 	  (rapid import-sets)
-	  (rapid environments)
 	  (rapid read)
 	  (rapid paths))
   (include "libraries.scm"))

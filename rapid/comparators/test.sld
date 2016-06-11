@@ -21,11 +21,15 @@
 	  (rapid test)
 	  (rapid comparators))
   (begin
+    (define integers (make-comparator integer? = < #f))
     (define (run-tests)
     
       (test-begin "Comparators")
 
-      ;; TODO: Write tests.
+      (test-assert "List comparators"
+		   (<? (make-list-comparator integers list? null? car cdr)
+		       '(1 2 3 4)
+		       '(1 2 5 6)))
       
       (test-end)
 
