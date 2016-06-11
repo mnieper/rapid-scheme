@@ -18,8 +18,12 @@
 		  '(1 2 . 3)
 		  (append-reverse '(2 1) 3))
       
-      ;; TODO: Write many more tests.
-      
+      (test-equal "fold-right"
+		  '(2 2 4 4 6)
+		  (fold-right (lambda (x l)
+				(if (even? x) (cons x l) l))
+			      '() '(1 2 2 3 4 4 5 5 6)))
+
       (test-end)
 
       #t)))

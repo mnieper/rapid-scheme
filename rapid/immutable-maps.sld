@@ -26,6 +26,7 @@
 	  imap-delete
 	  imap-search
 	  imap-map
+	  imap-for-each
 	  imap-key-not-found?)
   (import (scheme base)
 	  (scheme case-lambda)

@@ -406,6 +406,13 @@
 	       (black) (imap-tree map))))
     (%imap comparator tree)))
 
+(define (imap-for-each proc map)
+  (%fold (imap-comparator map)
+	 (lambda (key value acc)
+	   (proc key value)
+	   acc)
+	 (if #f #f) (imap-tree map)))
+
 ;; Local Variables:
 ;; eval: (put 'tree-match 'scheme-indent-function 1)
 ;; eval: (put 'comparator-if<=> 'scheme-indent-function 3)

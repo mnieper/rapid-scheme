@@ -20,6 +20,7 @@
 	  find any every map-in-order
 	  circular-list?
 	  append-reverse
+	  fold-right
 	  take
 	  drop
 	  take-right

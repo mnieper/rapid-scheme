@@ -113,6 +113,16 @@
 		     (imap-contains? map2 4) 
 		     (imap-contains? map2 5) 
 		     (imap-contains? map2 6)))) 
-		   
+
+      (test-equal "imap-for-each"
+		  6
+		  (let*
+		      ((map (imap integers 1 1 2 2 3 3))
+		       (count 0))
+		    (imap-for-each (lambda (key value)
+				     (set! count (+ count key)))
+				   map)
+		    count))
+      
       (test-end)
       #t)))

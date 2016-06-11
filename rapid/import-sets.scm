@@ -72,45 +72,40 @@
   (modifier import-set-modifier))
 
 (define (make-import-set syntax)
-  (let-values
-      (((library-name-syntax modifier)
-	(let loop ((syntax syntax))
-	  (let ((datum (unwrap-syntax syntax)))
-	    (cond
-	     ((list? datum)
-	      (if (and (> (length datum) 1) (list? (unwrap-syntax (cadr datum))))
-		  (let-values (((library-name-syntax modifier)
-				(loop (cadr syntax))))
-		    (case (syntax->datum (car datum))
-		      ((only)
-		       (and (every identifier? (cddr datum))
-			    (values library-name-syntax
-				    (only-modifier modifier (cddr datum)))))
-		      ((except)
-		       (and (every identifier? (cddr datum))
-			    (values library-name-syntax
-				    (except-modifier modifier (cddr datum)))))
-		      ((prefix)
-		       (cond
-			((= (length datum) 3)
-			 (and (identifier? (list-ref datum 2))
-			      (values library-name-syntax
-				      (except-modifier modifier
-						       (list-ref datum 2)))))
-			(else
-			 (raise-syntax-error syntax "bad prefix import set")
-			 #f)))
-		      ((rename)
-		       (and (every rename? (cddr datum))
-			    (values library-name-syntax
-				    (rename-modifier modifier (cddr datum)))))
-		      (else
-		       (raise-syntax-error syntax "invalid import set"))))
-		    (and (library-name? syntax)
-			 (values syntax (lambda (exports) exports)))))
-	     (else
-	      (raise-syntax-error syntax "bad import set")
-	      #f))))))
+  (receive (library-name-syntax modifier)
+      (let loop ((syntax syntax))
+	(let ((datum (unwrap-syntax syntax)))
+	  (cond
+	   ((list? datum)
+	    (if (and (> (length datum) 1) (list? (unwrap-syntax (cadr datum))))
+		(receive (library-name-syntax modifier)
+		    (loop (cadr syntax))
+		  (values
+		   library-name-syntax
+		   (case (syntax->datum (car datum))
+		     ((only)
+		      (only-modifier modifier (identifier-list (cddr datum))))
+		     ((except)
+		      (except-modifier modifier (identifier-list (cddr datum))))
+		     ((prefix)
+		      (cond
+		       ((= (length datum) 3)
+			(and (identifier? (list-ref datum 2))
+			     (values library-name-syntax
+				     (prefix-modifier modifier
+						      (list-ref datum 2)))))
+		       (else
+			(raise-syntax-error syntax "bad prefix import set")
+			#f)))
+		     ((rename)
+		      (rename-modifier (rename-map (cddr datum))))
+		     (else
+		      (raise-syntax-error syntax "invalid import set")))))
+		(and (library-name? syntax)
+		     (values syntax (lambda (exports) exports)))))
+	   (else
+	    (raise-syntax-error syntax "bad import set")
+	    #f))))
     (%make-import-set library-name-syntax modifier)))
 
 (define (import-set-modify import-set export-mapping)
@@ -139,13 +134,35 @@
 	  ((null? syntax*) export-mapping)
 	(export-mapping-delete! export-mapping (car syntax*))))))
 
-(define (prefix-modifier modifier syntax*)
-  (lambda (exports)
-    (modifier exports)))
+(define (prefix-modifier modifier syntax)
+  (let ((prefix (symbol->string (syntax->datum syntax))))
+    (lambda (export-mapping)
+      (%make-export-mapping
+       (imap-map (lambda (exported-identifier-syntax)
+		   (derive-syntax
+		    (symbol->identifier
+		     (string->symbol
+		      (string-append
+		       prefix
+		       (symbol->string (syntax->datum exported-identifier-syntax)))))
+		    syntax))
+		 (export-mapping-map (modifier export-mapping)))))))
 
-(define (rename-modifier modifier syntax*)
-  (lambda (exports)
-    (modifier exports)))
+(define (rename-modifier modifier rename-map)
+  (lambda (export-mapping)
+    (let ((rename-export-mapping (make-export-mapping)))
+      (imap-for-each
+       (lambda (key value)
+	 (cond
+	  ((imap-ref/default rename-map key #f)
+	   => (lambda (renamed-identifier-syntax)
+		(export-mapping-add! rename-export-mapping
+				     value
+				     renamed-identifier-syntax)))
+	  (else
+	   (export-mapping-add! rename-export-mapping value key))))
+       (export-mapping-map (modifier export-mapping)))
+      rename-export-mapping)))
 
 (define library-name?
   (case-lambda
@@ -168,6 +185,31 @@
       (begin
 	(raise-syntax-error syntax "bad identifier")
 	#f)))
+
+(define (identifier-list syntax*)
+  (fold-right
+   (lambda (identifier-syntax syntax*)
+     (if (identifier? identifier-syntax)
+	 (cons identifier-syntax syntax*)
+	 syntax*))
+   '() syntax*))
+
+(define (rename-map syntax*)
+  (fold-right (lambda (rename-syntax rename-map)
+	  (if (rename? rename-syntax)
+	      (let ((identifier-syntax (car (unwrap-syntax rename-syntax))))
+		(cond
+		 ((imap-ref/default rename-map (unwrap-syntax identifier-syntax))
+		  (raise-syntax-error identifier-syntax
+				      "identifier ‘~a’ is already being renamed"
+				      identifier-syntax)
+		  rename-map)
+		 (else
+		  (imap-replace rename-map
+				(unwrap-syntax identifier-syntax)
+				(cdr (unwrap-syntax rename-syntax))))))
+	      rename-map))
+	(imap identifier-comparator) syntax*))
 
 (define (rename? syntax)
   (let ((datum (unwrap-syntax syntax)))

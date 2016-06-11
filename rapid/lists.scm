@@ -38,7 +38,13 @@
     (if (null? reversed-head)
 	tail
 	(loop (cdr reversed-head) (cons (car reversed-head) tail)))))
-  
+
+(define (fold-right proc seed list)
+  (let loop ((list list))
+    (if (null? list)
+	seed
+	(proc (car list) (loop (cdr list))))))
+
 (define (take list k)
   (let loop ((list list) (k k))
     (if (zero? k)
