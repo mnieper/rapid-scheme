@@ -18,7 +18,7 @@
 (define-library (rapid libraries)
   (export make-library
 	  library?
-	  library-exports
+	  library-export-mapping
 	  library-environment
 	  library-body
           read-library

@@ -15,6 +15,32 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Export specs
+
+(define-record-type <exports>
+  (%make-export-mapping map)
+  export-mapping?
+  (map export-mapping-map export-mapping-set-map!))
+
+(define (make-export-mapping)
+  (%make-export-mapping (imap identifier-comparator)))
+
+(define (export-mapping-add! export-mapping binding-syntax external-syntax)
+  (let ((exports (export-mapping-map export-mapping))
+	(external-identifier (unwrap-syntax external-syntax)))
+    (cond
+     ((imap-ref/default exports external-identifier #f)
+      (raise-syntax-error external-syntax
+			  "name ‘~a’ already exported" external-identifier)
+      #f)
+     (else
+      (export-mapping-set-map! export-mapping
+			       (imap-replace exports
+					     external-identifier
+					     binding-syntax))))))
+
+;;; Import sets
+
 (define-record-type <import-set>
   (%make-import-set library-name-syntax modifier)
   import-set?

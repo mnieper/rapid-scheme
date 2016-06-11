@@ -16,32 +16,22 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-record-type <library-definition>
-  (%make-library exports imports body)
+  (%make-library export-mapping imports body)
   library?
-  (exports library-exports library-set-exports!)
+  (export-mapping library-export-mapping)
   (imports library-environment)         ; FIXME: This will become a list-queue
 					; of import-sets
   (body library-body))
 
 (define (make-library)
-  (%make-library (imap identifier-comparator) (make-environment) (list-queue)))
+  (%make-library (make-export-mapping) (make-environment) (list-queue)))
 	      
 (define (add-export-spec! library syntax)
-  (define (add! binding-syntax external-syntax)
-    (let
-	((exports (library-exports library))
-	 (external-symbol (unwrap-syntax external-syntax)))
-      (if (imap-ref/default exports external-symbol #f)
-	  (raise-syntax-error external-syntax
-			      "name ‘~a’ already exported" external-symbol)
-	  (library-set-exports! library
-				(imap-replace exports
-					      external-symbol
-					      binding-syntax)))))
-  (let ((export-spec (unwrap-syntax syntax)))
+  (let ((export-mapping (library-export-mapping library))
+	(export-spec (unwrap-syntax syntax)))
     (cond
      ((identifier? export-spec)
-      (add! syntax syntax))
+      (export-mapping-add! export-mapping syntax syntax))
      ((and-let*
 	  (((tagged-list? export-spec 'rename 3))
 	   ((= (length export-spec) 3))
@@ -49,7 +39,8 @@
 	   (external-syntax (list-ref export-spec 2))
 	   (identifier? (unwrap-syntax binding-syntax))
 	   (identifier? (unwrap-syntax external-syntax)))
-	(add! (list-ref export-spec 1) (list-ref export-spec 2))))
+	(export-mapping-add! export-mapping
+			     (list-ref export-spec 1) (list-ref export-spec 2))))
      (else
       (raise-syntax-error syntax "bad export spec")))))
 	
