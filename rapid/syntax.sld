@@ -18,7 +18,7 @@
 (define-library (rapid syntax)
   (export make-syntax
 	  syntax?
-          syntax-datum syntax-set-datum!
+          unwrap-syntax syntax-set-datum!
 	  syntax-source-location
 	  syntax-context
 	  syntax-reference syntax-set-reference!

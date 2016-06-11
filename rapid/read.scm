@@ -500,7 +500,7 @@
 		       (return (apply bytevector (reverse datum*)))))
 		    (parameterize
 			((start #f))
-		      (let ((datum (syntax-datum (read-syntax))))
+		      (let ((datum (unwrap-syntax (read-syntax))))
 			(cond
 			 ((and (exact-integer? datum)
 			       (<= 0 datum 255))
@@ -538,7 +538,7 @@
 					 (read-syntax))
 				       syntax*)))))))
 		   (rest (parameterize ((start #f)) (read-syntax)))
-		   (datum (syntax-datum rest))
+		   (datum (unwrap-syntax rest))
 		   (list (append-reverse syntax*
 					 (if (or (pair? datum) (null? datum))
 					     datum
@@ -584,7 +584,7 @@
 						  (label-references label))))))
 		   (else
 		    ;; The references can be patched
-		    (let ((datum (syntax-datum referenced-syntax)))
+		    (let ((datum (unwrap-syntax referenced-syntax)))
 		      (label-for-each-reference
 		       (lambda (reference)
 			 (syntax-set-datum! reference datum)
@@ -599,7 +599,7 @@
 					    (reader-error "unknown reference")
 					    #f))))
 	      (or (and-let* ((referenced-syntax (label-syntax label)))
-		    (syntax (syntax-datum referenced-syntax) referenced-syntax))
+		    (syntax (unwrap-syntax referenced-syntax) referenced-syntax))
 		  (let ((referencing-syntax (syntax label)))
 		    (label-add-reference! label referencing-syntax)
 		    referencing-syntax))))

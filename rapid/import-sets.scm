@@ -25,10 +25,10 @@
   (let-values
       (((library-name-syntax modifier)
 	(let loop ((syntax syntax))
-	  (let ((datum (syntax-datum syntax)))
+	  (let ((datum (unwrap-syntax syntax)))
 	    (cond
 	     ((list? datum)
-	      (if (and (> (length datum) 1) (list? (syntax-datum (cadr datum))))
+	      (if (and (> (length datum) 1) (list? (unwrap-syntax (cadr datum))))
 		  (let-values (((library-name-syntax modifier)
 				(loop (cadr syntax))))
 		    (case (syntax->datum (car datum))
@@ -75,7 +75,7 @@
 		  syntax*))
 	(if (null? syntax*)
 	    only-exports
-	    (let ((datum (syntax-datum (car syntax*))))
+	    (let ((datum (unwrap-syntax (car syntax*))))
 	      (cond
 	       ((imap-ref/default exports datum #f)
 		=> (lambda (identifier-syntax)
@@ -93,7 +93,7 @@
       (if (null? syntax*)
 	  exports
 	  (let*-values
-	      (((datum) (syntax-datum (car syntax*)))
+	      (((datum) (unwrap-syntax (car syntax*)))
 	       ((exports ok)	    
 		(imap-search
 		 exports
@@ -120,7 +120,7 @@
    ((syntax)
     (library-name? syntax raise-syntax-error))
    ((syntax raise)
-    (let ((datum (syntax-datum syntax)))
+    (let ((datum (unwrap-syntax syntax)))
       (or (and (list? datum)
 	       (let loop ((datum datum))
 		 (or (null? datum)
@@ -132,13 +132,13 @@
 		 #f))))))
 
 (define (identifier? syntax)
-  (or (symbol? (syntax-datum syntax))
+  (or (symbol? (unwrap-syntax syntax))
       (begin
 	(raise-syntax-error syntax "bad identifier")
 	#f)))
 
 (define (rename? syntax)
-  (let ((datum (syntax-datum syntax)))
+  (let ((datum (unwrap-syntax syntax)))
     (cond
      ((and (list? datum) (= (length datum) 2))
       (and (identifier? (car datum))

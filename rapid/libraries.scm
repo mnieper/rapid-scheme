@@ -30,7 +30,7 @@
   (define (add! binding-syntax external-syntax)
     (let
 	((exports (library-exports library))
-	 (external-symbol (syntax-datum external-syntax)))
+	 (external-symbol (unwrap-syntax external-syntax)))
       (if (imap-ref/default exports external-symbol #f)
 	  (raise-syntax-error external-syntax
 			      "name ‘~a’ already exported" external-symbol)
@@ -38,7 +38,7 @@
 				(imap-replace exports
 					      external-symbol
 					      binding-syntax)))))
-  (let ((export-spec (syntax-datum syntax)))
+  (let ((export-spec (unwrap-syntax syntax)))
     (cond
      ((identifier? export-spec)
       (add! syntax syntax))
@@ -47,8 +47,8 @@
 	   ((= (length export-spec) 3))
 	   (binding-syntax (list-ref export-spec 1))
 	   (external-syntax (list-ref export-spec 2))
-	   (identifier? (syntax-datum binding-syntax))
-	   (identifier? (syntax-datum external-syntax)))
+	   (identifier? (unwrap-syntax binding-syntax))
+	   (identifier? (unwrap-syntax external-syntax)))
 	(add! (list-ref export-spec 1) (list-ref export-spec 2))))
      (else
       (raise-syntax-error syntax "bad export spec")))))
@@ -60,7 +60,7 @@
   (list-queue-add-back! (library-body library) syntax))
 
 (define (library-declaration! library syntax)
-  (let ((declaration (syntax-datum syntax)))
+  (let ((declaration (unwrap-syntax syntax)))
     (if (or (null? declaration) (not (list? declaration)))
 	(raise-syntax-error syntax "bad library declaration")
 	(case (syntax->datum (car declaration))
@@ -92,7 +92,7 @@
 	   (do ((clause-syntax* (cdr declaration) (cdr clause-syntax*)))
 	       ((null? clause-syntax*))
 	     (let* ((clause-syntax (car clause-syntax*))
-		    (clause (syntax-datum clause-syntax)))
+		    (clause (unwrap-syntax clause-syntax)))
 	       (cond
 		((or (null? clause) (not (list? clause)))
 		 (raise-syntax-error clause-syntax "bad cond-expand clause"))
@@ -111,7 +111,7 @@
 			       "invalid library declaration"))))))
 
 (define (feature? syntax)
-  (let ((datum (syntax-datum syntax)))
+  (let ((datum (unwrap-syntax syntax)))
     (cond
      ((identifier? datum)
       (memq datum (rapid-features)))
@@ -166,7 +166,7 @@
        (library (make-library)))
     (for-each (lambda (syntax)
 		(library-declaration! library syntax))
-	      (cddr (syntax-datum library-definition-syntax)))))
+	      (cddr (unwrap-syntax library-definition-syntax)))))
 
 (define (read-library-definition library-name-syntax)
 
@@ -198,7 +198,7 @@
 	      (let ((syntax (reader)))
 		(and (not (eof-object? syntax))
 		     (or (and-let*
-			     ((datum (syntax-datum syntax))
+			     ((datum (unwrap-syntax syntax))
 			      ((or (tagged-list? datum 'define-library 2)
 				   (begin (raise-syntax-warning
 					   syntax
@@ -227,7 +227,7 @@
 		  string-syntax*)))
 
 (define (locate-file syntax)
-  (let ((filename (syntax-datum syntax)))
+  (let ((filename (unwrap-syntax syntax)))
     (cond
      ((string? filename)
       (cond

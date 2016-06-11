@@ -39,7 +39,7 @@
 (define-record-type <syntax>
   (make-syntax datum source-location context reference)
   syntax?
-  (datum syntax-datum syntax-set-datum!)
+  (datum unwrap-syntax syntax-set-datum!)
   (source-location syntax-source-location)
   (context syntax-context syntax-set-context!)
   (reference syntax-reference syntax-set-reference!)
@@ -49,7 +49,7 @@
   (cond
    ((syntax-reference syntax) => syntax-aux)
    (else
-    (let ((datum (syntax-datum syntax)))
+    (let ((datum (unwrap-syntax syntax)))
       (cond
        ((vector? datum)
 	(let* ((n (vector-length datum))
@@ -87,7 +87,7 @@
 	(cond
 	 ;; XXX: Does not handle vectors or improper lists
 	 ((syntax? datum)
-	  (make-syntax (syntax-datum datum)
+	  (make-syntax (unwrap-syntax datum)
 		       (syntax-source-location datum)
 		       context
 		       #f))
