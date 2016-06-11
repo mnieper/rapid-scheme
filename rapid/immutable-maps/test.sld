@@ -99,7 +99,20 @@
 			     (and (not (imap-contains? map (car random-list)))
 				  (loop (cdr random-list) map)))))))
 
-      ;; TODO: CHECK BALANCE OF TREES
-
+      (test-equal "imap-map"
+		  '(#f #t #t #t #t #f)
+		  (let*
+		      ((map1 (imap integers 1 1 2 2 3 3 4 4))
+		       (map2 (imap-map (lambda (key)
+					 (+ key 1))
+				       map1)))
+		    (list
+		     (imap-contains? map2 1) 
+		     (imap-contains? map2 2) 
+		     (imap-contains? map2 3) 
+		     (imap-contains? map2 4) 
+		     (imap-contains? map2 5) 
+		     (imap-contains? map2 6)))) 
+		   
       (test-end)
       #t)))

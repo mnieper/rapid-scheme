@@ -198,8 +198,8 @@
      #f)))
 
 (define (contains? comparator tree obj)
-  (or (find? comparator tree obj)
-      #f))
+  (and (find? comparator tree obj)
+       #t))
 
 (define (ref comparator tree obj failure)
   (cond
@@ -208,6 +208,19 @@
    (else
     (failure))))
 
+;;; Fundamental tree iterator
+
+(define (%fold comparator proc seed tree)
+  (let loop ((acc seed) (tree tree))
+    (tree-match tree
+      ((black)
+       acc)
+      ((node _ a x b)
+       (let*
+	   ((acc (loop acc a))
+	    (acc (loop acc b)))
+	 (proc (item-key x) (item-value x) acc))))))
+       
 ;;; Update procedures for trees
 
 (define (search comparator tree obj failure success)
@@ -381,6 +394,17 @@
 		   (lambda (key update remove)
 		     (remove #f)))
     map))
+
+(define (imap-map proc map)
+  (let*
+      ((comparator
+	(imap-comparator map))
+       (tree
+	(%fold comparator
+	       (lambda (key value tree)
+		 (replace comparator tree (proc key) value))
+	       (black) (imap-tree map))))
+    (%imap comparator tree)))
 
 ;; Local Variables:
 ;; eval: (put 'tree-match 'scheme-indent-function 1)
