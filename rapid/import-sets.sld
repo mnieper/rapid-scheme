@@ -25,6 +25,8 @@
 	  library-name?)
   (import (scheme base)
 	  (scheme case-lambda)
+	  (rapid and-let)
+	  (rapid receive)
 	  (rapid lists)
 	  (rapid comparators)
 	  (rapid immutable-maps)

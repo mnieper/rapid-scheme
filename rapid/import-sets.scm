@@ -39,6 +39,30 @@
 					     external-identifier
 					     binding-syntax))))))
 
+(define (export-mapping-ref export-mapping external-syntax)
+  (imap-ref (export-mapping-map export-mapping)
+	    (unwrap-syntax external-syntax)
+	    (lambda ()
+	      (raise-syntax-error external-syntax
+				  "identifier ‘~a’ not exported"
+				  (syntax->datum external-syntax))
+	      #f)))
+
+(define (export-mapping-delete! export-mapping exported-identifier-syntax)
+  (receive (map ok)
+      (imap-search
+       (export-mapping-map export-mapping)
+       (unwrap-syntax exported-identifier-syntax)
+       (lambda (insert ignore)
+	 (raise-syntax-error exported-identifier-syntax
+			     "identifier ‘~a’ not exported"
+			     (syntax->datum exported-identifier-syntax))
+	 (ignore #f))
+       (lambda (key update remove)
+	 (remove #t)))
+    (export-mapping-set-map! export-mapping map)
+    ok))
+
 ;;; Import sets
 
 (define-record-type <import-set>
@@ -89,49 +113,31 @@
 	      #f))))))
     (%make-import-set library-name-syntax modifier)))
 
-(define (import-set-modify import-set exports)
-  (import-set-modifier import-set) exports)
+(define (import-set-modify import-set export-mapping)
+  (import-set-modifier import-set) export-mapping)
 
 (define (only-modifier modifier syntax*)
-  (lambda (exports)
-    (let ((exports (modifier exports)))      
-      (let loop ((only-exports
-		  (imap identifier-comparator))
-		 (syntax*
-		  syntax*))
+  (lambda (export-mapping)
+    (let ((export-mapping (modifier export-mapping))
+	  (only-export-mapping (make-export-mapping)))
+      (let loop ((syntax* syntax*))
 	(if (null? syntax*)
-	    only-exports
-	    (let ((datum (unwrap-syntax (car syntax*))))
-	      (cond
-	       ((imap-ref/default exports datum #f)
-		=> (lambda (identifier-syntax)
-		     (loop (imap-replace only-exports datum identifier-syntax)
-			   (cdr syntax*))))
-	       (else
-		(raise-syntax-error (car syntax*)
-				    "identifier in only import set not found")
-		#f))))))))
+	    only-export-mapping
+	    (let ((only-exported-identifier-syntax (car syntax*)))
+	      (and-let*
+		  ((bound-identifier-syntax
+		    (export-mapping-ref export-mapping
+					only-exported-identifier-syntax)))
+		(export-mapping-add! only-export-mapping bound-identifier-syntax
+				     only-exported-identifier-syntax))
+	      (loop (cdr syntax*))))))))
 
 (define (except-modifier modifier syntax*)
-  (lambda (exports)
-    (let loop ((exports (modifier exports))
-	       (syntax* syntax*))
-      (if (null? syntax*)
-	  exports
-	  (let*-values
-	      (((datum) (unwrap-syntax (car syntax*)))
-	       ((exports ok)	    
-		(imap-search
-		 exports
-		 datum
-		 (lambda (insert ignore)
-		   (raise-syntax-error
-		    (car syntax*)
-		    "identifier in except modifier set not found")
-		   (ignore #f))
-		 (lambda (key update remove)
-		   (remove #t)))))
-	    (and ok (loop exports (cdr syntax*))))))))
+  (lambda (export-mapping)
+    (let ((export-mapping (modifier export-mapping)))
+      (do ((syntax* syntax* (cdr syntax*)))
+	  ((null? syntax*) export-mapping)
+	(export-mapping-delete! export-mapping (car syntax*))))))
 
 (define (prefix-modifier modifier syntax*)
   (lambda (exports)
