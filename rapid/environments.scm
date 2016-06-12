@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;;; The table of read libraries
+;;; Syntactic environment tables for already loaded libraries
 
 (define identifier<? (comparator-ordering-predicate identifier-comparator))
 (define identifier-hash (comparator-hash-function identifier-comparator))
@@ -54,17 +54,21 @@
   (make-list-comparator library-element-comparator list? null? car cdr))
 
 (define-record-type <environment>
-  (%make-environment)
+  (%make-environment )
   environment?)
 
 (define (make-environment import-sets body)
 
+  (define store
+    ;; Locations for values for variables
+    (imap identifier-comparator))
+  
   (define syntactic-environment-table
     (imap library-name-comparator
 	  (list (symbol->identifier 'rapid)
 		(symbol->identifier 'primitive))
 	  #t))
-  
+
   (define (syntactic-environment-intern! library-name-syntax)
     (call-with-current-continuation
      (lambda (return)

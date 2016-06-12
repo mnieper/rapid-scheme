@@ -30,6 +30,11 @@
 		    (lambda ()
 		      (read-library (derive-syntax '(rapid libraries test))))))
 
+      (test-assert "Read program"
+		   (with-syntax-exception-handler
+		    (lambda ()
+		      (read-program "tests.scm"))))
+      
       ;; FIXME: Write more tests, testing loaded libraries for exported features.
       
       (test-end))))

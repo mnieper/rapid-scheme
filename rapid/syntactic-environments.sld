@@ -15,26 +15,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid libraries)
-  (export library?
-	  library-export-mapping
-	  library-import-sets
-	  library-body
-          read-library
-	  read-program
-	  current-library-directories)
-  (import (scheme file)
-	  (rapid base)
-	  (rapid and-let)
-	  (rapid lists)
-	  (rapid list-queues)
+(define-library (rapid syntactic-environments)
+  (export with-syntactic-environment)
+  (import (rapid base)
 	  (rapid comparators)
-	  (rapid generators)
-	  (rapid immutable-maps)
-	  (rapid features)
-	  (rapid identifiers)
-	  (rapid syntax)
-	  (rapid import-sets)
-	  (rapid read)
-	  (rapid paths))
-  (include "libraries.scm"))
+	  (rapid identifiers))
+  (include "syntactic-environments.scm"))
+	
+;; Local Variables:
+;; eval: (put 'with-syntactic-environment 'scheme-indent-function 1)
+;; End:

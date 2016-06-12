@@ -24,6 +24,7 @@
 	  (rapid identifiers)
 	  (rapid immutable-maps)
 	  (rapid syntax)
+	  (rapid syntactic-environments)
 	  (rapid import-sets)
 	  (rapid libraries))
   (include "environments.scm"))

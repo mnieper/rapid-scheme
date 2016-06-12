@@ -24,7 +24,7 @@
 
 (define (make-library)
   (%make-library (make-export-mapping) (list-queue) (list-queue)))
-	      
+
 (define (add-export-spec! library syntax)
   (let ((export-mapping (library-export-mapping library))
 	(export-spec (unwrap-syntax syntax)))
@@ -161,7 +161,31 @@
     (library-set-body! library
 		       (list-queue-list (library-body library)))
     (library-set-import-sets! library
-			      (list-queue-list (library-import-sets library)))))
+			      (list-queue-list (library-import-sets library)))
+    library))
+
+(define (read-program filename)
+  (and-let*
+      ((library (make-library))
+       (reader (read-file filename #f #f)))
+    (let loop ((import-declaration? #f))
+      (let ((syntax (reader)))
+	(cond
+	 ((eof-object? syntax)
+	  (raise-syntax-error #f "program contains no commands or definitions")
+	  library)
+	 ((tagged-list? (unwrap-syntax syntax) 'import 1)
+	  (for-each (lambda (syntax)
+		      (add-import-set! library syntax))
+		    (cdr (unwrap-syntax syntax)))
+	  (loop #t))
+	 (else
+	  (unless import-declaration?
+	    (raise-syntax-error #f "program contains no import declaration"))
+	  (generator-for-each (lambda (syntax)
+				(add-body-form! library syntax))
+			      reader)
+	  library))))))
 
 (define (read-library-definition library-name-syntax)
 

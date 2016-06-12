@@ -79,7 +79,7 @@
 	   ((list? datum)
 	    (if (and (> (length datum) 1) (list? (unwrap-syntax (cadr datum))))
 		(receive (library-name-syntax modifier)
-		    (loop (cadr syntax))
+		    (loop (cadr datum))
 		  (values
 		   library-name-syntax
 		   (case (syntax->datum (car datum))
@@ -90,7 +90,7 @@
 		     ((prefix)
 		      (cond
 		       ((= (length datum) 3)
-			(and (identifier? (list-ref datum 2))
+			(and (identifier-syntax? (list-ref datum 2))
 			     (values library-name-syntax
 				     (prefix-modifier modifier
 						      (list-ref datum 2)))))
@@ -98,7 +98,7 @@
 			(raise-syntax-error syntax "bad prefix import set")
 			#f)))
 		     ((rename)
-		      (rename-modifier (rename-map (cddr datum))))
+		      (rename-modifier modifier (rename-map (cddr datum))))
 		     (else
 		      (raise-syntax-error syntax "invalid import set")))))
 		(and (library-name? syntax)
@@ -180,43 +180,46 @@
 	  (begin (raise syntax "bad library name")
 		 #f))))))
 
-(define (identifier? syntax)
-  (or (symbol? (unwrap-syntax syntax))
+(define (identifier-syntax? syntax)
+  (or (identifier? (unwrap-syntax syntax))
       (begin
 	(raise-syntax-error syntax "bad identifier")
 	#f)))
 
 (define (identifier-list syntax*)
-  (fold-right
-   (lambda (identifier-syntax syntax*)
-     (if (identifier? identifier-syntax)
-	 (cons identifier-syntax syntax*)
-	 syntax*))
-   '() syntax*))
+  (let loop ((syntax* syntax*))
+    (cond
+     ((null? syntax*)
+      '())
+     ((identifier-syntax? (car syntax*))
+      (cons (car syntax*) (loop (cdr syntax*))))
+     (else
+      (loop (cdr syntax*))))))
 
 (define (rename-map syntax*)
-  (fold-right (lambda (rename-syntax rename-map)
-	  (if (rename? rename-syntax)
-	      (let ((identifier-syntax (car (unwrap-syntax rename-syntax))))
-		(cond
-		 ((imap-ref/default rename-map (unwrap-syntax identifier-syntax))
-		  (raise-syntax-error identifier-syntax
-				      "identifier ‘~a’ is already being renamed"
-				      identifier-syntax)
-		  rename-map)
-		 (else
-		  (imap-replace rename-map
-				(unwrap-syntax identifier-syntax)
-				(cdr (unwrap-syntax rename-syntax))))))
-	      rename-map))
-	(imap identifier-comparator) syntax*))
+  (fold-right
+   (lambda (rename-syntax rename-map)
+     (if (rename? rename-syntax)
+	 (let ((identifier-syntax (car (unwrap-syntax rename-syntax))))
+	   (cond
+	    ((imap-ref/default rename-map (unwrap-syntax identifier-syntax) #f)
+	     (raise-syntax-error identifier-syntax
+				 "identifier ‘~a’ is already being renamed"
+				 identifier-syntax)
+	     rename-map)
+	    (else
+	     (imap-replace rename-map
+			   (unwrap-syntax identifier-syntax)
+			   (cdr (unwrap-syntax rename-syntax))))))
+	 rename-map))
+   (imap identifier-comparator) syntax*))
 
 (define (rename? syntax)
   (let ((datum (unwrap-syntax syntax)))
     (cond
      ((and (list? datum) (= (length datum) 2))
-      (and (identifier? (car datum))
-	   (identifier? (cadr datum))))
+      (and (identifier-syntax? (car datum))
+	   (identifier-syntax? (cadr datum))))
      (else
       (raise-syntax-error syntax "bad rename")
       #f))))

@@ -161,7 +161,7 @@
 
 (define (print-source-location syntax)
   (cond
-   ((syntax-source-location syntax)
+   ((and syntax (syntax-source-location syntax))
     => (lambda (source-location)
 	 (write-string (source-location-source source-location)
 		       (current-error-port))
@@ -197,7 +197,8 @@
       ((syntax-exception? condition)
        (print-exception condition)
        (when (syntax-fatal-error? condition)
-	 (exit #f)))
+	 (exit #f))
+       #f)
       (else
        (print-internal-error)
        (raise condition))))

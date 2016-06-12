@@ -15,26 +15,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid libraries)
-  (export library?
-	  library-export-mapping
-	  library-import-sets
-	  library-body
-          read-library
-	  read-program
-	  current-library-directories)
-  (import (scheme file)
-	  (rapid base)
-	  (rapid and-let)
-	  (rapid lists)
-	  (rapid list-queues)
-	  (rapid comparators)
-	  (rapid generators)
-	  (rapid immutable-maps)
-	  (rapid features)
-	  (rapid identifiers)
-	  (rapid syntax)
-	  (rapid import-sets)
-	  (rapid read)
-	  (rapid paths))
-  (include "libraries.scm"))
+(define-library (rapid syntactic-environments test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
+	  (rapid syntactic-environments))
+  (begin
+    (define (run-tests)
+      (test-begin "Syntactic Environments")
+
+      (test-end "Syntactic Environments"))))
