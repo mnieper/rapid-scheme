@@ -17,9 +17,9 @@
 
 (define-library (rapid environments)
   (export make-environment
-	  environment?
-	  with-new-library-table)
-  (import (scheme base)
+	  environment?)
+  (import (rapid base)
+	  (rapid and-let)
 	  (rapid comparators)
 	  (rapid identifiers)
 	  (rapid immutable-maps)
@@ -27,8 +27,3 @@
 	  (rapid import-sets)
 	  (rapid libraries))
   (include "environments.scm"))
-
-;; Local Variables:
-;; eval: (put 'with-new-library-table 'scheme-indent-function 0)
-;; End:
-

@@ -53,20 +53,57 @@
 (define library-name-comparator
   (make-list-comparator library-element-comparator list? null? car cdr))
 
-(define (make-library-table)
-  (imap library-name-comparator))
-
-(define current-library-table (make-parameter (make-library-table)))
-
-(define-syntax with-new-library-table
-  (syntax-rules ()
-    ((with-new-library-table body1 body2 ...)
-     (parameterize ((current-library-table (make-library-table)))
-       body1 body2 ...))))
-
 (define-record-type <environment>
   (%make-environment)
   environment?)
 
-(define (make-environment)
-  (%make-environment))
+(define (make-environment import-sets body)
+
+  (define syntactic-environment-table
+    (imap library-name-comparator
+	  (list (symbol->identifier 'rapid)
+		(symbol->identifier 'primitive))
+	  #t))
+  
+  (define (syntactic-environment-intern! library-name-syntax)
+    (call-with-current-continuation
+     (lambda (return)
+       (let ((library-name
+	      (map unwrap-syntax (unwrap-syntax library-name-syntax))))
+	 (cond
+	  ((imap-ref syntactic-environment-table
+		     library-name
+		     (lambda ()
+		       (return (load-syntactic-environment! library-name-syntax)))))
+	  (else
+	   (raise-syntax-error library-name-syntax
+			       "library references itself while loading")
+	   #f))))))
+  
+  (define (load-syntactic-environment! library-name-syntax)
+    (let ((library-name (map unwrap-syntax
+			     (unwrap-syntax library-name-syntax))))
+      (set! syntactic-environment-table
+	    (imap-replace syntactic-environment-table library-name #f))
+      (and-let* ((library (read-library library-name-syntax)))
+	(import-syntactic-environment! (library-import-sets library))
+	;; FIXME: Do something with the imported environment
+	)))
+
+  (define (import! import-set)
+    (and-let*
+	((syntactic-environment
+	  (syntactic-environment-intern!
+	   (import-set-library-name-syntax import-set))))
+      ;; FIXME: Do something
+      #t))
+  
+  (define (import-syntactic-environment! import-sets)
+    (for-each import! import-sets))
+  
+  (define environment (%make-environment))
+
+  (import-syntactic-environment! import-sets)
+  ;; FIXME: Do something with the imported environment
+  
+  environment)

@@ -21,6 +21,7 @@
 	  export-mapping-add!
           make-import-set
 	  import-set?
+	  import-set-library-name-syntax
 	  import-set-modifier
 	  library-name?)
   (import (scheme base)

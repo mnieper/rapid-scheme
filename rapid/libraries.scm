@@ -19,8 +19,8 @@
   (%make-library export-mapping import-sets body)
   library?
   (export-mapping library-export-mapping)
-  (import-sets library-import-sets)
-  (body library-body))
+  (import-sets library-import-sets library-set-import-sets!)
+  (body library-body library-set-body!))
 
 (define (make-library)
   (%make-library (make-export-mapping) (list-queue) (list-queue)))
@@ -157,7 +157,11 @@
        (library (make-library)))
     (for-each (lambda (syntax)
 		(library-declaration! library syntax))
-	      (cddr (unwrap-syntax library-definition-syntax)))))
+	      (cddr (unwrap-syntax library-definition-syntax)))
+    (library-set-body! library
+		       (list-queue-list (library-body library)))
+    (library-set-import-sets! library
+			      (list-queue-list (library-import-sets library)))))
 
 (define (read-library-definition library-name-syntax)
 

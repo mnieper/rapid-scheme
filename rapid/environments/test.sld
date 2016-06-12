@@ -19,12 +19,17 @@
   (export run-tests)
   (import (scheme base)
 	  (rapid test)
+	  (rapid syntax)
+	  (rapid import-sets)
 	  (rapid environments))
   (begin
+    (define import-set
+      (make-import-set (derive-syntax '(rapid primitive))))
+    
     (define (run-tests)
       (test-begin "Environments")
 
       (test-assert "environment?"
-		   (environment? (make-environment)))
+		   (environment? (make-environment (list import-set) '())))
 
       (test-end))))

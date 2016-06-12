@@ -93,6 +93,8 @@
 		       #f))
 	 ((list? datum)
 	  (make-syntax (map loop datum) location context #f))
+	 ((symbol? datum)
+	  (make-syntax (symbol->identifier datum) location context #f))
 	 (else
 	  (make-syntax datum location context #f))))))))
 		     
