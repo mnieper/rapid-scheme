@@ -15,21 +15,28 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid comparators)
-  (export hash-bound hash-salt string-hash symbol-hash number-hash
-          make-comparator comparator?
-	  comparator-type-test-predicate comparator-equality-predicate
-	  comparator-ordering-predicate comparator-hash-function
-	  make-eq-comparator make-eqv-comparator make-equal-comparator
-	  make-list-comparator
-	  <? =?
-	  comparator-if<=>)
-  (cond-expand
-   ((library (srfi 128))
-    (import (srfi 128)))
-   (else
-    (import (scheme base)
-	    (scheme case-lambda)
-	    (scheme complex)
-	    (scheme inexact))
-    (include "comparators.scm"))))
+(define-library (scheme char)
+  (export char-alphabetic?
+	  char-ci<=?
+	  char-ci<?
+	  char-ci=?
+	  char-ci>=?
+	  char-ci>?
+	  char-downcase
+	  char-foldcase
+	  char-lower-case?
+	  char-numeric?
+	  char-upcase
+	  char-upper-case?
+	  char-whitespace?
+	  digit-value
+	  string-ci<=?
+	  string-ci<?
+	  string-ci=?
+	  string-ci>=?
+	  string-ci>?
+	  string-downcase
+	  string-foldcase
+	  string-upcase)
+  (import (rapid primitive))
+  (include "char.scm"))

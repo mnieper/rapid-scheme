@@ -158,11 +158,7 @@
     (for-each (lambda (syntax)
 		(library-declaration! library syntax))
 	      (cddr (unwrap-syntax library-definition-syntax)))
-    (library-set-body! library
-		       (list-queue-list (library-body library)))
-    (library-set-import-sets! library
-			      (list-queue-list (library-import-sets library)))
-    library))
+    (finalize-library! library)))
 
 (define (read-program filename)
   (and-let*
@@ -173,7 +169,7 @@
 	(cond
 	 ((eof-object? syntax)
 	  (raise-syntax-error #f "program contains no commands or definitions")
-	  library)
+	  (finalize-library! library))
 	 ((tagged-list? (unwrap-syntax syntax) 'import 1)
 	  (for-each (lambda (syntax)
 		      (add-import-set! library syntax))
@@ -185,7 +181,15 @@
 	  (generator-for-each (lambda (syntax)
 				(add-body-form! library syntax))
 			      reader)
-	  library))))))
+	  (finalize-library! library)))))))
+
+(define (finalize-library! library)    
+  (library-set-body! library
+		     (list-queue-list (library-body library)))
+  (library-set-import-sets! library
+			    (list-queue-list (library-import-sets library)))
+  library)
+
 
 (define (read-library-definition library-name-syntax)
 

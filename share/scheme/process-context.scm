@@ -15,21 +15,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid comparators)
-  (export hash-bound hash-salt string-hash symbol-hash number-hash
-          make-comparator comparator?
-	  comparator-type-test-predicate comparator-equality-predicate
-	  comparator-ordering-predicate comparator-hash-function
-	  make-eq-comparator make-eqv-comparator make-equal-comparator
-	  make-list-comparator
-	  <? =?
-	  comparator-if<=>)
-  (cond-expand
-   ((library (srfi 128))
-    (import (srfi 128)))
-   (else
-    (import (scheme base)
-	    (scheme case-lambda)
-	    (scheme complex)
-	    (scheme inexact))
-    (include "comparators.scm"))))
+(define-primitive command-line 'command-line)
+(define-primitive emergency-exit 'emergency-exit)
+(define-primitive exit 'exit)
+(define-primitive get-environment-variable 'get-environment-variable)
+(define-primitive get-environment-variables 'get-environment-variables)

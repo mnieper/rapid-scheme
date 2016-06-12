@@ -270,7 +270,7 @@
 		   (syntax char)
 		   char))))
        (else
-	(case (string->symbol (if (ci?) (string-foldcase string) token))
+	(case (string->symbol (if (ci?) (string-foldcase token) token))
 	  ((alarm) (syntax #\alarm))
 	  ((backspace) (syntax #\backspace))
 	  ((delete) (syntax #\delete))

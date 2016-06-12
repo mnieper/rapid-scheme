@@ -55,8 +55,8 @@
 	(and (= hash1 hash2)
 	     (not (alias? identifier1))
 	     (not (alias? identifier2))
-	     (string<? (symbol->string identifier1)
-		       (symbol->string identifier2))))))
+	     (string<? (symbol->string (identifier->symbol identifier1))
+		       (symbol->string (identifier->symbol identifier2)))))))
 
 (define (alias? identifier)
   (and (identifier-identity identifier)

@@ -57,7 +57,7 @@
   (%make-environment )
   environment?)
 
-(define (make-environment import-sets body)
+(define (make-environment library)
 
   (define store
     ;; Locations for values for variables
@@ -67,28 +67,42 @@
     (imap library-name-comparator
 	  (list (symbol->identifier 'rapid)
 		(symbol->identifier 'primitive))
-	  #t))
+	  'primitive-library))
 
   (define (syntactic-environment-intern! library-name-syntax)
     (call-with-current-continuation
      (lambda (return)
-       (let ((library-name
-	      (map unwrap-syntax (unwrap-syntax library-name-syntax))))
+       (let*
+	   ((library-name
+	     (map unwrap-syntax (unwrap-syntax library-name-syntax)))
+	    (syntactic-environment
+	     (imap-ref syntactic-environment-table
+		       library-name
+		       (lambda ()
+			 (let ((syntactic-environment
+				(load-syntactic-environment!
+				 library-name-syntax)))
+			   (set! syntactic-environment-table
+				 (imap-replace syntactic-environment-table
+					       library-name
+					       syntactic-environment))
+			   syntactic-environment)))))
 	 (cond
-	  ((imap-ref syntactic-environment-table
-		     library-name
-		     (lambda ()
-		       (return (load-syntactic-environment! library-name-syntax)))))
-	  (else
+	  ((eq? syntactic-environment #t)
 	   (raise-syntax-error library-name-syntax
-			       "library references itself while loading")
-	   #f))))))
+			       "library ‘~a’ references itself while loading"
+			       (syntax->datum library-name-syntax))
+	   (set! syntactic-environment-table
+		 (imap-replace syntactic-environment-table library-name #f))
+	   #f)
+	  (else
+	   syntactic-environment))))))
   
   (define (load-syntactic-environment! library-name-syntax)
     (let ((library-name (map unwrap-syntax
 			     (unwrap-syntax library-name-syntax))))
       (set! syntactic-environment-table
-	    (imap-replace syntactic-environment-table library-name #f))
+	    (imap-replace syntactic-environment-table library-name #t))
       (and-let* ((library (read-library library-name-syntax)))
 	(import-syntactic-environment! (library-import-sets library))
 	;; FIXME: Do something with the imported environment
@@ -107,7 +121,7 @@
   
   (define environment (%make-environment))
 
-  (import-syntactic-environment! import-sets)
+  (import-syntactic-environment! (library-import-sets library))
   ;; FIXME: Do something with the imported environment
   
   environment)

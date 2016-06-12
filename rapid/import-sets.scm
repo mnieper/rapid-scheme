@@ -31,7 +31,8 @@
     (cond
      ((imap-ref/default exports external-identifier #f)
       (raise-syntax-error external-syntax
-			  "name ‘~a’ already exported" external-identifier)
+			  "name ‘~a’ already exported"
+			  (identifier->symbol external-identifier))
       #f)
      (else
       (export-mapping-set-map! export-mapping

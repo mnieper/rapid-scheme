@@ -20,16 +20,30 @@
   (import (scheme base)
 	  (rapid test)
 	  (rapid syntax)
-	  (rapid import-sets)
+	  (rapid libraries)
 	  (rapid environments))
   (begin
-    (define import-set
-      (make-import-set (derive-syntax '(rapid primitive))))
-    
     (define (run-tests)
       (test-begin "Environments")
 
+		   #;(parameterize
+		       ((current-library-directories
+			 (cons "./share" (current-library-directories))))
+		     (with-syntax-exception-handler
+		      (lambda ()
+			(environment? (make-environment (read-program
+							 "tests.scm"))))))
+
+      
       (test-assert "environment?"
-		   (environment? (make-environment (list import-set) '())))
+		   (parameterize
+		       ((current-library-directories
+			 (cons "./share" (current-library-directories))))
+		     (with-syntax-exception-handler
+		      (lambda ()
+			(environment? (make-environment (read-program
+							 "tests.scm"))))))
+
+		   )
 
       (test-end))))

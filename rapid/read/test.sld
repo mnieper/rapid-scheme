@@ -152,7 +152,7 @@
 		  (read-datum ",@a"))
 
       (test-equal "Datum labels"
-		  '(#0=#1=(a) #1#)
+		  '(#0=(a) #0#)
 		  (read-datum "(#0=#1=(a) #1#)"))
 
       (test-equal "Booleans"
