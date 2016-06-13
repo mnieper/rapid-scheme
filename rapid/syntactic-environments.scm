@@ -56,7 +56,8 @@
 (define (get-current-bindings)
   (syntactic-environment-bindings (current-syntactic-environment)))
 (define (set-current-bindings! bindings)
-  (syntactic-environment-set-bindings! (current-syntactic-environment)))
+  (syntactic-environment-set-bindings! (current-syntactic-environment)
+				       bindings))
 
 (define-syntax with-syntactic-environment
   (syntax-rules ()

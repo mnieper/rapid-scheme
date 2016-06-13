@@ -127,7 +127,7 @@
    ((syntax-note? exception) "note")
    ((syntax-warning? exception) "warning")
    ((syntax-error? exception) "error")
-   ((syntax-fatal-error? exception "fatal error"))
+   ((syntax-fatal-error? exception) "fatal error")
    (else (error "not a syntax exception" exception))))
 
 (define (raise-syntax-note syntax message . object*)
