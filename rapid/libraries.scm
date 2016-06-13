@@ -25,6 +25,9 @@
 (define (make-library)
   (%make-library (make-export-mapping) (list-queue) (list-queue)))
 
+(define (import-sets->library import-sets)
+  (%make-library '() import-sets '()))
+
 (define (add-export-spec! library syntax)
   (let ((export-mapping (library-export-mapping library))
 	(export-spec (unwrap-syntax syntax)))

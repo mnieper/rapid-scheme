@@ -62,10 +62,13 @@
     ((compile-patterns (expression* ...) tree (clauses ...) ())
      (call-with-current-continuation
       (lambda (return)
-	(or (and-let* clauses (return (begin . expression*)))
+	(or (and-let* clauses
+	      (call-with-values
+		  (lambda () . expression*)
+		return))
 	    ...
 	    (error "tree does not match any pattern" tree)))))
-
+    
     ((compile-patterns e tree clauses* (pattern . pattern*))
      (compile-pattern tree pattern
 		      (add-pattern e tree clauses* pattern*)))))
@@ -271,6 +274,7 @@
 	       
 	       (receive (b ret op) (search b)
 		 (values (op (node c a x b)) ret op)))))))
+      
     (values (blacken tree) ret)))
 
 (define (replace comparator tree key value)

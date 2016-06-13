@@ -285,11 +285,11 @@
 	   #f))))))
 
   (define (check-identifier token)
-    (for-each (lambda (char)
-		(unless (or (subsequent? char))
-		  (reader-error "unexpected character in identifier ‘~a’"
-				char)))
-	      token))
+    (string-for-each (lambda (char)
+		       (unless (or (subsequent? char))
+			 (reader-error "unexpected character in identifier ‘~a’"
+				       char)))
+		     token))
   
   (define (number token)
     (cond

@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid environments)
-  (export make-environment
+  (export expand-library
 	  environment?)
   (import (rapid base)
 	  (rapid and-let)

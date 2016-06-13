@@ -15,8 +15,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;;; Syntactic environment tables for already loaded libraries
-
 (define identifier<? (comparator-ordering-predicate identifier-comparator))
 (define identifier-hash (comparator-hash-function identifier-comparator))
 
@@ -57,18 +55,32 @@
   (%make-environment )
   environment?)
 
-(define (make-environment library)
+;; XXX: Should return a syntactic environment
+;; and some code
+;; Check: in which form
+;; And: Rename make-environment into which???
+;; e.g. ---> expand-library?
 
+(define (expand-library library)
+  ;; XXX: should add (values <location>...) at the end of the body
+  ;; and update the export map
+  
   (define store
     ;; Locations for values for variables
     (imap identifier-comparator))
   
-  (define syntactic-environment-table
+  (define syntactic-environments
     (imap library-name-comparator
 	  (list (symbol->identifier 'rapid)
 		(symbol->identifier 'primitive))
 	  'primitive-library))
 
+  (define (syntactic-environment-set! library-name syntactic-environment)
+    (set! syntactic-environments
+	  (imap-replace syntactic-environments
+			library-name
+			syntactic-environment)))
+  
   (define (syntactic-environment-intern! library-name-syntax)
     (call-with-current-continuation
      (lambda (return)
@@ -76,24 +88,22 @@
 	   ((library-name
 	     (map unwrap-syntax (unwrap-syntax library-name-syntax)))
 	    (syntactic-environment
-	     (imap-ref syntactic-environment-table
+	     (imap-ref syntactic-environments
 		       library-name
 		       (lambda ()
+			 (syntactic-environment-set! library-name #t)
 			 (let ((syntactic-environment
 				(load-syntactic-environment!
 				 library-name-syntax)))
-			   (set! syntactic-environment-table
-				 (imap-replace syntactic-environment-table
-					       library-name
-					       syntactic-environment))
-			   syntactic-environment)))))
+			   (syntactic-environment-set! library-name
+							     syntactic-environment)
+			    syntactic-environment)))))
 	 (cond
 	  ((eq? syntactic-environment #t)
 	   (raise-syntax-error library-name-syntax
 			       "library ‘~a’ references itself while loading"
 			       (syntax->datum library-name-syntax))
-	   (set! syntactic-environment-table
-		 (imap-replace syntactic-environment-table library-name #f))
+	   (syntactic-environment-set! library-name #f)
 	   #f)
 	  (else
 	   syntactic-environment))))))
@@ -101,8 +111,6 @@
   (define (load-syntactic-environment! library-name-syntax)
     (let ((library-name (map unwrap-syntax
 			     (unwrap-syntax library-name-syntax))))
-      (set! syntactic-environment-table
-	    (imap-replace syntactic-environment-table library-name #t))
       (and-let* ((library (read-library library-name-syntax)))
 	(import-syntactic-environment! (library-import-sets library))
 	;; FIXME: Do something with the imported environment
@@ -113,6 +121,9 @@
 	((syntactic-environment
 	  (syntactic-environment-intern!
 	   (import-set-library-name-syntax import-set))))
+      
+
+      
       ;; FIXME: Do something
       #t))
   

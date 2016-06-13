@@ -20,6 +20,8 @@
   (cond-expand
    ((library (srfi 131))
     (import (srfi 131)))
+   ((library (srfi 99))
+    (import (srfi 99)))
    (else
     (import (rename (scheme base) (define-record-type scheme-define-record-type))
 	    (scheme case-lambda)

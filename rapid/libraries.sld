@@ -16,12 +16,13 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid libraries)
-  (export library?
+  (export read-library
+	  read-program
+	  import-sets->library
+	  library?
 	  library-export-mapping
 	  library-import-sets
 	  library-body
-          read-library
-	  read-program
 	  current-library-directories)
   (import (scheme file)
 	  (rapid base)

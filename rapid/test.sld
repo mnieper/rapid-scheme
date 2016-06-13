@@ -1,4 +1,4 @@
-;;; Rapid Libraries --- An implementation of basic Scheme libraries
+;;; Rapid Libraries --- An implementation of R7RS
 
 ;; Copyright (C) 2016 Marc Nieper-Wißkirchen
 
@@ -73,7 +73,7 @@
 	  test-on-bad-end-name-simple
 	  test-on-final-simple)
   (cond-expand
-   ((library (srfi 64))
+   ((and (not larceny) (library (srfi 64)))
     (import (srfi 64)))
    (else  
     (import (scheme base)
