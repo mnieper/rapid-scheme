@@ -73,7 +73,7 @@
     (imap library-name-comparator
 	  (list (symbol->identifier 'rapid)
 		(symbol->identifier 'primitive))
-	  'primitive-library))
+	  primitive-environment))
 
   (define (syntactic-environment-set! library-name syntactic-environment)
     (set! syntactic-environments
@@ -116,7 +116,7 @@
 	;; FIXME: Expand the library-body in this environment
 	(let ((environment (current-syntactic-environment)))	
 	  (with-syntactic-environment (make-syntactic-environment)
-	    #;(export-syntactic-environment! environment (library-exports library))
+	    (export-syntactic-environment! environment (library-exports library))
 	    (current-syntactic-environment))))))
 
   (define (resolve-import-set! import-set)
@@ -124,7 +124,7 @@
 	((syntactic-environment
 	  (syntactic-environment-intern! (import-set-library-name-syntax
 					  import-set))))
-      #;(import-syntactic-environment! syntactic-environment
+      (import-syntactic-environment! syntactic-environment
 				     (import-set-imports import-set))
       #t))
   

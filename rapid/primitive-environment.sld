@@ -15,17 +15,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid environments)
-  (export expand-library
-	  environment?)
-  (import (rapid base)
-	  (rapid and-let)
-	  (rapid comparators)
-	  (rapid identifiers)
-	  (rapid immutable-maps)
-	  (rapid syntax)
-	  (rapid import-sets)
-	  (rapid libraries)
-	  (rapid syntactic-environments)
-	  (rapid primitive-environment))
-  (include "environments.scm"))
+(define-library (rapid primitive-environment)
+  (export primitive-environment)
+  (import (scheme base)
+	  (rapid syntactic-environments))
+  (include "primitive-environment.scm"))

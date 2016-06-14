@@ -15,6 +15,22 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Macros
+
+(define-syntax with-syntactic-environment
+  (syntax-rules ()
+    ((with-syntactic-environment syntactic-environment
+       body1 body2 ...)
+     (parameterize ((current-syntactic-environment
+		     syntactic-environment))
+       body1 body2 ...))))
+
+(define-syntax define-syntactic-environment
+  (syntax-rules ()
+    ((define-syntactic-environment environment . _)
+     (define environment
+       (make-syntactic-environment)))))
+
 ;;; Denotations
 
 (define-record-type <denotation>
@@ -152,10 +168,3 @@
     (syntactic-environment-set-bindings! (current-syntactic-environment)
 					 bindings))))
 
-(define-syntax with-syntactic-environment
-  (syntax-rules ()
-    ((with-syntactic-environment syntactic-environment
-       body1 body2 ...)
-     (parameterize ((current-syntactic-environment
-		     syntactic-environment))
-       body1 body2 ...))))

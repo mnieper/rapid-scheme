@@ -17,7 +17,9 @@
 
 (define-library (rapid syntactic-environments)
   (export with-syntactic-environment
+	  define-syntactic-environment
 	  make-syntactic-environment
+	  syntactic-environment?
 	  current-syntactic-environment
 	  import-syntactic-environment!
 	  export-syntactic-environment!
@@ -36,4 +38,8 @@
 	
 ;; Local Variables:
 ;; eval: (put 'with-syntactic-environment 'scheme-indent-function 1)
+;; eval: (put 'define-syntactic-environment 'scheme-indent-function 'defun)
+;; eval: (font-lock-add-keywords 'scheme-mode
+;;                               '(("(\\(define-syntactic-environment\\)\\>"
+;;                                  1 font-lock-keyword-face)))
 ;; End:

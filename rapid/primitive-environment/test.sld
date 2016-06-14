@@ -15,17 +15,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid environments)
-  (export expand-library
-	  environment?)
-  (import (rapid base)
-	  (rapid and-let)
-	  (rapid comparators)
-	  (rapid identifiers)
-	  (rapid immutable-maps)
-	  (rapid syntax)
-	  (rapid import-sets)
-	  (rapid libraries)
+(define-library (rapid primitive-environment test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
 	  (rapid syntactic-environments)
 	  (rapid primitive-environment))
-  (include "environments.scm"))
+  (begin
+    (define (run-tests)
+      (test-begin "Primitive Environment")
+
+      (test-assert "The primitive environment is exported"
+		   (syntactic-environment? primitive-environment))
+
+      (test-end))))
