@@ -32,6 +32,8 @@
 
 ;;; Syntactic bindings
 
+(define current-references (make-parameter '()))
+
 (define-record-type <syntactic-binding>
   (%make-syntactic-binding syntax denotation scope reference-count)
   syntactic-binding?
@@ -43,21 +45,105 @@
 (define (make-syntactic-binding syntax denotation)
   (%make-syntactic-binding syntax denotation current-syntactic-environment 0))
 
+(define (increment-reference-count! binding)
+  (binding-set-reference-count! binding
+				(+ (binding-reference-count binding) 1)))
+
+(define (decrement-reference-count! binding)
+  (binding-set-reference-count! binding
+				(- (binding-reference-count binding) 1)))
+
+(define (reference-binding! binding)
+  (current-references (cons binding (current-references)))
+  (increment-reference-count! binding))
+
+(define (binding-referenced? binding)
+  (and (eq? (binding-scope binding) (current-syntactic-environment))
+       (> (binding-reference-count binding) 0)))
+
+(define (identifier-referenced? identifier)
+  (and-let*
+      ((binding (imap-ref/default (current-bindings) identifier #f))
+       ((binding-referenced? binding)))
+    binding))
+	 
 ;;; Syntactic environments
 
+;; bindings is a map identifier->syntactic-binding
 (define-record-type <syntactic-environment>
   (%make-syntactic-environment bindings)
   syntactic-environment?
   (bindings syntactic-environment-bindings
 	    syntactic-environment-set-bindings!))
 
+(define (make-syntactic-environment)
+  (%make-syntactic-environment (imap identifier-comparator)))
+
+;; imports will be a map mapping all identifiers at once covariantly
+
+;; exports is a map identifier-to-be-exported->export-spec
+
+(define (export-syntactic-environment exports)
+  (let ((syntactic-environment (make-syntactic-environment)))
+    (imap-for-each
+     (lambda (identifier export-spec)
+       (and-let*
+	   ((denotation
+	     (lookup-denotation! (export-spec-source export-spec))))       
+	 (syntactic-environment-insert-binding!
+	  syntactic-environment
+	  (export-spec-target export-spec) denotation)))
+     exports)
+    syntactic-environment))
+
+(define (lookup-syntactic-binding! identifier-syntax)
+  (cond
+   ((imap-ref/default (current-bindings) (unwrap-syntax identifier-syntax) #f)
+    => (lambda (binding)
+	 (reference-binding! binding)
+	 binding))
+   (else
+    (raise-syntax-error identifier-syntax
+			"identifier ‘~a’ not bound"
+			(syntax->datum identifier-syntax))
+    #f)))
+
+(define (lookup-denotation! identifier-syntax)
+  (and-let*
+      ((binding (lookup-syntactic-binding! identifier-syntax)))
+    (binding-denotation binding)))
+
+(define (insert-syntactic-binding! identifier-syntax denotation)
+  (let ((identifier (unwrap-syntax identifier-syntax)))
+    (cond
+     ((identifier-referenced? identifier-syntax)
+      => (lambda (binding)
+	   (raise-syntax-error identifier-syntax
+			       "meaning of identifier ‘~a’ cannot be changed"
+			       (syntax->datum identifier-syntax))
+	   (raise-syntax-note (binding-syntax binding)
+			      "identifier ‘~a’ was bound here"
+			      (syntax->datum identifier-syntax))
+	   #f))
+     (else
+      (let ((binding (make-syntactic-binding identifier-syntax)))
+	(current-bindings (imap-replace (current-bindings) identifier binding))
+	(reference-binding! binding))))))
+
+(define (syntactic-environment-insert-binding! syntactic-environment
+					       identifier-syntax
+					       denotation)
+  (with-syntactic-environment syntactic-environment
+    (insert-syntactic-binding! identifier-syntax denotation)))
+
 (define current-syntactic-environment (make-parameter #f))
 
-(define (get-current-bindings)
-  (syntactic-environment-bindings (current-syntactic-environment)))
-(define (set-current-bindings! bindings)
-  (syntactic-environment-set-bindings! (current-syntactic-environment)
-				       bindings))
+(define current-bindings
+  (case-lambda
+   (() (syntactic-environment-bindings (current-syntactic-environment)))
+   ((bindings)
+    (syntactic-environment-set-bindings! (current-syntactic-environment)
+					 bindings))))
 
 (define-syntax with-syntactic-environment
   (syntax-rules ()

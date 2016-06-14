@@ -15,25 +15,28 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Libraries
+
 (define-record-type <library-definition>
-  (%make-library export-mapping import-sets body)
+  (%make-library exports import-sets body)
   library?
-  (export-mapping library-export-mapping)
+  (exports library-exports library-set-exports!)
   (import-sets library-import-sets library-set-import-sets!)
   (body library-body library-set-body!))
 
 (define (make-library)
-  (%make-library (make-export-mapping) (list-queue) (list-queue)))
+  (%make-library (make-exports) (list-queue) (list-queue)))
 
 (define (import-sets->library import-sets)
   (%make-library '() import-sets '()))
 
 (define (add-export-spec! library syntax)
-  (let ((export-mapping (library-export-mapping library))
+  (let ((exports (library-exports library))
 	(export-spec (unwrap-syntax syntax)))
     (cond
      ((identifier? export-spec)
-      (export-mapping-add! export-mapping syntax syntax))
+      (library-set-exports! library
+			    (exports-add exports syntax syntax)))
      ((and-let*
 	  (((tagged-list? export-spec 'rename 3))
 	   ((= (length export-spec) 3))
@@ -41,11 +44,13 @@
 	   (external-syntax (list-ref export-spec 2))
 	   (identifier? (unwrap-syntax binding-syntax))
 	   (identifier? (unwrap-syntax external-syntax)))
-	(export-mapping-add! export-mapping
-			     (list-ref export-spec 1) (list-ref export-spec 2))))
+	(library-set-exports! library
+			      (exports-add exports
+					   (list-ref export-spec 1)
+					   (list-ref export-spec 2)))))
      (else
       (raise-syntax-error syntax "bad export spec")))))
-	
+
 (define (add-import-set! library syntax)
   (list-queue-add-back! (library-import-sets library)
 			(make-import-set syntax)))

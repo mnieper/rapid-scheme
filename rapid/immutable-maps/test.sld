@@ -123,6 +123,22 @@
 				     (set! count (+ count key)))
 				   map)
 		    count))
+
+      (test-equal "imap-fold"
+		  '(5 4 3 2 1)
+		  (imap-fold (lambda (key value acc)
+			       (cons key acc))
+			     '() (imap integers 1 1 2 2 3 3 4 4 5 5)))
+
+      (test-equal "imap-map-values"
+		  '(6 5 4 3 2)
+		  (imap-fold (lambda (key value acc)
+			       (cons value acc))
+			     '()
+			     (imap-map-values
+			      (lambda (key value)
+				(+ value 1))
+			      (imap integers 1 1 2 2 3 3 4 4 5 5))))
       
       (test-end)
       #t)))

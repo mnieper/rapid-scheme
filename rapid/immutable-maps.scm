@@ -211,9 +211,21 @@
    (else
     (failure))))
 
+(define (map-values proc tree)
+  (let loop ((tree tree))
+    (tree-match tree
+      ((black)
+       (black))
+      ((node c a x b)
+       (let ((key (item-key x)))
+	 (node c
+	       (loop a)
+	       (make-item key (proc key (item-value x)))
+	       (loop b)))))))
+     
 ;;; Fundamental tree iterator
 
-(define (%fold comparator proc seed tree)
+(define (%fold proc seed tree)
   (let loop ((acc seed) (tree tree))
     (tree-match tree
       ((black)
@@ -221,8 +233,9 @@
       ((node _ a x b)
        (let*
 	   ((acc (loop acc a))
+	    (acc (proc (item-key x) (item-value x) acc))
 	    (acc (loop acc b)))
-	 (proc (item-key x) (item-value x) acc))))))
+	 acc)))))
 
 ;;; Update procedures for trees
 
@@ -404,15 +417,19 @@
       ((comparator
 	(imap-comparator map))
        (tree
-	(%fold comparator
-	       (lambda (key value tree)
-		 (replace comparator tree (proc key) value))
-	       (black) (imap-tree map))))
+	(%fold(lambda (key value tree)
+		(replace comparator tree (proc key) value))
+	      (black) (imap-tree map))))
     (%imap comparator tree)))
 
+(define (imap-map-values proc map)
+  (%imap (imap-comparator map) (map-values proc (imap-tree map))))
+
+(define (imap-fold proc nil map)
+  (%fold proc nil (imap-tree map)))
+
 (define (imap-for-each proc map)
-  (%fold (imap-comparator map)
-	 (lambda (key value acc)
+  (%fold (lambda (key value acc)
 	   (proc key value)
 	   acc)
 	 (if #f #f) (imap-tree map)))

@@ -16,13 +16,18 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid import-sets)
-  (export make-export-mapping
-	  export-mapping?
-	  export-mapping-add!
+  (export make-export-spec
+	  export-spec?
+	  export-spec-source
+	  export-spec-target
+	  make-exports
+	  exports-add
+	  exports-ref
+	  exports-delete
           make-import-set
 	  import-set?
 	  import-set-library-name-syntax
-	  import-set-modifier
+	  import-set-imports
 	  library-name?)
   (import (scheme base)
 	  (scheme case-lambda)

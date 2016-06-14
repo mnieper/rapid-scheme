@@ -16,10 +16,18 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid syntactic-environments)
-  (export with-syntactic-environment)
-  (import (rapid base)
+  (export with-syntactic-environment
+	  make-syntactic-environment
+	  current-syntactic-environment)
+  (import (scheme case-lambda)
+	  (rapid base)
+	  (rapid and-let)
 	  (rapid comparators)
-	  (rapid identifiers))
+	  (rapid immutable-maps)
+	  (rapid identifiers)
+	  (rapid syntax)
+	  (rapid import-sets)
+	  (rapid libraries))
   (include "syntactic-environments.scm"))
 	
 ;; Local Variables:

@@ -20,7 +20,7 @@
 	  read-program
 	  import-sets->library
 	  library?
-	  library-export-mapping
+	  library-exports
 	  library-import-sets
 	  library-body
 	  current-library-directories)

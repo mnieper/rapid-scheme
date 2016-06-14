@@ -26,6 +26,8 @@
 	  imap-delete
 	  imap-search
 	  imap-map
+	  imap-map-values
+	  imap-fold
 	  imap-for-each
 	  imap-key-not-found?)
   (import (scheme base)

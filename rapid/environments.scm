@@ -121,14 +121,22 @@
 	((syntactic-environment
 	  (syntactic-environment-intern!
 	   (import-set-library-name-syntax import-set))))
+      #;(syntactic-environment-for-each
+       (lambda (identifier binding)
+	 (insert-binding! (import-set-modify import-set)
+	 )
+       syntactic-environment))
       
-
+      ;; NOW WE HAVE A LOT OF IDENTIFIERS FROM THE EXPORTED SET
+      ;; WE HAVE TO PASS THESE TO THE EXPORT MAP
       
       ;; FIXME: Do something
       #t))
   
   (define (import-syntactic-environment! import-sets)
-    (for-each import! import-sets))
+    (with-syntactic-environment (make-syntactic-environment)
+      (for-each import! import-sets)
+      (current-syntactic-environment)))
   
   (define environment (%make-environment))
 
