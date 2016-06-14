@@ -83,18 +83,21 @@
 
 ;; exports is a map identifier-to-be-exported->export-spec
 
-(define (export-syntactic-environment exports)
-  (let ((syntactic-environment (make-syntactic-environment)))
-    (imap-for-each
-     (lambda (identifier export-spec)
-       (and-let*
-	   ((denotation
-	     (lookup-denotation! (export-spec-source export-spec))))       
-	 (syntactic-environment-insert-binding!
-	  syntactic-environment
-	  (export-spec-target export-spec) denotation)))
-     exports)
-    syntactic-environment))
+(define (export-syntactic-environment! environment exports)
+  (imap-for-each
+   (lambda (identifier export-spec)
+     (and-let*
+	 ((denotation
+	   (syntactic-environment-lookup-denotation! environment
+						     (export-spec-source
+						      export-spec))))
+       (insert-syntactic-binding! (export-spec-target export-spec) denotation)))
+   exports))
+
+(define (import-syntactic-environment! environment imports)
+  (export-syntactic-environment! environment
+				 (imports (syntactic-environment-bindings
+					   environment))))
 
 (define (lookup-syntactic-binding! identifier-syntax)
   (cond
@@ -112,6 +115,10 @@
   (and-let*
       ((binding (lookup-syntactic-binding! identifier-syntax)))
     (binding-denotation binding)))
+
+(define (syntactic-environment-lookup-denotation! environment identifier-syntax)
+  (with-syntactic-environment environment
+    (lookup-denotation! identifier-syntax)))
 
 (define (insert-syntactic-binding! identifier-syntax denotation)
   (let ((identifier (unwrap-syntax identifier-syntax)))

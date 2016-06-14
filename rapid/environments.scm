@@ -112,35 +112,30 @@
     (let ((library-name (map unwrap-syntax
 			     (unwrap-syntax library-name-syntax))))
       (and-let* ((library (read-library library-name-syntax)))
-	(import-syntactic-environment! (library-import-sets library))
-	;; FIXME: Do something with the imported environment
-	)))
+	(resolve-import-sets! (library-import-sets library))
+	;; FIXME: Expand the library-body in this environment
+	(let ((environment (current-syntactic-environment)))	
+	  (with-syntactic-environment (make-syntactic-environment)
+	    #;(export-syntactic-environment! environment (library-exports library))
+	    (current-syntactic-environment))))))
 
-  (define (import! import-set)
+  (define (resolve-import-set! import-set)
     (and-let*
 	((syntactic-environment
-	  (syntactic-environment-intern!
-	   (import-set-library-name-syntax import-set))))
-      #;(syntactic-environment-for-each
-       (lambda (identifier binding)
-	 (insert-binding! (import-set-modify import-set)
-	 )
-       syntactic-environment))
-      
-      ;; NOW WE HAVE A LOT OF IDENTIFIERS FROM THE EXPORTED SET
-      ;; WE HAVE TO PASS THESE TO THE EXPORT MAP
-      
-      ;; FIXME: Do something
+	  (syntactic-environment-intern! (import-set-library-name-syntax
+					  import-set))))
+      #;(import-syntactic-environment! syntactic-environment
+				     (import-set-imports import-set))
       #t))
   
-  (define (import-syntactic-environment! import-sets)
+  (define (resolve-import-sets! import-sets)
     (with-syntactic-environment (make-syntactic-environment)
-      (for-each import! import-sets)
+      (for-each resolve-import-set! import-sets)
       (current-syntactic-environment)))
   
   (define environment (%make-environment))
 
-  (import-syntactic-environment! (library-import-sets library))
+  (resolve-import-sets! (library-import-sets library))
   ;; FIXME: Do something with the imported environment
   
   environment)

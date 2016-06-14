@@ -18,7 +18,11 @@
 (define-library (rapid syntactic-environments)
   (export with-syntactic-environment
 	  make-syntactic-environment
-	  current-syntactic-environment)
+	  current-syntactic-environment
+	  import-syntactic-environment!
+	  export-syntactic-environment!
+	  #;identifier=?
+	  #;free-identifier=?)
   (import (scheme case-lambda)
 	  (rapid base)
 	  (rapid and-let)
