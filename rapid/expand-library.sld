@@ -15,26 +15,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid environments test)
-  (export run-tests)
-  (import (scheme base)
-	  (rapid test)
+(define-library (rapid expand-library)
+  (export expand-library
+	  environment?)
+  (import (rapid base)
+	  (rapid and-let)
+	  (rapid comparators)
+	  (rapid identifiers)
+	  (rapid immutable-maps)
 	  (rapid syntax)
+	  (rapid import-sets)
 	  (rapid libraries)
-	  (rapid environments))
-  (begin
-    (define (run-tests)
-      (test-begin "Environments")
-      
-      (test-assert "environment?"
-		   (parameterize
-		       ((current-library-directories
-			 (cons "./share" (current-library-directories))))
-		     (with-syntax-exception-handler
-		      (lambda ()
-			(environment? (expand-library (read-program
-						       "tests.scm"))))))
-
-		   )
-
-      (test-end))))
+	  (rapid syntactic-environments)
+	  (rapid primitive-environment))
+  (include "expand-library.scm"))
