@@ -17,6 +17,7 @@
 
 (define-library (rapid syntactic-environments)
   (export with-syntactic-environment
+	  with-scope
 	  define-syntactic-environment
 	  make-syntactic-environment
 	  syntactic-environment?
@@ -24,7 +25,8 @@
 	  import-syntactic-environment!
 	  export-syntactic-environment!
 	  #;identifier=?
-	  #;free-identifier=?)
+	  #;free-identifier=?
+	  maybe-isolate)
   (import (scheme case-lambda)
 	  (rapid base)
 	  (rapid and-let)
@@ -38,6 +40,8 @@
 	
 ;; Local Variables:
 ;; eval: (put 'with-syntactic-environment 'scheme-indent-function 1)
+;; eval: (put 'with-scope 'scheme-indent-function 1)
+;; eval: (put 'maybe-isolate 'scheme-indent-function 1)
 ;; eval: (put 'define-syntactic-environment 'scheme-indent-function 'defun)
 ;; eval: (font-lock-add-keywords 'scheme-mode
 ;;                               '(("(\\(define-syntactic-environment\\)\\>"

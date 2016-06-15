@@ -27,5 +27,6 @@
 	  (rapid import-sets)
 	  (rapid libraries)
 	  (rapid syntactic-environments)
+	  (rapid expand)
 	  (rapid primitive-environment))
   (include "expand-library.scm"))

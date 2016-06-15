@@ -15,6 +15,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; FIXME: The ‘parameterize’ syntax exported by ‘(rapid base)’ is not
+;;; compatible with the standard parameters ‘current-input-port’,
+;;; ‘current-output-port’ and ‘current-error-port’ exported from
+;;; ‘(scheme base)’.
+
 (define-library (rapid base)
   (export
    * + - ... / < <= = => > >= _ abs and append apply assoc assq assv begin

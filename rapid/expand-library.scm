@@ -127,7 +127,7 @@
 			     (unwrap-syntax library-name-syntax))))
       (and-let* ((library (read-library library-name-syntax)))
 	(with-import-sets (library-import-sets library)
-	  ;; FIXME: Expand library body
+	  (expand-top-level! (library-body library))
 	  (let ((environment (current-syntactic-environment)))	
 	    (with-syntactic-environment (make-syntactic-environment)
 	      (export-syntactic-environment! environment (library-exports library))

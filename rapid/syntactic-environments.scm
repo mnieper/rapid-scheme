@@ -31,6 +31,16 @@
      (define environment
        (make-syntactic-environment)))))
 
+(define-syntax with-scope
+  (syntax-rules ()
+    ((with-scope
+       body1 body2 ...)
+     (parameterize
+	 ((current-syntactic-environment
+	   (%make-syntactic-environment (current-bindings)
+					(imap identifier-comparator))))
+       body1 body2 ...))))
+     
 ;;; Denotations
 
 (define-record-type <denotation>
@@ -51,49 +61,45 @@
 (define current-references (make-parameter '()))
 
 (define-record-type <syntactic-binding>
-  (%make-syntactic-binding syntax denotation scope reference-count)
+  (make-syntactic-binding syntax denotation)
   syntactic-binding?
   (syntax binding-syntax)
-  (denotation binding-denotation)
-  (scope binding-scope)
-  (reference-count binding-reference-count binding-set-reference-count!))
+  (denotation binding-denotation))
 
-(define (make-syntactic-binding syntax denotation)
-  (%make-syntactic-binding syntax denotation current-syntactic-environment 0))
-
-(define (increment-reference-count! binding)
-  (binding-set-reference-count! binding
-				(+ (binding-reference-count binding) 1)))
-
-(define (decrement-reference-count! binding)
-  (binding-set-reference-count! binding
-				(- (binding-reference-count binding) 1)))
-
-(define (reference-binding! binding)
-  (current-references (cons binding (current-references)))
-  (increment-reference-count! binding))
-
-(define (binding-referenced? binding)
-  (and (eq? (binding-scope binding) (current-syntactic-environment))
-       (> (binding-reference-count binding) 0)))
-
-(define (identifier-referenced? identifier)
-  (and-let*
-      ((binding (imap-ref/default (current-bindings) identifier #f))
-       ((binding-referenced? binding)))
-    binding))
-	 
 ;;; Syntactic environments
 
 ;; bindings is a map identifier->syntactic-binding
 (define-record-type <syntactic-environment>
-  (%make-syntactic-environment bindings)
+  (%make-syntactic-environment bindings used-identifiers)
   syntactic-environment?
   (bindings syntactic-environment-bindings
-	    syntactic-environment-set-bindings!))
+	    syntactic-environment-set-bindings!)
+  (used-identifiers used-identifiers set-used-identifiers!))
+
+(define current-syntactic-environment (make-parameter #f))
+
+(define current-bindings
+  (case-lambda
+   (() (syntactic-environment-bindings (current-syntactic-environment)))
+   ((bindings)
+    (syntactic-environment-set-bindings! (current-syntactic-environment)
+					 bindings))))
+
+(define current-used-identifiers
+  (case-lambda
+   (() (used-identifiers (current-syntactic-environment)))
+   ((identifiers)
+    (set-used-identifiers! (current-syntactic-environment) used-identifiers))))
+
+(define (use-identifier! identifier)
+  (current-used-identifiers (imap-replace (current-used-identifiers)
+					  identifier
+					  #t)))
 
 (define (make-syntactic-environment)
-  (%make-syntactic-environment (imap identifier-comparator)))
+  (%make-syntactic-environment (imap identifier-comparator)
+			       ;; TODO: Use an iset when it is implemented.
+			       (imap identifier-comparator)))
 
 ;; imports will be a map mapping all identifiers at once covariantly
 
@@ -119,7 +125,7 @@
   (cond
    ((imap-ref/default (current-bindings) (unwrap-syntax identifier-syntax) #f)
     => (lambda (binding)
-	 (reference-binding! binding)
+	 (use-identifier! (unwrap-syntax identifier-syntax))
 	 binding))
    (else
     (raise-syntax-error identifier-syntax
@@ -139,7 +145,9 @@
 (define (insert-syntactic-binding! identifier-syntax denotation)
   (let ((identifier (unwrap-syntax identifier-syntax)))
     (cond
-     ((identifier-referenced? identifier-syntax)
+     ((imap-ref/default (unwrap-syntax identifier-syntax)
+			(current-used-identifiers)
+			#f)
       => (lambda (binding)
 	   (raise-syntax-error identifier-syntax
 			       "meaning of identifier ‘~a’ cannot be changed"
@@ -149,9 +157,11 @@
 			      (syntax->datum identifier-syntax))
 	   #f))
      (else
-      (let ((binding (make-syntactic-binding identifier-syntax)))
-	(current-bindings (imap-replace (current-bindings) identifier binding))
-	(reference-binding! binding))))))
+      (use-identifier! (unwrap-syntax identifier-syntax))
+      (current-bindings (imap-replace (current-bindings)
+				      identifier
+				      (make-syntactic-binding identifier-syntax
+							      denotation)))))))
 
 (define (syntactic-environment-insert-binding! syntactic-environment
 					       identifier-syntax
@@ -159,12 +169,19 @@
   (with-syntactic-environment syntactic-environment
     (insert-syntactic-binding! identifier-syntax denotation)))
 
-(define current-syntactic-environment (make-parameter #f))
+;;; Isolation of identifier access
 
-(define current-bindings
-  (case-lambda
-   (() (syntactic-environment-bindings (current-syntactic-environment)))
-   ((bindings)
-    (syntactic-environment-set-bindings! (current-syntactic-environment)
-					 bindings))))
+(define (maybe-isolate isolate? thunk)
+  (if isolate?
+      (let ((old-used-identifiers #f)
+	    (new-used-identifiers (current-used-identifiers)))
+	(dynamic-wind
+	    (lambda ()
+	      (set! old-used-identifiers (current-used-identifiers))
+	      (current-used-identifiers new-used-identifiers))
+	    thunk
+	    (lambda ()
+	      (set! new-used-identifiers (current-references))
+	      (current-used-identifiers old-used-identifiers))))
+      (thunk)))
 

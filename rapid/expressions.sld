@@ -15,17 +15,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid list-queues)
-  (export list-queue
-	  list-queue?
-	  list-queue-list
-	  list-queue-add-back!
-	  list-queue-for-each
-	  list-queue-map!)
-  (cond-expand
-   ((library (srfi 117))
-    (import (srfi 117)))
-   (else
-    (import (scheme base))
-    (include "list-queues.scm"))))
-
+(define-library (rapid expressions)
+  (export expression? expression-syntax
+	  make-reference reference? reference-location
+	  make-primitive-reference primitive-reference? primitive-reference-symbol
+	  make-variables variables? variables-formals variables-expression
+	  variables-syntax
+	  make-formals formals? formals-fixed formals-rest formals-syntax)
+  (import (scheme case-lambda)
+	  (rapid base))
+  (include "expressions.scm"))  

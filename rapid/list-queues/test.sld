@@ -44,4 +44,16 @@
 		       (lambda (i)
 			 (set! lst (cons i lst)))
 		       lq)
-		      lst))))))
+		      lst)))
+
+      (test-equal "list-queue-map!"
+		  '(2 4 6)
+		  (let ((lq (list-queue)))
+		    (list-queue-add-back! lq 1)
+		    (list-queue-add-back! lq 2)
+		    (list-queue-add-back! lq 3)		    
+		    (list-queue-map!
+		     (lambda (i)
+		       (* i 2))
+		     lq)
+		    (list-queue-list lq))))))

@@ -37,3 +37,8 @@
 
 (define (list-queue-for-each proc list-queue)
   (for-each proc (list-queue-list list-queue)))
+
+(define (list-queue-map! proc list-queue)
+  (do ((first (list-queue-list list-queue) (cdr first)))
+      ((null? first))
+    (set-car! first (proc (car first)))))
