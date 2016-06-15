@@ -35,4 +35,5 @@
       (set-cdr! last (list element)) 
       (list-queue-set-last! list-queue (cdr last))))))
 
-
+(define (list-queue-for-each proc list-queue)
+  (for-each proc (list-queue-list list-queue)))

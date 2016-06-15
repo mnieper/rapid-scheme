@@ -100,7 +100,7 @@
 ;; exports is a map identifier-to-be-exported->export-spec
 
 (define (export-syntactic-environment! environment exports)
-  (imap-for-each
+  (exports-for-each
    (lambda (identifier export-spec)
      (and-let*
 	 ((denotation

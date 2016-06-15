@@ -31,4 +31,17 @@
 		    (list-queue-add-back! lq 1)
 		    (list-queue-add-back! lq 2)
 		    (list-queue-add-back! lq 3)		    
-		    (list-queue-list lq))))))
+		    (list-queue-list lq)))
+
+      (test-equal "list-queue-for-each"
+		  '(3 2 1)
+		  (let ((lq (list-queue)))
+		    (list-queue-add-back! lq 1)
+		    (list-queue-add-back! lq 2)
+		    (list-queue-add-back! lq 3)		    
+		    (let ((lst '()))
+		      (list-queue-for-each
+		       (lambda (i)
+			 (set! lst (cons i lst)))
+		       lq)
+		      lst))))))

@@ -20,7 +20,7 @@
 (define-record-type <library-definition>
   (%make-library exports import-sets body)
   library?
-  (exports library-exports library-set-exports!)
+  (exports library-exports)
   (import-sets library-import-sets library-set-import-sets!)
   (body library-body library-set-body!))
 
@@ -35,8 +35,7 @@
 	(export-spec (unwrap-syntax syntax)))
     (cond
      ((identifier? export-spec)
-      (library-set-exports! library
-			    (exports-add exports syntax syntax)))
+      (exports-add! exports syntax syntax))
      ((and-let*
 	  (((tagged-list? export-spec 'rename 3))
 	   ((= (length export-spec) 3))
@@ -44,10 +43,9 @@
 	   (external-syntax (list-ref export-spec 2))
 	   (identifier? (unwrap-syntax binding-syntax))
 	   (identifier? (unwrap-syntax external-syntax)))
-	(library-set-exports! library
-			      (exports-add exports
-					   (list-ref export-spec 1)
-					   (list-ref export-spec 2)))))
+	(exports-add! exports
+		      (list-ref export-spec 1)
+		      (list-ref export-spec 2))))
      (else
       (raise-syntax-error syntax "bad export spec")))))
 

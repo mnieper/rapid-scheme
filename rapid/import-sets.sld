@@ -21,9 +21,10 @@
 	  export-spec-source
 	  export-spec-target
 	  make-exports
-	  exports-add
+	  exports?
+	  exports-add!
 	  exports-ref
-	  exports-delete
+	  exports-for-each
           make-import-set
 	  import-set?
 	  import-set-library-name-syntax
@@ -34,6 +35,7 @@
 	  (rapid and-let)
 	  (rapid receive)
 	  (rapid lists)
+	  (rapid list-queues)
 	  (rapid comparators)
 	  (rapid immutable-maps)
 	  (rapid identifiers)

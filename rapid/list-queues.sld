@@ -19,7 +19,8 @@
   (export list-queue
 	  list-queue?
 	  list-queue-list
-	  list-queue-add-back!)
+	  list-queue-add-back!
+	  list-queue-for-each)
   (cond-expand
    ((library (srfi 117))
     (import (srfi 117)))

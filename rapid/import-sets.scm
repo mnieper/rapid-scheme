@@ -23,27 +23,36 @@
   (source export-spec-source)
   (target export-spec-target))
 
-(define (make-exports)
-  (imap identifier-comparator))
+(define-record-type <exports>
+  (%make-exports map specs)
+  exports?
+  (map exports-map exports-set-map!)
+  (specs exports-specs))
 
-(define (exports-add exports source target)
-  (let ((target-identifier (unwrap-syntax target)))
+(define (make-exports)
+  (%make-exports (imap identifier-comparator) (list-queue)))
+
+(define (exports-add! exports source target)
+  (let ((target-identifier (unwrap-syntax target))
+	(map (exports-map exports)))
     (cond
-     ((imap-ref/default exports target-identifier #f)
+     ((imap-ref/default map target-identifier #f)
       => (lambda (export-spec)
 	   (raise-syntax-error target
 			       "identifier ‘~a’ is already bound"
 			       (identifier->symbol target-identifier))
 	   (raise-syntax-note (export-spec-target export-spec)
-			      "previous binding was here")
-	   #f))
+			      "previous binding was here")))
      (else
-      (imap-replace exports
-		    target-identifier
-		    (make-export-spec source target))))))
+      (let ((export-spec (make-export-spec source target)))
+	(exports-set-map! exports
+			  (imap-replace map
+					target-identifier
+					export-spec))
+	(list-queue-add-back! (exports-specs exports) export-spec))))))
 
 (define (exports-ref exports target)
-  (imap-ref exports
+  (imap-ref (exports-map exports)
 	    (unwrap-syntax target)
 	    (lambda ()
 	      (raise-syntax-error target
@@ -51,19 +60,11 @@
 				  (syntax->datum target))
 	      #f)))
 
-(define (exports-delete exports target)
-  (receive (map ok)
-      (imap-search
-       exports
-       (unwrap-syntax target)
-       (lambda (insert ignore)
-	 (raise-syntax-error target
-			     "identifier ‘~a’ not bound"
-			     (syntax->datum target))
-	 (ignore #f))
-       (lambda (key update remove)
-	 (remove #t)))
-    (and ok map)))
+(define (exports-for-each proc exports)
+  (list-queue-for-each
+   (lambda (export-spec)
+     (proc (unwrap-syntax (export-spec-target export-spec)) export-spec))
+   (exports-specs exports)))
 
 ;;; Import sets
 
@@ -93,7 +94,9 @@
 		     ((only)
 		      (imports-only imports (identifier-list (cddr datum))))
 		     ((except)
-		      (imports-except imports (identifier-list (cddr datum))))
+		      (imports-except imports
+				      (cddr datum)
+				      (except-map (cddr datum))))
 		     ((prefix)
 		      (cond
 		       ((= (length datum) 3)
@@ -105,7 +108,9 @@
 			(raise-syntax-error syntax "bad prefix import set")
 			#f)))
 		     ((rename)
-		      (imports-rename imports (rename-map (cddr datum))))
+		      (imports-rename imports
+				      (cddr datum)
+				      (rename-map (cddr datum))))
 		     (else
 		      (raise-syntax-error syntax "invalid import set")))))
 		(and (library-name? syntax)
@@ -120,76 +125,91 @@
 
 (define (make-imports syntax)
   (lambda (identifiers)
-    (imap-map-values
-     (lambda (identifier value)
-       (let ((target (derive-syntax identifier syntax)))
-	 (make-export-spec target target)))
-     identifiers)))
-
-;; TODO: Check the following procs
+    (let ((exports (make-exports)))
+      (imap-for-each
+       (lambda (identifier value)
+	 (let ((target (derive-syntax identifier syntax)))
+	   (exports-add! exports target target)))
+       identifiers)
+      exports)))
 
 (define (imports-only imports syntax*)
   (lambda (identifiers)
-    (let ((exports (imports identifiers)))
-      (let loop ((only-exports (make-exports))
-		 (syntax* syntax*))
-	(if (null? syntax*)
-	    only-exports
-	    (let ((only-target (car syntax*)))
-	      (cond
-	       ((exports-ref exports only-target)
-		=> (lambda (export-spec)
-		     (loop (exports-add exports
-					(export-spec-source export-spec)
-					only-target)
-			   (cdr syntax*))))
-	       (else
-		(loop (only-exports (cdr syntax*)))))))))))
-	     
-(define (imports-except imports syntax*)
+    (let ((exports (imports identifiers))
+	  (only-exports (make-exports)))
+      (do ((syntax* syntax* (cdr syntax*)))
+	  ((null? syntax*)
+	   only-exports)
+	(let ((only-target (car syntax*)))
+	  (and-let*
+	      ((export-spec (exports-ref exports only-target)))
+	    (exports-add! only-exports
+			  (export-spec-source export-spec)
+			  only-target))))
+      only-exports)))
+
+(define (imports-except imports syntax* except-map)
+
   (lambda (identifiers)
-    (let loop ((except-exports (imports identifiers))
-	       (syntax* syntax*))
-      (if (null? syntax*)
-	  except-exports
-	  (cond
-	   ((exports-delete except-exports (car syntax*))
-	    => (lambda (exports)
-		 (loop exports (cdr syntax*))))
-	   (else
-	    (loop except-exports (cdr syntax*))))))))
+    (let ((exports (imports identifiers))
+	  (except-exports (make-exports)))
+
+      (for-each
+       (lambda (identifier-syntax)
+	 ;; The following result is ignored, but an error may be raised.
+	 (exports-ref exports identifier-syntax))
+       syntax*)
+
+      (exports-for-each
+       (lambda (target-identifier export-spec)
+	 (unless (exports-ref (export-spec-target export-spec) except-map)
+	   (exports-add! except-exports
+			 (export-spec-source export-spec)
+			 (export-spec-target export-spec))))
+       exports)
+
+      except-exports)))
 
 (define (imports-prefix imports syntax)
   (let ((prefix (symbol->string (syntax->datum syntax))))
     (lambda (identifiers)
-      (imap-fold
-       (lambda (target-identifier export-spec prefix-exports)
-	 (let ((prefix-identifier
-		(symbol->identifier
-		 (string->symbol
-		  (string-append
-		   prefix
-		   (symbol->string (identifier->symbol target-identifier)))))))
-	   (exports-add prefix-exports
-			(export-spec-source export-spec)
-			(derive-syntax prefix-identifier syntax))))
-       (make-exports) (imports identifiers)))))
-
-;; rename-map is an imap that maps identifiers to identifier syntax
-
-(define (imports-rename imports rename-map)
-  (lambda (identifiers)
-    (imap-fold
-     (lambda (target-identifier export-spec rename-exports)
-       (cond
-	((imap-ref/default rename-map target-identifier #f)
-	 => (lambda (rename-target)
-	      (exports-add rename-exports
+      (let ((prefix-exports (make-exports)))
+	(exports-for-each
+	 (lambda (target-identifier export-spec)
+	   (let ((prefix-identifier
+		  (symbol->identifier
+		   (string->symbol
+		    (string-append
+		     prefix
+		     (symbol->string (identifier->symbol target-identifier)))))))
+	     (exports-add! prefix-exports
 			   (export-spec-source export-spec)
-			   rename-target)))
-	(else
-	 (imap-replace rename-exports target-identifier export-spec))))
-     (make-exports) (imports identifiers))))
+			   (derive-syntax prefix-identifier syntax))))
+	 (imports identifiers))
+	prefix-exports))))
+
+(define (imports-rename imports syntax* rename-map)
+  (lambda (identifiers)
+    (let ((exports (imports identifiers))
+	  (rename-exports (make-exports)))
+      (exports-for-each
+       (lambda (target-identifier export-spec)
+	 (unless (imap-ref/default rename-map target-identifier #f)
+	   (exports-add! rename-exports
+			 (export-spec-source export-spec)
+			 (export-spec-target export-spec))))
+       exports)
+      (for-each
+       (lambda (rename-syntax)
+	 (and-let* ((rename-identifier-syntax
+		     (car (unwrap-syntax rename-syntax)))     
+		    (export-spec (exports-ref exports rename-identifier-syntax)))
+	   (exports-add! rename-exports
+			 (export-spec-source export-spec)
+			 (imap-ref rename-map
+				   (unwrap-syntax rename-identifier-syntax)))))
+       syntax*)
+      rename-exports)))
 
 (define library-name?
   (case-lambda
@@ -223,6 +243,23 @@
      (else
       (loop (cdr syntax*))))))
 
+(define (except-map syntax*)
+  (fold-right
+   (lambda (identifier-syntax except-map)
+     (if (identifier-syntax? identifier-syntax)
+	 (cond
+	  ((imap-ref/default except-map (unwrap-syntax identifier-syntax) #f)
+	   (raise-syntax-error identifier-syntax
+			       "identifier ‘~a’ is already being excepted"
+			       (syntax->datum identifier-syntax))
+	   except-map)
+	  (else
+	   (imap-replace except-map
+			 (unwrap-syntax identifier-syntax)
+			 identifier-syntax)))
+	 except-map))
+   (imap identifier-comparator) syntax*))
+  
 (define (rename-map syntax*)
   (fold-right
    (lambda (rename-syntax rename-map)
@@ -232,7 +269,7 @@
 	    ((imap-ref/default rename-map (unwrap-syntax identifier-syntax) #f)
 	     (raise-syntax-error identifier-syntax
 				 "identifier ‘~a’ is already being renamed"
-				 identifier-syntax)
+				 (syntax->datum identifier-syntax))
 	     rename-map)
 	    (else
 	     (imap-replace rename-map
