@@ -156,8 +156,17 @@
   (write-string (syntax-exception-name exception) (current-error-port))
   (write-string ": " (current-error-port))
   (write-string (syntax-exception-message exception) (current-error-port))
-  ;; TODO: Print context.
-  (newline (current-error-port)))
+  (newline (current-error-port))
+  (print-context (syntax-exception-syntax exception)))
+
+(define (print-context syntax)
+  (and-let* ((syntax)
+	     (context (syntax-context syntax)))
+    (when (syntax-source-location context)
+      (print-source-location context)
+      (write-string "  used from here" (current-error-port))
+      (newline (current-error-port)))
+    (print-context context)))
 
 (define (print-source-location syntax)
   (cond
