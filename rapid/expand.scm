@@ -20,36 +20,113 @@
 (define (definition-context?) (eq? (current-context) 'definition))
 (define (expression-context?) (eq? (current-context) 'expression))
 
-(define (make-definition formals expression-syntax syntax)
-  (vector formals expression-syntax syntax))
+(define (make-definition formals expression syntax)
+  (vector formals expression syntax))
 (define (definition-formals definition)
   (vector-ref definition 0))
-(define (definition-expression-syntax definition)
+(define (definition-expression definition)
   (vector-ref definition 1))
 (define (definition-syntax definition)
   (vector-ref definition 2))
 
 (define current-definitions (make-parameter #f))
 
+(define (add-definition! formals expression syntax)
+  (list-queue-add-back! (current-definitions)
+			(make-definition formals expression syntax)))
+
+(define current-expressions (make-parameter #f))
+
+(define expand-into-expression-hook (make-parameter #f))
+(define (expand-into-expression expression)
+  ((expand-into-expression-hook) expression))
+
 (define (expand-top-level! syntax*)
   (parameterize
       ((current-context 'top-level)
-       (current-definitions (list-queue)))
-    (for-each expand-definition! syntax*)
+       (current-definitions (list-queue))
+       (expand-into-expression-hook
+	(lambda (expression)
+	  (add-definition! (make-dummy-formals)
+			   expression
+			   #f))))
+    (for-each expand-syntax! syntax*)
     (current-context 'expression)
     (list-queue-map!
      (lambda (definition)
-       (make-variables (definition-formals definition)
-		       (expand-expression (definition-expression-syntax definition))
-		       (definition-syntax definition)))
+       (let ((expression (definition-expression definition)))       
+	 (make-variables (definition-formals definition)
+			 (if (syntax? expression)
+			     (expand-expression expression) ;; FIXME: This may return
+			                                    ;; false
+			     expression)
+			 (definition-syntax definition))))
      (current-definitions))))
 
-;; TODO: expand-body
-
-(define (expand-definition! syntax)
-  (maybe-isolate (top-level-context?)
-    (lambda ()
-      #f)))
+(define (expand-body syntax*)
+  (error "expand-body: not implemented yet"))
 
 (define (expand-expression syntax)
-  (error "expand-expression: not implemented yet"))
+  (call-with-current-continuation
+   (lambda (return)
+     (parameterize ((current-context 'expression)
+		    (expand-into-expression-hook return))
+       (expand-syntax! syntax)))))
+
+(define (expand-into-syntax-definition identifier-syntax transformer syntax)
+  (and-let*
+      (((or (not (expression-context?))
+	    (begin (raise-syntax-error syntax
+				       "unexpected syntax definition of ‘~a’"
+				       (syntax->datum identifier-syntax))
+		   #f)))
+       ((or (not (current-expressions))
+	    (begin (raise-syntax-error syntax
+				       "syntax definition of ‘~a’ may not follow "
+				       "expressions in a body"
+				       (syntax->datum identifier-syntax))))))
+    (insert-syntactic-binding! identifier-syntax transformer)))
+
+;;; XXX: Some transformers may expand into ‘expand-into-expression’.
+;;; How will this be handled?
+
+(define (expand-syntax! syntax)
+  (maybe-isolate (top-level-context?)
+    (lambda ()
+      (let ((form (unwrap-syntax syntax)))
+	(cond
+	 ((simple-datum? form)
+	  (expand-into-expression (make-literal form syntax)))
+	 ((null? form)
+	  (raise-syntax-error syntax "empty application in source"))
+	 ((identifier? form)
+	  #f) ;; FIXME
+         ((list? form)
+	  (cond
+	   ((lookup-transformer! (car form))
+	    => (lambda (transformer)
+		 ((transformer-proc transformer) syntax)))
+	   (else
+	    #f ;; TODO
+	    )))
+	 (else
+	  (raise-syntax-error syntax "invalid form")))))))
+
+(define (lookup-transformer! syntax)
+  (and-let*
+      ((form (unwrap-syntax syntax))
+       ((identifier? form))
+       (denotation (lookup-denotation! syntax))
+       ((transformer? denotation)))
+    denotation))
+
+(define (simple-datum? expression)
+  (or (number? expression)
+      (boolean? expression)
+      (char? expression)
+      (string? expression)
+      (bytevector? expression)
+      (vector? expression)))
+
+(define (make-dummy-formals)
+  (make-formals (list (make-location #f)) #f))

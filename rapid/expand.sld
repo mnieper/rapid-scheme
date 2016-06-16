@@ -16,9 +16,14 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid expand)
-  (export expand-top-level!)
+  (export expand-top-level!
+	  expand-body
+	  expand-expression
+	  expand-into-syntax-definition)
   (import (scheme base)
+	  (rapid and-let)
 	  (rapid list-queues)
+	  (rapid identifiers)
 	  (rapid syntax)
 	  (rapid syntactic-environments)
 	  (rapid expressions))

@@ -33,8 +33,6 @@
 		     (with-syntax-exception-handler
 		      (lambda ()
 			(environment? (expand-library (read-program
-						       "tests.scm"))))))
-
-		   )
+						       "tests.scm")))))))
 
       (test-end))))

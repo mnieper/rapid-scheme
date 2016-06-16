@@ -250,7 +250,7 @@
 		    (cond
 		     ((locate-file string-syntax)
 		      => (lambda (filename)
-			   (read-file filename string-syntax ci?)))
+			   (read-file filename ci? string-syntax)))
 		     (else
 		      (generator))))
 		  string-syntax*)))

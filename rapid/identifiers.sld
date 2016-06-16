@@ -18,6 +18,7 @@
 (define-library (rapid identifiers)
   (export make-synthetic-identifier
 	  identifier?
+	  identifier-closure
 	  identifier->symbol
 	  symbol->identifier
 	  bound-identifier=?

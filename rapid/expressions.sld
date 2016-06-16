@@ -19,6 +19,8 @@
   (export expression? expression-syntax
 	  make-reference reference? reference-location
 	  make-primitive-reference primitive-reference? primitive-reference-symbol
+	  make-literal literal? literal-datum
+	  make-location location-syntax
 	  make-variables variables? variables-formals variables-expression
 	  variables-syntax
 	  make-formals formals? formals-fixed formals-rest formals-syntax)

@@ -16,5 +16,32 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-syntactic-environment primitive-environment
-  
-  )
+
+  (define-transformer (define-primitive syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 ((or (= (length form) 3)
+	      (begin (raise-syntax-error syntax
+					 "bad define-primitive syntax")
+		     #f)))
+	 (identifier-syntax (list-ref form 1))
+	 (identifier (unwrap-syntax identifier-syntax))
+	 ((or (identifier? identifier)
+	      (begin (raise-syntax-error identifier-syntax
+					 "identifier expected")
+		     #f)))
+	 (literal-syntax (list-ref form 2))
+	 (literal (expand-expression literal-syntax))
+	 ((or (and (literal? literal)
+	      (begin (raise-syntax-error literal-syntax
+					 "literal symbol expected")
+		     #f))))
+	 (symbol (literal-datum literal))
+	 ((or (symbol? symbol)
+	      (begin (raise-syntax-error literal-syntax
+					 "symbol expected")
+		     #f))))
+      (expand-into-syntax-definition identifier-syntax
+				     (make-primitive-reference symbol
+							       literal-syntax)
+				     syntax))))

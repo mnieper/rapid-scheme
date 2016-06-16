@@ -27,9 +27,19 @@
 
 (define-syntax define-syntactic-environment
   (syntax-rules ()
-    ((define-syntactic-environment environment . _)
-     (define environment
-       (make-syntactic-environment)))))
+    ((define-syntactic-environment environment
+       (define-transformer (name syntax)
+	 body1 body2 ...)
+       ...)
+     (begin
+       (define environment (make-syntactic-environment))
+       (with-syntactic-environment environment
+	 (insert-syntactic-binding!
+	  (derive-syntax (symbol->identifier 'name) #f)
+	  (make-transformer (lambda (syntax)
+			      body1 body2 ...)
+			    #f))
+	 ...)))))
 
 (define-syntax with-scope
   (syntax-rules ()
@@ -51,14 +61,17 @@
 
 (define-record-type (<primitive> <denotation>)
   (make-primitive value syntax)
-  primitive?)
+  primitive?
+  (value primitive-value))
 
-;; TODO: Add denotation for transformers
+(define-record-type (<transformer> <denotation>)
+  (make-transformer proc syntax)
+  transformer?
+  (proc transformer-proc))
+  
 ;; TODO: Add denotation for locations
 
 ;;; Syntactic bindings
-
-(define current-references (make-parameter '()))
 
 (define-record-type <syntactic-binding>
   (make-syntactic-binding syntax denotation)
@@ -89,7 +102,7 @@
   (case-lambda
    (() (used-identifiers (current-syntactic-environment)))
    ((identifiers)
-    (set-used-identifiers! (current-syntactic-environment) used-identifiers))))
+    (set-used-identifiers! (current-syntactic-environment) identifiers))))
 
 (define (use-identifier! identifier)
   (current-used-identifiers (imap-replace (current-used-identifiers)
@@ -122,16 +135,23 @@
 					   environment))))
 
 (define (lookup-syntactic-binding! identifier-syntax)
-  (cond
-   ((imap-ref/default (current-bindings) (unwrap-syntax identifier-syntax) #f)
-    => (lambda (binding)
-	 (use-identifier! (unwrap-syntax identifier-syntax))
-	 binding))
-   (else
-    (raise-syntax-error identifier-syntax
-			"identifier ‘~a’ not bound"
-			(syntax->datum identifier-syntax))
-    #f)))
+  (let ((identifier (unwrap-syntax identifier-syntax)))
+     (let loop ((environments (cons (current-syntactic-environment)
+				    (identifier-closure identifier))))
+       (cond
+	((null? environments)
+	 (raise-syntax-error identifier-syntax
+			     "identifier ‘~a’ not bound"
+			     (identifier->symbol identifier))
+	 #f)
+	((imap-ref/default (syntactic-environment-bindings (car environments))
+			   identifier
+			   #f)
+	 => (lambda (denotation)
+	      (use-identifier! identifier)
+	      denotation))
+	(else
+	 (loop (cdr environments)))))))
 
 (define (lookup-denotation! identifier-syntax)
   (and-let*
@@ -145,8 +165,8 @@
 (define (insert-syntactic-binding! identifier-syntax denotation)
   (let ((identifier (unwrap-syntax identifier-syntax)))
     (cond
-     ((imap-ref/default (unwrap-syntax identifier-syntax)
-			(current-used-identifiers)
+     ((imap-ref/default (current-used-identifiers)
+			(unwrap-syntax identifier-syntax)
 			#f)
       => (lambda (binding)
 	   (raise-syntax-error identifier-syntax
@@ -181,7 +201,7 @@
 	      (current-used-identifiers new-used-identifiers))
 	    thunk
 	    (lambda ()
-	      (set! new-used-identifiers (current-references))
+	      (set! new-used-identifiers (current-used-identifiers))
 	      (current-used-identifiers old-used-identifiers))))
       (thunk)))
 

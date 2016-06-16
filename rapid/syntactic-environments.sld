@@ -24,6 +24,11 @@
 	  current-syntactic-environment
 	  import-syntactic-environment!
 	  export-syntactic-environment!
+	  insert-syntactic-binding!
+	  lookup-denotation!
+	  make-transformer
+	  transformer?
+	  transformer-proc
 	  #;identifier=?
 	  #;free-identifier=?
 	  maybe-isolate)
@@ -43,7 +48,10 @@
 ;; eval: (put 'with-scope 'scheme-indent-function 1)
 ;; eval: (put 'maybe-isolate 'scheme-indent-function 1)
 ;; eval: (put 'define-syntactic-environment 'scheme-indent-function 'defun)
+;; eval: (put 'define-transformer 'scheme-indent-function 'defun)
 ;; eval: (font-lock-add-keywords 'scheme-mode
 ;;                               '(("(\\(define-syntactic-environment\\)\\>"
+;;                                  1 font-lock-keyword-face)
+;;                                 ("(\\(define-transformer\\)\\>"
 ;;                                  1 font-lock-keyword-face)))
 ;; End:

@@ -36,9 +36,21 @@
   primitive-reference?
   (symbol primitive-reference-symbol))
 
+;; Literals
+
+(define-record-type (<literal> <expression>)
+  (make-literal datum syntax)
+  literal?
+  (datum literal-datum))
+
 ;;; Extra types
 
 ;; Variable bindings
+
+(define-record-type <location>
+  (make-location syntax)
+  location?
+  (syntax location-syntax))
 
 (define-record-type <variables>
   (make-variables formals expression syntax)
