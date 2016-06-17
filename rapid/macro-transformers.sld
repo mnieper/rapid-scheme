@@ -16,10 +16,11 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid macro-transformers)
-  (export)
+  (export make-syntax-rules-transformer)
   (import (scheme base)
        	  (rapid immutable-maps)
 	  (rapid identifiers)
+	  (rapid syntax)
 	  (rapid syntactic-environments))
   (include "macro-transformers.scm"))
 

@@ -16,7 +16,10 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid syntactic-environments)
-  (export with-syntactic-environment
+  (export make-location location? location-syntax
+	  make-transformer transformer? transformer-proc transformer-syntax
+	  make-primitive primitive? primitive-value primitive-syntax
+	  with-syntactic-environment
 	  with-scope
 	  define-syntactic-environment
 	  make-syntactic-environment
@@ -26,9 +29,6 @@
 	  export-syntactic-environment!
 	  insert-syntactic-binding!
 	  lookup-denotation!
-	  make-transformer
-	  transformer?
-	  transformer-proc
 	  identifier=?
 	  free-identifier=?
 	  maybe-isolate)

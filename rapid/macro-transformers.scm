@@ -37,4 +37,35 @@
 
 (define (make-syntax-rules-transformer
 	 ellipsis? literal? underscore? syntax-rule-syntax* transformer-syntax)
-  (error "make-syntax-rules-transformer: not implemented yet"))
+
+  (define pattern-syntax-vector
+    (list->vector
+     (map
+      (lambda (syntax-rule-syntax)
+	(let ((pattern-syntax (car (unwrap-syntax syntax-rule-syntax))))
+	  (derive-syntax (cdr (unwrap-syntax pattern-syntax)) pattern-syntax)))
+      syntax-rule-syntax*)))
+
+  (define template-syntax-vector
+    (list->vector
+     (map
+      (lambda (syntax-rule-syntax)
+	(cadr (unwrap-syntax syntax-rule-syntax)))
+      syntax-rule-syntax*)))
+
+  (define matchers '())  ;; FIXME
+  (define transcribers '()) ;; FIXME
+  
+  (make-er-macro-transformer
+   (lambda (syntax rename compare)
+     (let loop ((matchers matchers) (transcribers transcribers))
+       (cond
+	((null? matchers)
+	 (raise-syntax-error syntax "no expansion for macro use")
+	 (raise-syntax-note transformer-syntax
+			    "the macro definition was here")
+	 #f)
+	(((car matchers) syntax)
+	 => (car transcribers))
+	(else
+	 (loop (cdr matchers) (cdr transcribers))))))))

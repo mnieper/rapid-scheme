@@ -19,9 +19,12 @@
   (export expand-top-level!
 	  expand-body
 	  expand-expression
+	  expand-transformer
 	  expand-into-syntax-definition
 	  expand-into-definition
-	  expand-into-expression)
+	  expand-into-expression
+	  expand-into-transformer
+	  expand-syntax!)
   (import (scheme base)
 	  (rapid and-let)
 	  (rapid lists)

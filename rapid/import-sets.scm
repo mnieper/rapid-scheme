@@ -68,11 +68,6 @@
 
 ;;; Import sets
 
-;; Imports is a procedure taking a set of identifiers (realized as an
-;; imap) and produces a map mapping each identifier to the
-;; syntax of the exported
-;; identifier.
-
 (define-record-type <import-set>
   (%make-import-set library-name-syntax imports)
   import-set?
@@ -276,7 +271,7 @@
 	    (else
 	     (imap-replace rename-map
 			   (unwrap-syntax identifier-syntax)
-			   (cdr (unwrap-syntax rename-syntax))))))
+			   (cadr (unwrap-syntax rename-syntax))))))
 	 rename-map))
    (imap identifier-comparator) syntax*))
 

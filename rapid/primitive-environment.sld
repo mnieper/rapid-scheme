@@ -26,5 +26,6 @@
 	  (rapid syntax)
 	  (rapid expressions)
 	  (rapid syntactic-environments)
-	  (rapid expand))
+	  (rapid expand)
+	  (rapid macro-transformers))
   (include "primitive-environment.scm"))

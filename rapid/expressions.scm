@@ -45,13 +45,6 @@
 
 ;;; Extra types
 
-;; Variable bindings
-
-(define-record-type <location>
-  (make-location syntax)
-  location?
-  (syntax location-syntax))
-
 (define-record-type <variables>
   (make-variables formals expression syntax)
   variables?

@@ -51,26 +51,6 @@
 					(imap identifier-comparator))))
        body1 body2 ...))))
      
-;;; Denotations
-
-(define-record-type <denotation>
-  #f
-  denotation?
-  (value denotation-value)
-  (syntax denotation-syntax))
-
-(define-record-type (<primitive> <denotation>)
-  (make-primitive value syntax)
-  primitive?
-  (value primitive-value))
-
-(define-record-type (<transformer> <denotation>)
-  (make-transformer proc syntax)
-  transformer?
-  (proc transformer-proc))
-  
-;; TODO: Add denotation for locations
-
 ;;; Syntactic bindings
 
 (define-record-type <syntactic-binding>
@@ -78,6 +58,27 @@
   syntactic-binding?
   (binding-syntax binding-syntax)
   (denotation binding-denotation))
+
+;;; Denotations
+
+;; Variable bindings
+
+(define-record-type <location>
+  (make-location syntax)
+  location?
+  (syntax location-syntax))
+
+(define-record-type <primitive>
+  (make-primitive value syntax)
+  primitive?
+  (value primitive-value)
+  (syntax primitive-syntax))
+
+(define-record-type <transformer>
+  (make-transformer proc syntax)
+  transformer?
+  (proc transformer-proc)
+  (syntax transformer-syntax))
 
 ;;; Syntactic environments
 

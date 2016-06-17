@@ -164,7 +164,7 @@
 	     (context (syntax-context syntax)))
     (when (syntax-source-location context)
       (print-source-location context)
-      (write-string "  used from here" (current-error-port))
+      (write-string "  included from here" (current-error-port))
       (newline (current-error-port)))
     (print-context context)))
 

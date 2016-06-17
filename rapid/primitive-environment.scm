@@ -19,6 +19,8 @@
 
 (define-syntactic-environment primitive-environment
 
+  ;; quote syntax
+  
   (define-transformer (quote syntax)
     (and-let*
 	((form (unwrap-syntax syntax))
@@ -29,6 +31,8 @@
       (expand-into-expression
        (make-literal (syntax->datum (list-ref form 1)) syntax))))
 
+  ;; define-values syntax
+  
   (define-transformer (define-values syntax)
     (and-let*
 	((form (unwrap-syntax syntax))
@@ -43,6 +47,39 @@
 						(list-ref form 1)
 						(list-ref form 2)
 						syntax)))))
+
+  ;; define-syntax syntax
+
+  (define-transformer (define-syntax syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 ((or (= (length form) 3)
+	      (raise-syntax-error syntax "bad define-syntax syntax")))
+	 (keyword-syntax (list-ref form 1))
+	 ((identifier-syntax? keyword-syntax))
+	 (transformer-syntax (list-ref form 2))
+	 (transformer (expand-transformer transformer-syntax)))
+      (expand-into-syntax-definition
+       keyword-syntax
+       (make-transformer
+	(lambda (syntax)
+	  (and-let*
+	      ((transformed-syntax (transformer syntax)))
+	    (expand-syntax! transformed-syntax)))
+	transformer-syntax)
+       syntax)))
+
+  ;; syntax-rules syntax
+  (define-transformer (syntax-rules syntax)
+    ;; FIXME: The parameters are ellipsis? literal? underscope? s-r-s*
+    (expand-into-transformer (make-syntax-rules-transformer #f
+							    #f
+							    #f
+							    '()
+							    syntax)
+			     syntax))
+  
+  ;; define-primitive syntax
   
   (define-transformer (define-primitive syntax)
     (and-let*

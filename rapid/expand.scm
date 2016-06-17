@@ -32,8 +32,9 @@
 (define current-definitions (make-parameter #f))
 
 (define (add-definition! formals expression syntax)
-  (list-queue-add-back! (current-definitions)
-			(make-definition formals expression syntax)))
+  (when expression
+    (list-queue-add-back! (current-definitions)
+			  (make-definition formals expression syntax))))
 
 (define (create-location identifier-syntax)
   (and-let*
@@ -46,6 +47,11 @@
 (define expand-into-expression-hook (make-parameter #f))
 (define (expand-into-expression expression)
   ((expand-into-expression-hook) expression))
+(define expand-into-transformer-hook
+  (make-parameter (lambda (transformer syntax)
+		    (raise-syntax-error syntax "unexpected transformer spec"))))
+(define (expand-into-transformer transformer syntax)
+  ((expand-into-transformer-hook) transformer syntax))
 
 (define (expand-top-level! syntax*)
   (parameterize
@@ -78,6 +84,20 @@
 		    (expand-into-expression-hook return))
        (expand-syntax! syntax)))))
 
+(define (expand-transformer syntax)
+  (call-with-current-continuation
+   (lambda (return)
+     (parameterize
+	 ((current-context
+	   'expression)
+	  (expand-into-expression-hook
+	   (lambda (expression)
+	     (raise-syntax-error syntax "not a macro transformer")))
+	  (expand-into-transformer-hook
+	   (lambda (transformer syntax)
+	     (return transformer))))
+       (expand-syntax! syntax)))))
+
 (define (expand-into-syntax-definition identifier-syntax transformer syntax)
   (and-let*
       (((or (not (expression-context?))
@@ -90,6 +110,7 @@
 				       "syntax definition of ‘~a’ may not follow "
 				       "expressions in a body"
 				       (syntax->datum identifier-syntax))))))
+    ;; XXX: Is this transformer a correct denotation?
     (insert-syntactic-binding! identifier-syntax transformer)))
 
 ;; FIXME: Define as set! currently not implemented in top-level.
