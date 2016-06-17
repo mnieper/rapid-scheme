@@ -17,6 +17,16 @@
 
 (define-syntactic-environment primitive-environment
 
+  (define-transformer (quote syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 (or (= (length form) 2)
+	     (begin (raise-syntax-error syntax
+					"bad quote syntax")
+		    #f)))
+      (expand-into-expression
+       (make-literal (syntax->datum (list-ref form 1)) syntax))))
+  
   (define-transformer (define-primitive syntax)
     (and-let*
 	((form (unwrap-syntax syntax))
@@ -32,10 +42,10 @@
 		     #f)))
 	 (literal-syntax (list-ref form 2))
 	 (literal (expand-expression literal-syntax))
-	 ((or (and (literal? literal)
+	 ((or (literal? literal)
 	      (begin (raise-syntax-error literal-syntax
 					 "literal symbol expected")
-		     #f))))
+		     #f)))
 	 (symbol (literal-datum literal))
 	 ((or (symbol? symbol)
 	      (begin (raise-syntax-error literal-syntax

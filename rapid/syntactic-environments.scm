@@ -104,21 +104,18 @@
    ((identifiers)
     (set-used-identifiers! (current-syntactic-environment) identifiers))))
 
-(define (use-identifier! identifier)
+(define (use-identifier! identifier binding)
   (current-used-identifiers (imap-replace (current-used-identifiers)
 					  identifier
-					  #t)))
+					  binding)))
 
 (define (make-syntactic-environment)
   (%make-syntactic-environment (imap identifier-comparator)
 			       ;; TODO: Use an iset when it is implemented.
 			       (imap identifier-comparator)))
 
-;; imports will be a map mapping all identifiers at once covariantly
-
-;; exports is a map identifier-to-be-exported->export-spec
-
 (define (export-syntactic-environment! environment exports)
+  ;; FIXME: This is far too slow.
   (exports-for-each
    (lambda (identifier export-spec)
      (and-let*
@@ -147,9 +144,9 @@
 	((imap-ref/default (syntactic-environment-bindings (car environments))
 			   identifier
 			   #f)
-	 => (lambda (denotation)
-	      (use-identifier! identifier)
-	      denotation))
+	 => (lambda (binding)
+	      (use-identifier! identifier binding)
+	      binding))
 	(else
 	 (loop (cdr environments)))))))
 
@@ -177,11 +174,12 @@
 			      (syntax->datum identifier-syntax))
 	   #f))
      (else
-      (use-identifier! (unwrap-syntax identifier-syntax))
-      (current-bindings (imap-replace (current-bindings)
-				      identifier
-				      (make-syntactic-binding identifier-syntax
-							      denotation)))))))
+      (let ((binding
+	     (make-syntactic-binding identifier-syntax denotation)))	     
+	(use-identifier! (unwrap-syntax identifier-syntax) binding)
+	(current-bindings (imap-replace (current-bindings)
+					identifier
+					binding)))))))
 
 (define (syntactic-environment-insert-binding! syntactic-environment
 					       identifier-syntax

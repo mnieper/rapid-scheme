@@ -19,7 +19,8 @@
   (export expand-top-level!
 	  expand-body
 	  expand-expression
-	  expand-into-syntax-definition)
+	  expand-into-syntax-definition
+	  expand-into-expression)
   (import (scheme base)
 	  (rapid and-let)
 	  (rapid list-queues)

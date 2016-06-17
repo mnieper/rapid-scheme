@@ -57,8 +57,7 @@
        (let ((expression (definition-expression definition)))       
 	 (make-variables (definition-formals definition)
 			 (if (syntax? expression)
-			     (expand-expression expression) ;; FIXME: This may return
-			                                    ;; false
+			     (expand-expression expression)
 			     expression)
 			 (definition-syntax definition))))
      (current-definitions))))

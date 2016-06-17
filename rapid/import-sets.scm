@@ -162,7 +162,9 @@
 
       (exports-for-each
        (lambda (target-identifier export-spec)
-	 (unless (exports-ref (export-spec-target export-spec) except-map)
+	 (unless (imap-ref/default except-map
+				   target-identifier
+				   #f)
 	   (exports-add! except-exports
 			 (export-spec-source export-spec)
 			 (export-spec-target export-spec))))
