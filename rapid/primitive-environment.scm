@@ -20,10 +20,10 @@
   (define-transformer (quote syntax)
     (and-let*
 	((form (unwrap-syntax syntax))
-	 (or (= (length form) 2)
-	     (begin (raise-syntax-error syntax
-					"bad quote syntax")
-		    #f)))
+	 ((or (= (length form) 2)
+	      (begin (raise-syntax-error syntax
+					 "bad quote syntax")
+		     #f))))
       (expand-into-expression
        (make-literal (syntax->datum (list-ref form 1)) syntax))))
   

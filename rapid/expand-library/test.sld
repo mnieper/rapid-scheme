@@ -17,7 +17,7 @@
 
 (define-library (rapid expand-library test)
   (export run-tests)
-  (import (scheme base)
+  (import (rapid base)
 	  (rapid test)
 	  (rapid syntax)
 	  (rapid libraries)
