@@ -103,23 +103,23 @@
 (define-record-type <syntax-exception>
   #f
   syntax-exception?
-  (syntax syntax-exception-syntax)
+  (exception-syntax syntax-exception-syntax)
   (message syntax-exception-message))
 
 (define-record-type (<syntax-note> <syntax-exception>)
-  (make-syntax-note syntax message)
+  (make-syntax-note exception-syntax message)
   syntax-note?)
 
 (define-record-type (<syntax-warning> <syntax-exception>)
-  (make-syntax-warning syntax message)
+  (make-syntax-warning exception-syntax message)
   syntax-warning?)
 
 (define-record-type (<syntax-error> <syntax-exception>)
-  (make-syntax-error syntax message)
+  (make-syntax-error exception-syntax message)
   syntax-error?)
 
 (define-record-type (<syntax-fatal-error> <syntax-exception>)
-  (make-syntax-fatal-error syntax message)
+  (make-syntax-fatal-error exception-syntax message)
   syntax-fatal-error?)
 
 (define (syntax-exception-name exception)

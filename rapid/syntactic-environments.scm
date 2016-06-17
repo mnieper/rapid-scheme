@@ -74,9 +74,9 @@
 ;;; Syntactic bindings
 
 (define-record-type <syntactic-binding>
-  (make-syntactic-binding syntax denotation)
+  (make-syntactic-binding binding-syntax denotation)
   syntactic-binding?
-  (syntax binding-syntax)
+  (binding-syntax binding-syntax)
   (denotation binding-denotation))
 
 ;;; Syntactic environments
