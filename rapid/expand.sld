@@ -20,9 +20,11 @@
 	  expand-body
 	  expand-expression
 	  expand-into-syntax-definition
+	  expand-into-definition
 	  expand-into-expression)
   (import (scheme base)
 	  (rapid and-let)
+	  (rapid lists)
 	  (rapid list-queues)
 	  (rapid identifiers)
 	  (rapid syntax)

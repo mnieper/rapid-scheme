@@ -35,6 +35,12 @@
   (list-queue-add-back! (current-definitions)
 			(make-definition formals expression syntax)))
 
+(define (create-location identifier-syntax)
+  (and-let*
+      ((location (make-location identifier-syntax))
+       ((insert-syntactic-binding! identifier-syntax location)))
+    location))
+	       
 (define current-expressions (make-parameter #f))
 
 (define expand-into-expression-hook (make-parameter #f))
@@ -86,8 +92,25 @@
 				       (syntax->datum identifier-syntax))))))
     (insert-syntactic-binding! identifier-syntax transformer)))
 
-;;; XXX: Some transformers may expand into ‘expand-into-expression’.
-;;; How will this be handled?
+;; FIXME: Define as set! currently not implemented in top-level.
+
+(define (expand-into-definition fixed rest formals-syntax expression-syntax syntax)
+  (and-let*
+      (((or (not (expression-context?))
+	    (begin (raise-syntax-error syntax "unexpected definition")
+		   #f)))
+       ((or (not (current-expressions))
+	    (begin (raise-syntax-error syntax
+				       "definitions may not follow expressions "
+				       "in a body")
+		   #f)))
+       (fixed-locations
+	(map-in-order create-location fixed))
+       (rest-location
+	(map create-location rest)))
+    (add-definition! (make-formals fixed-locations rest-location formals-syntax)
+		     expression-syntax
+		     syntax)))
 
 (define (expand-syntax! syntax)
   (maybe-isolate (top-level-context?)

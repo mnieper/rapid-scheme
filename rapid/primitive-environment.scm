@@ -15,6 +15,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; The environment exported by the built-in library ‘(rapid primitive)’
+
 (define-syntactic-environment primitive-environment
 
   (define-transformer (quote syntax)
@@ -26,6 +28,21 @@
 		     #f))))
       (expand-into-expression
        (make-literal (syntax->datum (list-ref form 1)) syntax))))
+
+  (define-transformer (define-values syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 ((or (= (length form) 3)
+	      (begin (raise-syntax-error syntax
+					 "bad define-values syntax")
+		     #f))))
+      (unpack-formals (list-ref syntax 1)
+		      (lambda (fixed rest)
+			(expand-into-definition fixed
+						rest
+						(list-ref form 1)
+						(list-ref form 2)
+						syntax)))))
   
   (define-transformer (define-primitive syntax)
     (and-let*
@@ -55,3 +72,60 @@
 				     (make-primitive-reference symbol
 							       literal-syntax)
 				     syntax))))
+
+;;; Utility functions
+
+(define (unpack-formals formals-syntax success)
+  (define variables (imap identifier-comparator))
+
+  (define (unique-variable? syntax)
+    (and-let*
+	(((identifier-syntax? syntax))
+	 (identifier (unwrap-syntax syntax)))
+      (cond
+       ((imap-ref/default variables identifier #f)
+	=> (lambda (previous-syntax)
+	     (raise-syntax-error syntax
+				 "duplicate parameter ‘~a’"
+				 (identifier->symbol identifier))
+	     (raise-syntax-note previous-syntax
+				"previous appearance of ‘~a’ was here"
+				(syntax->datum previous-syntax))
+	     #f))
+       (else
+	(set! variables
+	      (imap-replace variables identifier syntax))
+	#t))))
+
+  (and-let*
+      ((formals
+	(let ((datum (unwrap-syntax formals-syntax)))
+	  (if (or (null? datum) (pair? datum))
+	      datum
+	      formals-syntax)))
+       ((flist? formals))
+       (fixed (list-queue))
+       (let loop ((formals formals))
+	 (cond
+	  ((null? formals)
+	   (success (list-queue-list fixed) '()))
+	  ((pair? formals)
+	   (when (unique-variable? (car formals))
+	     (list-queue-add-back! fixed (car formals)))
+	   (loop (cdr formals)))
+	  (else
+	   (if (unique-variable? formals)
+	       (success (list-queue-list fixed) formals)
+	       (success (list-queue-list fixed) '()))))))))
+
+(define (identifier-syntax? syntax)
+  (and-let*
+      ((datum (unwrap-syntax syntax))
+       ((or (identifier? datum)
+	    (begin (raise-syntax-error syntax "bad identifier")
+		   #f))))))
+
+(define (flist? syntax)
+  (or (not (circular-list? syntax))
+      (begin (raise-syntax-error syntax "circular list in source")
+	     #f)))

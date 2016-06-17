@@ -73,4 +73,4 @@
    ((fixed syntax)
     (%make-formals fixed #f syntax))
    ((fixed rest syntax)
-    (%make-formals fixed #f rest))))
+    (%make-formals fixed '() rest))))
