@@ -29,8 +29,8 @@
 	  make-transformer
 	  transformer?
 	  transformer-proc
-	  #;identifier=?
-	  #;free-identifier=?
+	  identifier=?
+	  free-identifier=?
 	  maybe-isolate)
   (import (scheme case-lambda)
 	  (rapid base)

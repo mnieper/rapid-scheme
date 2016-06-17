@@ -46,6 +46,8 @@
  (rename (rapid libraries test) (run-tests run-rapid-libraries-tests))
  (rename (rapid expressions test) (run-tests run-rapid-expressions-test))
  (rename (rapid expand test) (run-tests run-rapid-expand-tests))
+ (rename (rapid macro-transformers test)
+	 (run-tests run-rapid-macro-transformers-tests))
  (rename (rapid primitive-environment test)
 	 (run-tests run-rapid-primitive-environment-tests))
  (rename (rapid expand-library test)
@@ -78,6 +80,7 @@
 (run-rapid-syntactic-environments-tests)
 (run-rapid-expressions-test)
 (run-rapid-expand-tests)
+(run-rapid-macro-transformers-tests)
 (run-rapid-primitive-environment-tests)
 (run-rapid-expand-library-tests)
 

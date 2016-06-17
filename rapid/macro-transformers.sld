@@ -15,17 +15,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid identifiers)
-  (export make-synthetic-identifier
-	  identifier?
-	  identifier-closure
-	  identifier->symbol
-	  symbol->identifier
-	  bound-identifier=?
-	  identifier-comparator
-	  current-identity-counter
-	  close-syntax)
-  (import (scheme case-lambda)
-	  (rapid base)
-	  (rapid comparators))
-  (include "identifiers.scm"))
+(define-library (rapid macro-transformers)
+  (export)
+  (import (scheme base)
+       	  (rapid immutable-maps)
+	  (rapid identifiers)
+	  (rapid syntactic-environments))
+  (include "macro-transformers.scm"))
+

@@ -187,6 +187,24 @@
   (with-syntactic-environment syntactic-environment
     (insert-syntactic-binding! identifier-syntax denotation)))
 
+(define (identifier=? environment1 identifier1 environment2 identifier2)
+  (let ((denotation1
+	 (syntactic-environment-lookup-denotation! environment1 identifier1))
+	(denotation2
+	 (syntactic-environment-lookup-denotation! environment2 identifier2)))
+    (cond
+     ((and denotation1 denotation2)
+      (eq? denotation1 denotation2))
+     ((and (not denotation1) (not denotation2))
+      (symbol=? (identifier->symbol identifier1)
+		(identifier->symbol identifier2)))
+     (else
+      #f))))
+     
+(define (free-identifier=? identifier1 identifier2)
+  (identifier=? (current-syntactic-environment) identifier1
+		(current-syntactic-environment) identifier2))
+
 ;;; Isolation of identifier access
 
 (define (maybe-isolate isolate? thunk)
