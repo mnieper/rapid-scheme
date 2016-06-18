@@ -19,7 +19,9 @@
 
 (define-syntactic-environment primitive-environment
 
-  ;; quote syntax
+  (define-auxiliary-syntax ...)
+  
+  (define-auxiliary-syntax _)
   
   (define-transformer (quote syntax)
     (and-let*
@@ -71,13 +73,90 @@
 
   ;; syntax-rules syntax
   (define-transformer (syntax-rules syntax)
-    ;; FIXME: The parameters are ellipsis? literal? underscope? s-r-s*
-    (expand-into-transformer (make-syntax-rules-transformer #f
-							    #f
-							    #f
-							    '()
-							    syntax)
-			     syntax))
+    (and-let*
+	((transformer
+	  (unwrap-syntax syntax))
+	 ((or (>= (length transformer) 2)
+	      (raise-syntax-error syntax "bad syntax-rules syntax")))
+	 (ellipsis-syntax*
+	  (if (and (>= (length transformer) 3)
+		   (identifier? (unwrap-syntax (list-ref transformer 1))))
+	      (list (list-ref transformer 1))
+	      '()))
+	 (transformer-rest
+	  (if (null? ellipsis-syntax*)
+	      (list-tail transformer 1)
+	      (list-tail transformer 2)))
+	 (literal-syntax*-syntax
+	  (car transformer-rest))
+	 (literal-syntax* (unwrap-syntax literal-syntax*-syntax))
+	 ((or (list? literal-syntax*)
+	      (raise-syntax-error literal-syntax*-syntax "list expected")))
+	 (syntax-rules-syntax*
+	  (cdr transformer-rest))
+	 (ellipsis* (map unwrap-syntax ellipsis-syntax*))
+	 (free-identifier-comparator
+	  (with-scope
+	    (unless (null? ellipsis*)
+	      (insert-syntactic-binding! (car ellipsis-syntax*)
+					 (make-location #f)))
+	    (make-free-identifier-comparator)))
+	 (free-identifier=?
+	  (comparator-equality-predicate free-identifier-comparator))
+	 (literals
+	  (let loop ((literals
+		      (imap free-identifier-comparator))
+		     (literal-syntax*
+		      literal-syntax*))
+	    (cond
+	     ((null? literal-syntax*)
+	      literals)
+	     ((and-let*
+		  ((literal-syntax (car literal-syntax*))
+		   ((identifier-syntax? literal-syntax))
+		   (literal (unwrap-syntax literal-syntax))
+		   ((cond
+		     ((imap-ref/default literals literal #f)
+		      => (lambda (previous-syntax)
+			   (raise-syntax-error literal-syntax
+					       "duplicate literal identifier")
+			   (raise-syntax-note previous-syntax
+					      "previous occurrence was here")))
+		     (else
+		      #t)))
+		   literal-syntax))
+	      => (lambda (literal-syntax)
+		   (loop (imap-replace literals
+				       (unwrap-syntax literal-syntax)
+				       literal-syntax)
+			 (cdr literal-syntax*))))
+	     (else
+	      (loop literals (cdr literal-syntax*))))))
+	 (ellipsis?
+	  (lambda (identifier)
+	    (and (not literal? identifier)
+		 (if (null? ellipsis*)
+		     (and-let*
+			 ((denotation (lookup-denotation! identifier))
+			  ((primitive-transformer? denotation)))
+		       (eq? 'ellipsis (primitive-transformer-name denotation)))
+		     (free-identifier=? identifier (car ellipsis*))))))
+	 (literal?
+	  (lambda (identifier)
+	    (and (imap-ref/default literals identifier #f)
+		 #t)))
+	 (underscore?
+	  (lambda (identifier)
+	    (and-let*
+		((denotation (lookup-denotation! identifier))
+		 ((primitive-transformer? denotation)))
+	      (eq? '_ (primitive-transformer-name denotation))))))
+      (expand-into-transformer (make-syntax-rules-transformer ellipsis?
+							      literal?
+							      underscore?
+							      syntax-rules-syntax*
+							      syntax)
+			       syntax)))
   
   ;; define-primitive syntax
   

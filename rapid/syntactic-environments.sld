@@ -19,9 +19,13 @@
   (export make-location location? location-syntax
 	  make-transformer transformer? transformer-proc transformer-syntax
 	  make-primitive primitive? primitive-value primitive-syntax
+	  make-primitive-transformer primitive-transformer?
+	  primitive-transformer-name
 	  with-syntactic-environment
 	  with-scope
 	  define-syntactic-environment
+	  define-transformer
+	  define-auxiliary-syntax
 	  make-syntactic-environment
 	  syntactic-environment?
 	  current-syntactic-environment
@@ -31,6 +35,7 @@
 	  lookup-denotation!
 	  identifier=?
 	  free-identifier=?
+	  make-free-identifier-comparator
 	  maybe-isolate)
   (import (scheme case-lambda)
 	  (rapid base)
@@ -45,12 +50,15 @@
 	
 ;; Local Variables:
 ;; eval: (put 'with-syntactic-environment 'scheme-indent-function 1)
-;; eval: (put 'with-scope 'scheme-indent-function 1)
+;; eval: (put 'with-scope 'scheme-indent-function 0)
 ;; eval: (put 'maybe-isolate 'scheme-indent-function 1)
 ;; eval: (put 'define-syntactic-environment 'scheme-indent-function 'defun)
 ;; eval: (put 'define-transformer 'scheme-indent-function 'defun)
+;; eval: (put 'define-auxiliary-syntax 'scheme-indent-function 'defun)
 ;; eval: (font-lock-add-keywords 'scheme-mode
 ;;                               '(("(\\(define-syntactic-environment\\)\\>"
+;;                                  1 font-lock-keyword-face)
+;;                                 ("(\\(define-auxiliary-syntax\\)\\>"
 ;;                                  1 font-lock-keyword-face)
 ;;                                 ("(\\(define-transformer\\)\\>"
 ;;                                  1 font-lock-keyword-face)))

@@ -25,21 +25,58 @@
 		     syntactic-environment))
        body1 body2 ...))))
 
+(define-syntax define-transformer
+  (syntax-rules ()
+    ((define-transformer . _)
+     (syntax-error "invalid use of auxiliary syntax"))))
+
+(define-syntax define-auxiliary-syntax
+  (syntax-rules ()
+    ((define-transformer . _)
+     (syntax-error "invalid use of auxiliary syntax"))))
+
 (define-syntax define-syntactic-environment
   (syntax-rules ()
-    ((define-syntactic-environment environment
-       (define-transformer (name syntax)
-	 body1 body2 ...)
-       ...)
+    ((define-syntactic-environment environment . definitions)
+     (define-syntactic-environment-helper environment () . definitions))))
+
+(define-syntax define-syntactic-environment-helper
+  (syntax-rules (define-transformer define-auxiliary-syntax)
+    ((define-syntactic-environment-helper environment
+       commands)
      (begin
        (define environment (make-syntactic-environment))
        (with-syntactic-environment environment
-	 (insert-syntactic-binding!
-	  (derive-syntax (symbol->identifier 'name) #f)
-	  (make-transformer (lambda (syntax)
-			      body1 body2 ...)
-			    #f))
-	 ...)))))
+	 . commands)))
+    ((define-syntactic-environment-helper
+       environment (command ...)       
+       (define-transformer (name syntax)
+	 body1 body2 ...)
+       . definitions)
+     (define-syntactic-environment-helper
+       environment
+       (command
+	... 
+	(insert-syntactic-binding!
+	 (derive-syntax (symbol->identifier 'name) #f)
+	 (make-primitive-transformer (lambda (syntax)
+			     body1 body2 ...)
+			   'name)))
+       . definitions))
+    ((define-syntactic-environment-helper
+       environment (command ...)
+       (define-auxiliary-syntax name)
+       . definitions)
+     (define-syntactic-environment-helper
+       environment
+       (command
+	...
+	(insert-syntactic-binding!
+	 (derive-syntax (symbol->identifier 'name) #f)
+	 (make-primitive-transformer
+	  (invalid-use-of-auxiliary-syntax 'name)
+	  'name)))
+       . definitions))))
 
 (define-syntax with-scope
   (syntax-rules ()
@@ -80,6 +117,21 @@
   (proc transformer-proc)
   (syntax transformer-syntax))
 
+;; Instead of defining primitive values and transformers, we could simply give
+;; them a name that distingishes these type.
+
+(define-record-type (<primitive-transformer> <transformer>)
+  (%make-primitive-transformer proc name syntax)
+  primitive-transformer?
+  (name primitive-transformer-name))
+
+(define (make-primitive-transformer proc name)
+  (%make-primitive-transformer proc name #f))
+
+(define (invalid-use-of-auxiliary-syntax name)
+  (lambda (syntax)
+    (raise-syntax-error syntax "invalid use of auxiliary-syntax ‘~a’" name)))
+
 ;;; Syntactic environments
 
 ;; bindings is a map identifier->syntactic-binding
@@ -116,7 +168,6 @@
 			       (imap identifier-comparator)))
 
 (define (export-syntactic-environment! environment exports)
-  ;; FIXME: This is far too slow.
   (exports-for-each
    (lambda (identifier export-spec)
      (and-let*
@@ -132,24 +183,27 @@
 				 (imports (syntactic-environment-bindings
 					   environment))))
 
+(define (syntactic-environment-ref environment identifier)
+  (let loop ((environments (cons environment
+				 (identifier-closure identifier))))
+    (cond
+     ((null? environments)
+      #f)
+     ((imap-ref/default (syntactic-environment-bindings (car environments))
+			identifier
+			#f)
+      => (lambda (binding)
+	   (use-identifier! identifier binding)
+	   binding))
+     (else
+      (loop (cdr environments))))))
+
 (define (lookup-syntactic-binding! identifier-syntax)
-  (let ((identifier (unwrap-syntax identifier-syntax)))
-     (let loop ((environments (cons (current-syntactic-environment)
-				    (identifier-closure identifier))))
-       (cond
-	((null? environments)
-	 (raise-syntax-error identifier-syntax
-			     "identifier ‘~a’ not bound"
-			     (identifier->symbol identifier))
-	 #f)
-	((imap-ref/default (syntactic-environment-bindings (car environments))
-			   identifier
-			   #f)
-	 => (lambda (binding)
-	      (use-identifier! identifier binding)
-	      binding))
-	(else
-	 (loop (cdr environments)))))))
+  (or (syntactic-environment-ref (current-syntactic-environment)
+				 (unwrap-syntax identifier-syntax))
+      (raise-syntax-error identifier-syntax
+			  "identifier ‘~a’ not bound"
+			  (syntax->datum identifier-syntax))))
 
 (define (lookup-denotation! identifier-syntax)
   (and-let*
@@ -190,9 +244,9 @@
 
 (define (identifier=? environment1 identifier1 environment2 identifier2)
   (let ((denotation1
-	 (syntactic-environment-lookup-denotation! environment1 identifier1))
+	 (syntactic-environment-ref environment1 identifier1))
 	(denotation2
-	 (syntactic-environment-lookup-denotation! environment2 identifier2)))
+	 (syntactic-environment-ref environment2 identifier2)))
     (cond
      ((and denotation1 denotation2)
       (eq? denotation1 denotation2))
@@ -201,10 +255,31 @@
 		(identifier->symbol identifier2)))
      (else
       #f))))
-     
+
+;;; free-identifier=?
+
 (define (free-identifier=? identifier1 identifier2)
   (identifier=? (current-syntactic-environment) identifier1
 		(current-syntactic-environment) identifier2))
+
+(define (make-free-identifier-comparator)
+
+  (define identifier<? (comparator-ordering-predicate identifier-comparator))
+
+  (define environment (current-syntactic-environment))
+  
+  (define (free-identifier=? identifier1 identifier2)
+    (identifier=? environment identifier1
+		  environment identifier2))
+  
+  (define (free-identifier<? identifier1 identifier2)
+    (and (not (free-identifier=? identifier1 identifier2))
+	 (identifier<? identifier1 identifier2)))
+
+  (make-comparator identifier?
+		   free-identifier=?
+		   free-identifier<?
+		   #f))
 
 ;;; Isolation of identifier access
 

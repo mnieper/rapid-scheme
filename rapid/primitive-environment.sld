@@ -21,6 +21,7 @@
 	  (rapid and-let)
 	  (rapid lists)
 	  (rapid list-queues)
+	  (rapid comparators)
 	  (rapid immutable-maps)
 	  (rapid identifiers)
 	  (rapid syntax)

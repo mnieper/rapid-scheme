@@ -19,7 +19,7 @@
 
 .SILENT: check
 
-SCHEME = chibi-scheme -h100M $(SCHEME_FLAGS)
+SCHEME = chibi-scheme -h150M $(SCHEME_FLAGS)
 
 check:
 	$(SCHEME) tests.scm

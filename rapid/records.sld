@@ -20,7 +20,9 @@
   (cond-expand
    ((library (srfi 131))
     (import (srfi 131)))
-   ((library (srfi 99))
+   ;; See issue #352 here: https://github.com/ashinn/chibi-scheme/issues.
+   ((and (not chibi)
+	 (library (srfi 99)))
     (import (srfi 99)))
    (else
     (import (rename (scheme base) (define-record-type scheme-define-record-type))

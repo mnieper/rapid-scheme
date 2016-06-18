@@ -67,7 +67,23 @@
 		      (vector
 		       (child-field record)
 		       (parent-field record)))))
-
+      
+      (test-equal "Child constructor sets parent field"
+		  'a
+		  (let ()
+		    (define-record-type <parent>
+		      #f
+		      parent?
+		      (field1 parent-field))
+		    
+		    (define-record-type (<child> <parent>)
+		      (constructor field1 field2)
+		      child?
+		      (field2 child-field))
+		    
+		    (let ((record (constructor 'a 'b)))
+		      (parent-field record))))
+      
       (test-end)
 
       #t)))

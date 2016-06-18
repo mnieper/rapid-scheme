@@ -121,8 +121,9 @@
 	    ...))))
 
 (scheme-define-record-type <rtd>
-  (%make-rtd fieldspecs size ancestors)
+  (%make-rtd name fieldspecs size ancestors)
   rtd?
+  (name rtd-name)
   (fieldspecs rtd-fieldspecs)
   (size rtd-size)
   (ancestors rtd-ancestors rtd-set-ancestors!))
@@ -139,7 +140,7 @@
 		     (string<? (symbol->string x) (symbol->string y)))
 		   #f))
 
-(define root (%make-rtd (imap field-comparator) 0 (iset field-comparator)))
+(define root (%make-rtd '<> (imap field-comparator) 0 (iset field-comparator)))
 
 (define make-rtd
   (case-lambda
@@ -156,7 +157,8 @@
 		       (+ size 1))))
 	   (vector (rtd-fieldspecs parent) (rtd-size parent))
 	   fieldspecs)))
-      (let ((rtd (%make-rtd (vector-ref fieldspecs+size 0)
+      (let ((rtd (%make-rtd name
+		            (vector-ref fieldspecs+size 0)
 			    (vector-ref fieldspecs+size 1)
 			    #f)))
 	(rtd-set-ancestors! rtd (iset-adjoin (rtd-ancestors parent) rtd))
@@ -185,6 +187,12 @@
 (define (rtd-accessor rtd field)
   (let ((index (imap-ref (rtd-fieldspecs rtd) field)))
     (lambda (record)
+      ;; FIXME: Better error handling for records
+      (unless (record? record)
+	(error "not a record" record))
+      (unless (iset-member? (rtd-ancestors (record-rtd record)) rtd)
+	(error "record type-mismatch" (rtd-name (record-rtd record))
+	       (rtd-name rtd)))
       (vector-ref (record-fields record) index))))
 
 (define (rtd-mutator rtd field)
