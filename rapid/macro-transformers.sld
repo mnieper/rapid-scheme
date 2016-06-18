@@ -18,6 +18,8 @@
 (define-library (rapid macro-transformers)
   (export make-syntax-rules-transformer)
   (import (scheme base)
+	  (rapid and-let)
+	  (rapid receive)
        	  (rapid immutable-maps)
 	  (rapid identifiers)
 	  (rapid syntax)

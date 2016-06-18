@@ -53,19 +53,90 @@
 	(cadr (unwrap-syntax syntax-rule-syntax)))
       syntax-rule-syntax*)))
 
-  (define matchers '())  ;; FIXME
-  (define transcribers '()) ;; FIXME
-  
+  (define (compile-pattern pattern-syntax rule-index)
+    (and-let*
+	((pattern (unwrap-syntax pattern-syntax))
+	 ((or (and (pair? pattern) (identifier? (unwrap-syntax (car pattern))))
+	      (raise-syntax-error pattern-syntax
+				  "invalid pattern"))))
+      (receive (identifiers matcher)
+	  (compile-list-pattern (derive-syntax (cdr pattern) pattern-syntax))
+	(and matcher
+	     (vector identifiers
+		     (lambda (syntax)
+		       (matcher
+			(derive-syntax (cdr (unwrap-syntax syntax)) syntax)
+			(vector-ref pattern-syntax-vector rule-index))))))))
+
+  (define (compile-template template-syntax variable-map rule-index)
+    ;; XXX: Slots is a vector of indices of the matched variables in the
+    ;; pattern variables.
+    ;; FIXME: Make this clearer
+    (receive (slots transcriber)
+	(compile-subtemplate template-syntax variable-map 0)
+      (and transcriber
+	   (lambda (pattern-variables)
+	     (transcriber
+	      (vector-map
+	       (lambda (slot)
+		 (vector-ref pattern-variables slot))
+	       slots)
+	      (vector-ref template-syntax-vector rule-index))))))
+       
+  (define rules
+    (let loop ((syntax-rule-syntax* syntax-rule-syntax*)
+	       (i 0))
+      (cond
+       ((null? syntax-rule-syntax*)
+	'())
+       ((and-let*
+	    ((syntax-rule-syntax (car syntax-rule-syntax*))
+	     (syntax-rule (unwrap-syntax syntax-rule-syntax))
+	     ((or (and (list? syntax-rule) (= (length syntax-rule) 2))
+		  (raise-syntax-error syntax-rule-syntax
+				      "bad syntax rule")))
+	     (variable-map+matcher
+	      (compile-pattern (car syntax-rule) i))
+	     (transcriber
+	      (compile-template (cadr syntax-rule)
+				(vector-ref variable-map+matcher 0)
+				i)))
+	  (vector (vector-ref variable-map+matcher 1)
+		  transcriber))
+	=> (lambda (matcher+transcriber)
+	     (let ((rule (make-rule (vector-ref matcher+transcriber 0)
+				    (vector-ref matcher+transcriber 1))))
+	       (cons rule (loop (cdr syntax-rule-syntax*)
+				(+ i 1))))))
+       (else
+	(loop (cdr syntax-rule-syntax*) (+ i 1))))))
+
   (make-er-macro-transformer
    (lambda (syntax rename compare)
-     (let loop ((matchers matchers) (transcribers transcribers))
+     (let loop ((rules rules))
        (cond
-	((null? matchers)
+	((null? rules)
 	 (raise-syntax-error syntax "no expansion for macro use")
 	 (raise-syntax-note transformer-syntax
 			    "the macro definition was here")
 	 #f)
-	(((car matchers) syntax)
-	 => (car transcribers))
+	((rule-match (car rules) syntax)
+	 => (lambda (match)
+	      (rule-transcribe (car rules) match)))
 	(else
-	 (loop (cdr matchers) (cdr transcribers))))))))
+	 (loop (cdr rules))))))))
+
+(define (make-rule matcher transcriber)
+  (vector matcher transcriber))
+(define (rule-match rule syntax)
+  ((vector-ref rule 0) syntax))
+(define (rule-transcribe rule match)
+  ((vector-ref rule 1) match))
+
+(define (compile-list-pattern pattern-syntax)
+  ;; FIXME
+  (values #f #f))
+
+(define (compile-subtemplate template-syntax variable-map depth)
+  ;; FIXME
+  (values #f #f))
