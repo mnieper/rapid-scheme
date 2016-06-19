@@ -24,6 +24,9 @@
 (define (list-queue)
   (%make-list-queue '() '()))
 
+(define (list-queue-empty? list-queue)
+  (null? (list-queue-list list-queue)))
+
 (define (list-queue-add-back! list-queue element)
   (let ((last (list-queue-last list-queue)))
     (cond

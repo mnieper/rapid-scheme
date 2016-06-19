@@ -38,6 +38,96 @@
 (define (make-syntax-rules-transformer
 	 ellipsis? literal? underscore? syntax-rule-syntax* transformer-syntax)
 
+  ;; Helper functions for the pattern compilers
+
+  (define (compile-pattern pattern-syntax)
+    (and-let*
+	((pattern (unwrap-syntax pattern-syntax))
+	 ((or (and (pair? pattern) (identifier? (unwrap-syntax (car pattern))))
+	      (raise-syntax-error pattern-syntax
+				  "invalid pattern")))
+	 (*pattern-syntax
+	  (derive-syntax (cdr pattern) pattern-syntax)))
+      (receive (identifiers matcher)
+	  (compile-list-pattern *pattern-syntax)
+	(and matcher
+	     (vector identifiers
+		     (lambda (syntax)
+		       (matcher
+			(derive-syntax (cdr (unwrap-syntax syntax)) syntax)
+			*pattern-syntax)))))))
+
+  ;; Takes a finite list of patterns. Returns three values. The first
+  ;; value is a list of pattern elements, the second value is a boolean
+  ;; saying whether an ellipsis in the pattern an the last value is a
+  ;; boolean saying whether the list of patterns is an improper list.
+  ;; Here, a pattern element is a vector consisting of four entries. The
+  ;; first entry is the syntax of the element, the second one the index,
+  ;; the third one is a boolean specifying whether to count the index
+  ;; from the front or the back and the last entry is a boolean
+  ;; specifying whether the entry itself is repeated.
+
+  (define (analyze-pattern-list pattern-list)
+
+    (define (return reversed-elements repeated-element dotted?)
+      (values (reverse (if repeated-element
+			   (cons repeated-element reversed-elements)
+			   reversed-elements))
+	      (and repeated-element #t)
+	      dotted?))
+    
+    (let loop ((pattern-list pattern-list)
+	       (reversed-elements '())
+	       (repeated-element #f)
+	       (i 0))
+      (cond
+       ((null? pattern-list)
+	(return reversed-elements repeated-element #f))
+       ((pair? pattern-list)
+	(cond
+	 ((ellipsis? (unwrap-syntax (car pattern-list)))
+	  (cond
+	   (repeated-element
+	    (raise-syntax-error (car pattern-list) "extraneous ellipsis")
+	    (loop (cdr pattern-list)
+		  reversed-elements
+		  repeated-element
+		  i))
+	   ((null? reversed-elements)
+	    (raise-syntax-error (car pattern-list)
+				"ellipsis not preceded by a pattern")
+	    (loop (cdr pattern-list)
+		  reversed-elements
+		  repeated-element
+		  i))
+	   (else
+	    (pattern-element-set-repeated?! (car reversed-elements) #t)
+	    (loop (cdr pattern-list)
+		  (cdr reversed-elements)
+		  (car reversed-elements)
+		  (+ i 1)))))
+	 (else
+	  (loop (cdr pattern-list)
+		(cons (make-pattern-element (car pattern-list)
+					    i
+					    (and repeated-element #t)
+					    #f)
+		      reversed-elements)
+		repeated-element (+ i 1)))))
+       (else
+	(cond
+	 ((ellipsis? (unwrap-syntax pattern-list))
+	  (raise-syntax-error pattern-list "ellipsis not allowed as dotted tail")
+	  (return reversed-elements repeated-element #f))
+	 (else
+	  (return (cons (make-pattern-element pattern-list
+					      i
+					      (and repeated-element #t)
+					      #f)
+			reversed-elements)
+		  repeated-element
+		  #t)))))))
+
   (define rules
     (let loop ((syntax-rule-syntax* syntax-rule-syntax*))
       (cond
@@ -85,23 +175,6 @@
 (define (rule-transcribe rule match)
   ((vector-ref rule 1) match))
 
-(define (compile-pattern pattern-syntax)
-  (and-let*
-      ((pattern (unwrap-syntax pattern-syntax))
-       ((or (and (pair? pattern) (identifier? (unwrap-syntax (car pattern))))
-	    (raise-syntax-error pattern-syntax
-				"invalid pattern")))
-       (*pattern-syntax
-	(derive-syntax (cdr pattern) pattern-syntax)))
-    (receive (identifiers matcher)
-	(compile-list-pattern *pattern-syntax)
-      (and matcher
-	   (vector identifiers
-		   (lambda (syntax)
-		     (matcher
-		      (derive-syntax (cdr (unwrap-syntax syntax)) syntax)
-		      *pattern-syntax)))))))
-
 (define (compile-template template-syntax variable-map)
   ;; XXX: Slots is a vector of indices of the matched variables in the
   ;; pattern variables.
@@ -124,6 +197,19 @@
 (define (compile-subtemplate template-syntax variable-map depth)
   ;; FIXME
   (values #f #f))
+
+;;; Helper functions for the pattern compilers
+
+(define (make-pattern-element syntax index from-end? repeated?)
+  (vector syntax index from-end? repeated?))
+(define (pattern-element-syntax element) (vector-ref element 0))
+(define (pattern-element-index element) (vector-ref element 1))
+(define (pattern-element-from-end? element) (vector-ref element 2))
+(define (pattern-element-repeated? element) (vector-ref element 3))
+(define (pattern-element-set-repeated?! element value)
+  (vector-set! element 3 value))
+
+
 
 ;;; XXX
 ;;; Some notes on the algorithm employed here:

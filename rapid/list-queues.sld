@@ -18,6 +18,7 @@
 (define-library (rapid list-queues)
   (export list-queue
 	  list-queue?
+	  list-queue-empty?
 	  list-queue-list
 	  list-queue-add-back!
 	  list-queue-for-each

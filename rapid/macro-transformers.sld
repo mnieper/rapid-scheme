@@ -20,9 +20,9 @@
   (import (scheme base)
 	  (rapid and-let)
 	  (rapid receive)
+	  (rapid lists)
        	  (rapid immutable-maps)
 	  (rapid identifiers)
 	  (rapid syntax)
 	  (rapid syntactic-environments))
   (include "macro-transformers.scm"))
-

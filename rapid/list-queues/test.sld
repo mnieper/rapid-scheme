@@ -25,6 +25,13 @@
       (test-assert "list-queue?"
 		   (list-queue? (list-queue)))
 
+      (test-equal "list-queue-empty?"
+		  '(#t #f)
+		  (list (list-queue-empty? (list-queue))
+			(let ((lq (list-queue)))
+			  (list-queue-add-back! lq 1)
+			  (list-queue-empty? lq))))
+      
       (test-equal "list-queue-add-back!"
 		  '(1 2 3)
 		  (let ((lq (list-queue)))
