@@ -15,6 +15,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Parameters
+
+(define current-rename (make-parameter #f))
+(define current-compare (make-parameter #f))
+(define (rename identifier)
+  ((current-rename) identifier))
+(define (compare identifier1 identifier2)
+  ((current-compare) identifier1 identifier2))
+
+;;; Macro transformers
+
 (define (make-er-macro-transformer transformer)
   (let ((macro-environment (current-syntactic-environment)))
     (lambda (syntax)
@@ -56,6 +67,72 @@
 		       (matcher
 			(derive-syntax (cdr (unwrap-syntax syntax)) syntax)
 			*pattern-syntax)))))))
+
+  (define (compile-subpattern pattern-syntax)
+    (let ((pattern (unwrap-syntax pattern-syntax)))
+      (cond
+       ((identifier? pattern)
+	(cond
+	 ;; Literal identifier
+	 ((literal? pattern)
+	  (values (make-pattern-variable-map)
+		  (lambda (syntax pattern-syntax)
+		    (and (compare (unwrap-syntax syntax)
+				  (rename (unwrap-syntax pattern-syntax)))
+			 #()))))
+	 ;; _ identifier
+	 ((underscore? pattern)
+	  (values (make-pattern-variable-map)
+		  (lambda (syntax pattern-syntax)
+		    #())))
+	 ;; Pattern variable
+	 (else
+	  (values (imap-replace (make-pattern-variable-map)
+				pattern
+				(make-pattern-variable 0 0 pattern-syntax))
+		  (lambda (syntax pattern-syntax)
+		    (vector (unwrap-syntax syntax)))))))
+       ;; Vector
+       ((vector? pattern)
+	(receive (variables-map matcher)
+	    (compile-list-pattern (derive-syntax (vector->list pattern)
+						 pattern-syntax))
+	  (values variables-map
+		  (lambda (syntax pattern-syntax)
+		    (let ((datum (unwrap-syntax syntax)))
+		      (and-let*
+			  (((vector? datum))
+			   (list (vector->list datum)))
+			(matcher (derive-syntax list
+						syntax)
+				 (derive-syntax (vector->list pattern-syntax)
+						pattern-syntax))))))))
+       ;; Circular list
+       ((circular-list? pattern)
+	(raise-syntax-error pattern-syntax "circular pattern in source")
+	(values #f #f))
+       ;; Empty list
+       ((null? pattern)
+	(values (make-pattern-variable-map)
+		(lambda (syntax pattern-syntax)
+		  (and (null? (unwrap-syntax syntax))
+		       #()))))
+       ;; Finite list
+       ((pair? pattern)
+	(compile-list-pattern pattern-syntax))
+       ((constant? pattern)
+	(values (make-pattern-variable-map)
+		(lambda (syntax pattern-syntax)
+		  (and (equal? (unwrap-syntax syntax)
+			       (unwrap-syntax pattern-syntax))
+		       #()))))
+       (else
+	(raise-syntax-error pattern-syntax "invalid subpattern")
+	(values #f #f)))))
+    
+  (define (compile-list-pattern pattern-syntax)
+    ;; FIXME
+    (values #f #f))
 
   ;; Takes a finite list of patterns. Returns three values. The first
   ;; value is a list of pattern elements, the second value is a boolean
@@ -128,6 +205,27 @@
 		  repeated-element
 		  #t)))))))
 
+  ;; Template compiler
+
+  (define (compile-template template-syntax variable-map)
+    ;; XXX: Slots is a vector of indices of the matched variables in the
+    ;; pattern variables.
+    ;; FIXME: Make this clearer
+    (receive (slots transcriber)
+	(compile-subtemplate template-syntax variable-map 0)
+      (and transcriber
+	   (lambda (pattern-variables)
+	     (transcriber
+	      (vector-map
+	       (lambda (slot)
+		 (vector-ref pattern-variables slot))
+	       slots)
+	      template-syntax)))))
+
+  (define (compile-subtemplate template-syntax variable-map depth)
+    ;; FIXME
+    (values #f #f))
+  
   (define rules
     (let loop ((syntax-rule-syntax* syntax-rule-syntax*))
       (cond
@@ -155,18 +253,20 @@
 
   (make-er-macro-transformer
    (lambda (syntax rename compare)
-     (let loop ((rules rules))
-       (cond
-	((null? rules)
-	 (raise-syntax-error syntax "no expansion for macro use")
-	 (raise-syntax-note transformer-syntax
-			    "the macro definition was here")
-	 #f)
-	((rule-match (car rules) syntax)
-	 => (lambda (match)
-	      (rule-transcribe (car rules) match)))
-	(else
-	 (loop (cdr rules))))))))
+     (parameterize ((current-rename rename)
+		    (current-compare compare))
+       (let loop ((rules rules))
+	 (cond
+	  ((null? rules)
+	   (raise-syntax-error syntax "no expansion for macro use")
+	   (raise-syntax-note transformer-syntax
+			      "the macro definition was here")
+	   #f)
+	  ((rule-match (car rules) syntax)
+	   => (lambda (match)
+		(rule-transcribe (car rules) match)))
+	  (else
+	   (loop (cdr rules)))))))))
 
 (define (make-rule matcher transcriber)
   (vector matcher transcriber))
@@ -175,30 +275,20 @@
 (define (rule-transcribe rule match)
   ((vector-ref rule 1) match))
 
-(define (compile-template template-syntax variable-map)
-  ;; XXX: Slots is a vector of indices of the matched variables in the
-  ;; pattern variables.
-  ;; FIXME: Make this clearer
-  (receive (slots transcriber)
-      (compile-subtemplate template-syntax variable-map 0)
-    (and transcriber
-	 (lambda (pattern-variables)
-	   (transcriber
-	    (vector-map
-	     (lambda (slot)
-	       (vector-ref pattern-variables slot))
-	     slots)
-	    template-syntax)))))
+;;; Concrete data types used in the pattern compiler
 
-(define (compile-list-pattern pattern-syntax)
-  ;; FIXME
-  (values #f #f))
+(define (make-pattern-variable index depth syntax) (vector index depth syntax))
+(define (pattern-variable-index variable) (vector-ref variable 0))
+(define (pattern-variable-depth variable) (vector-ref variable 1))
+(define (pattern-variable-syntax variable) (vector-ref variable 2))
 
-(define (compile-subtemplate template-syntax variable-map depth)
-  ;; FIXME
-  (values #f #f))
+(define (make-pattern-variable-map) (imap identifier-comparator))
 
-;;; Helper functions for the pattern compilers
+;; A pattern element is a vector consisting of four entries. The first
+;; entry is the syntax of the element, the second one the index in the
+;; list to match, the third one is a boolean specifying whether to
+;; count the index from the front or the back and the last entry is a
+;; boolean specifying whether the entry itself is repeated.
 
 (define (make-pattern-element syntax index from-end? repeated?)
   (vector syntax index from-end? repeated?))
@@ -209,7 +299,30 @@
 (define (pattern-element-set-repeated?! element value)
   (vector-set! element 3 value))
 
+;; A submatcher is the output of a compiled subpattern - consisting of
+;; its variable-map together with a matcher - and an offset of the
+;; submatchers variables in the variables of its parent.
 
+(define (make-submatcher variable-map matcher offset)
+  (vector variable-map matcher offset))
+(define (submatcher-variable-map matcher)
+  (vector-ref matcher 0))
+(define (submatcher-matcher matcher)
+  (vector-ref matcher 1))
+(define (submatcher-offset matcher)
+  (vector-ref matcher 2))
+
+;;; Concrete data types used in the template compiler
+
+;;; Utility functions
+
+(define (constant? datum)
+  (or (char? datum)
+      (string? datum)
+      (boolean? datum)
+      (number? datum)
+      (bytevector? datum)
+      (vector? datum)))
 
 ;;; XXX
 ;;; Some notes on the algorithm employed here:
