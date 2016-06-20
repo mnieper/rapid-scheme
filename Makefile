@@ -21,5 +21,15 @@
 
 SCHEME = chibi-scheme -h150M $(SCHEME_FLAGS)
 
+all: rapid-compiler
+
+rapid-compiler: rapid-compiler.scm
+	echo "#! /usr/bin/env chibi-scheme" > $@
+	cat $< >> $@
+	chmod a+x $@
+
 check:
 	$(SCHEME) tests.scm
+
+clean:
+	rm -rf rapid-compiler
