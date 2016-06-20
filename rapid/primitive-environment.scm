@@ -134,12 +134,14 @@
 	      (loop literals (cdr literal-syntax*))))))
 	 (ellipsis?
 	  (lambda (identifier)
-	    (and (not literal? identifier)
+	    (and (not (literal? identifier))
 		 (if (null? ellipsis*)
 		     (and-let*
-			 ((denotation (lookup-denotation! identifier))
+			 ((binding (syntactic-environment-ref (current-syntactic-environment)
+							      identifier))
+			  (denotation (binding-denotation binding))
 			  ((primitive-transformer? denotation)))
-		       (eq? 'ellipsis (primitive-transformer-name denotation)))
+		       (eq? '... (primitive-transformer-name denotation)))
 		     (free-identifier=? identifier (car ellipsis*))))))
 	 (literal?
 	  (lambda (identifier)
@@ -148,7 +150,9 @@
 	 (underscore?
 	  (lambda (identifier)
 	    (and-let*
-		((denotation (lookup-denotation! identifier))
+		((binding (syntactic-environment-ref (current-syntactic-environment)
+							 identifier))
+		 (denotation (binding-denotation binding))
 		 ((primitive-transformer? denotation)))
 	      (eq? '_ (primitive-transformer-name denotation))))))
       (expand-into-transformer (make-syntax-rules-transformer ellipsis?

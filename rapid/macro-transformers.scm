@@ -47,8 +47,12 @@
 	(transformer syntax rename compare)))))
 
 (define (make-syntax-rules-transformer
-	 ellipsis? literal? underscore? syntax-rule-syntax* transformer-syntax)
+	 %ellipsis? literal? underscore? syntax-rule-syntax* transformer-syntax)
 
+  (define (ellipsis? form)
+    (and (identifier? form)
+	 (%ellipsis? form)))
+  
   ;; Helper functions for the pattern compilers
 
   (define (compile-pattern pattern-syntax)
@@ -60,7 +64,7 @@
 	 (*pattern-syntax
 	  (derive-syntax (cdr pattern) pattern-syntax)))
       (receive (identifiers matcher)
-	  (compile-list-pattern *pattern-syntax)
+	  (compile-subpattern *pattern-syntax)
 	(and matcher
 	     (vector identifiers
 		     (lambda (syntax)
@@ -97,16 +101,18 @@
 	(receive (variables-map matcher)
 	    (compile-list-pattern (derive-syntax (vector->list pattern)
 						 pattern-syntax))
-	  (values variables-map
-		  (lambda (syntax pattern-syntax)
-		    (let ((datum (unwrap-syntax syntax)))
-		      (and-let*
-			  (((vector? datum))
-			   (list (vector->list datum)))
-			(matcher (derive-syntax list
-						syntax)
-				 (derive-syntax (vector->list pattern-syntax)
-						pattern-syntax))))))))
+	  (if variables-map	    
+	      (values variables-map
+		      (lambda (syntax pattern-syntax)
+			(let ((datum (unwrap-syntax syntax)))
+			  (and-let*
+			      (((vector? datum))
+			       (list (vector->list datum)))
+			    (matcher (derive-syntax list
+						    syntax)
+				     (derive-syntax (vector->list pattern-syntax)
+						    pattern-syntax))))))
+	      (values #f #f))))
        ;; Circular list
        ((circular-list? pattern)
 	(raise-syntax-error pattern-syntax "circular pattern in source")
@@ -131,9 +137,54 @@
 	(values #f #f)))))
     
   (define (compile-list-pattern pattern-syntax)
+    
+    (define variable-count 0)
+    (define variable-map (make-pattern-variable-map))
+    
+    (define (insert-pattern-variable! identifier variable offset depth-increase)
+      (cond
+       ((imap-ref/default variable-map identifier #f)
+	=> (lambda (previous-variable)
+	     (raise-syntax-error (pattern-variable-syntax variable)
+				 "pattern variable has already appeared once")
+	     (raise-syntax-note (pattern-variable-syntax previous-variable)
+				"previous appearance was here")))
+       (else
+	(set! variable-map
+	      (imap-replace variable-map
+			    identifier
+			    (make-pattern-variable (+ offset
+						      (pattern-variable-index variable))
+						   (+ depth-increase
+						      (pattern-variable-depth variable))
+						   (pattern-variable-syntax variable))))))
+      (set! variable-count (+ variable-count 1)))
+  
+    (define (submatcher-compile! pattern-element)
+      (let*-values
+	  (((depth-increase)
+	    (if (pattern-element-repeated? pattern-element) 1 0))
+	   ((subvariable-map matcher)
+	    (compile-subpattern (pattern-element-syntax pattern-element)))
+	   ((offset)
+	    variable-count)
+	   ((submatcher)
+	    (make-submatcher subvariable-map matcher offset)))
+	(when subvariable-map	
+	  (imap-for-each
+	   (lambda (identifier variable)
+	     (insert-pattern-variable! identifier variable offset depth-increase))
+	   subvariable-map))
+	submatcher))
+    
+    (define-values (pattern-elements repeated? dotted-pattern)
+      (analyze-pattern-list (unwrap-syntax pattern-syntax)))
+    
+    (define submatchers (map-in-order submatcher-compile! pattern-elements))
+    
     ;; FIXME
     (values #f #f))
-
+  
   ;; Takes a finite list of patterns. Returns three values. The first
   ;; value is a list of pattern elements, the second value is a boolean
   ;; saying whether an ellipsis in the pattern an the last value is a
@@ -143,9 +194,9 @@
   ;; the third one is a boolean specifying whether to count the index
   ;; from the front or the back and the last entry is a boolean
   ;; specifying whether the entry itself is repeated.
-
+  
   (define (analyze-pattern-list pattern-list)
-
+    
     (define (return reversed-elements repeated-element dotted?)
       (values (reverse (if repeated-element
 			   (cons repeated-element reversed-elements)
