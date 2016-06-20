@@ -21,12 +21,14 @@
 	(rapid format)
 	(rapid args-fold)
 	(rapid version-etc)
+	(rapid libraries)
 	(rapid compiler))
 
 (define (help)
   (write-string
    (format "Usage: ~a [OPTION] file\n  \
-              -h, --help   display this help and exit\n  \
+              -I, --include prepends a library search directory\n  \
+              -h, --help    display this help and exit\n  \
               -v, --version output version information and exit\n"
 	   (car (command-line))))
   (newline)
@@ -43,7 +45,12 @@
 		  (option '(#\v "version") #f #f
 			  (lambda (option name arg input)
 			    (version-etc "rapid-compiler")
-			    (exit))))
+			    (exit)))
+		  (option '(#\I "include") #t #t
+			  (lambda (option name arg input)
+			    (current-library-directories
+			     (cons arg (current-library-directories)))
+			    input)))
 		 (lambda (option name arg input)
 		   (rapid-error 0 "invalid-option ‘~a’" name)
 		   (help)
@@ -56,5 +63,5 @@
     (rapid-error 0 "no input file given")
     (help)
     (exit 1))
-  
-  (emit-object-code #f))
+
+  (compile input))

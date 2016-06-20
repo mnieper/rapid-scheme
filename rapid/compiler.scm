@@ -1,31 +1,21 @@
-(define (emit-object-code assembly)
-  (write-string "
-/* A Rapid Scheme object file, made by Rapid Scheme 0.1.  */
+;;; Rapid Scheme --- An implementation of R7RS
 
-#include <lightning.h>
-#include <stdio.h>
+;; Copyright (C) 2016 Marc Nieper-Wißkirchen
 
-static jit_state_t *_jit;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
 
-int
-main (int argc, char *argv[])
-{
-  init_jit (argv[0]);
-  _jit = jit_new_state ();
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
 
-  jit_prolog ();
-  jit_frame (256);
-  jit_pushargi ((jit_word_t) \"Hello, World!\\n\");
-  jit_finishi (printf);
-  jit_ret ();
-  jit_epilog ();
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  void (*function) (void) = jit_emit ();
-  jit_clear_state ();
-
-  function ();
-  
-  jit_destroy_state ();
-  finish_jit ();
-}
-"))
+(define (compile filename)
+  (with-syntax-exception-handler
+   (lambda ()
+     (expand-library (read-program filename)))))

@@ -26,15 +26,6 @@
     (define (run-tests)
       (test-begin "Environments")
 
-      		   (parameterize
-		       ((current-library-directories
-			 (cons "./share" (current-library-directories))))
-		     (with-syntax-exception-handler
-		      (lambda ()
-			(environment? (expand-library (read-program
-						       "tests.scm"))))))
-
-      
       (test-assert "environment?"
 		   (parameterize
 		       ((current-library-directories
