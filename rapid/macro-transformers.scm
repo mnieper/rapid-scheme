@@ -169,7 +169,7 @@
 	   ((offset)
 	    variable-count)
 	   ((submatcher)
-	    (make-submatcher subvariable-map matcher offset)))
+	    (make-submatcher pattern-element subvariable-map matcher offset)))
 	(when subvariable-map	
 	  (imap-for-each
 	   (lambda (identifier variable)
@@ -182,17 +182,57 @@
 
     (define pattern
       (unwrap-syntax pattern-syntax))
-    (define pattern->vector
-      (list->vector (if dotted-pattern?
-			(append (drop-right pattern 0) (list (take-right pattern 0)))
-			pattern)))
-       
+
+    (define (make-submatcher pattern-element variable-map matcher offset)
+      (let ((element-index (pattern-element-index pattern-element))
+	    (from-end? (pattern-element-from-end? pattern-element))
+	    (element-repeated? (pattern-element-repeated? pattern-element)))
+	(lambda (input match)
+	  (let*
+	      ((input-length (length input))
+	       (input-index
+		(if from-end?
+		    (+ input-length (- element-index (length pattern-elements)
+				       1
+				       (if (and dotted-pattern? repeated?) -1 0)))
+		    element-index)))
+	    (if element-repeated?
+		;; Repeated element
+		(and-let*
+		    ((input-end
+		      (+ input-length (- input-index
+					 (length pattern-elements)
+					 (if dotted-pattern? -1 0))))
+		     (submatch*
+		      (unfold (lambda (index) (> index input-end))
+			      (lambda (index)
+				(matcher (vector-ref input index)))
+			      (lambda (index) (+ index 1))
+			      input-index))
+		     ((every (lambda (submatch) submatch) submatch*)))
+		  (imap-for-each
+		   (lambda (identifier variable)
+		     (vector-set! match
+				  (+ offset (pattern-variable-index variable))
+				  (map (lambda (submatch)
+					 (vector-ref submatch (pattern-variable-index variable)))
+				       submatch*)))
+		   variable-map)
+		  #t)
+		;; Non-repeated element
+		(and-let*
+		    ((submatch (matcher (vector-ref input input-index))))
+		  (imap-for-each
+		   (lambda (identifier variable)
+		     (vector-set! match
+				  (+ offset (pattern-variable-index variable))
+				  (vector-ref submatch
+					      (pattern-variable-index variable))))
+		   variable-map)
+		  #t))))))
+    
     (define submatchers (map-in-order submatcher-compile! pattern-elements))
 
-    (define (submatch! pattern-element submatcher)
-      ;; FIXME
-      #f)
-    
     (define (matcher syntax)
       (and-let*
 	  ((form
@@ -225,10 +265,11 @@
 							     (derive-syntax tail syntax))))))
 				  left))))
 	   (match (make-vector variable-count))
-	   ((every submatch! pattern-elements submatchers)))
+	   ((every (lambda (submatcher)
+		     (submatcher input match))
+		   submatchers)))
 	match))
     
-    ;; FIXME
     (values variable-map
 	    matcher))
   
@@ -396,19 +437,6 @@
 (define (pattern-element-repeated? element) (vector-ref element 3))
 (define (pattern-element-set-repeated?! element value)
   (vector-set! element 3 value))
-
-;; A submatcher is the output of a compiled subpattern - consisting of
-;; its variable-map together with a matcher - and an offset of the
-;; submatchers variables in the variables of its parent.
-
-(define (make-submatcher variable-map matcher offset)
-  (vector variable-map matcher offset))
-(define (submatcher-variable-map matcher)
-  (vector-ref matcher 0))
-(define (submatcher-matcher matcher)
-  (vector-ref matcher 1))
-(define (submatcher-offset matcher)
-  (vector-ref matcher 2))
 
 ;;; Concrete data types used in the template compiler
 
