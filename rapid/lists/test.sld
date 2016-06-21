@@ -24,6 +24,12 @@
 				(if (even? x) (cons x l) l))
 			      '() '(1 2 2 3 4 4 5 5 6)))
 
+      (test-assert "every - unequal length"
+		   (every = (list 1 2) (list 1)))
+
+      (test-assert "every - equal length"
+		   (not (every = (list 1 2) (list 1 3))))
+
       (test-end)
 
       #t)))

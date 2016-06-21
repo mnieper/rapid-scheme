@@ -80,21 +80,21 @@
 	 ;; Literal identifier
 	 ((literal? pattern)
 	  (values (make-pattern-variable-map)
-		  (lambda (syntax pattern-syntax)
+		  (lambda (syntax)
 		    (and (compare (unwrap-syntax syntax)
 				  (rename (unwrap-syntax pattern-syntax)))
 			 #()))))
 	 ;; _ identifier
 	 ((underscore? pattern)
 	  (values (make-pattern-variable-map)
-		  (lambda (syntax pattern-syntax)
+		  (lambda (syntax)
 		    #())))
 	 ;; Pattern variable
 	 (else
 	  (values (imap-replace (make-pattern-variable-map)
 				pattern
 				(make-pattern-variable 0 0 pattern-syntax))
-		  (lambda (syntax pattern-syntax)
+		  (lambda (syntax)
 		    (vector (unwrap-syntax syntax)))))))
        ;; Vector
        ((vector? pattern)
@@ -103,7 +103,7 @@
 						 pattern-syntax))
 	  (if variables-map	    
 	      (values variables-map
-		      (lambda (syntax pattern-syntax)
+		      (lambda (syntax)
 			(let ((datum (unwrap-syntax syntax)))
 			  (and-let*
 			      (((vector? datum))
@@ -120,7 +120,7 @@
        ;; Empty list
        ((null? pattern)
 	(values (make-pattern-variable-map)
-		(lambda (syntax pattern-syntax)
+		(lambda (syntax)
 		  (and (null? (unwrap-syntax syntax))
 		       #()))))
        ;; Finite list
@@ -128,7 +128,7 @@
 	(compile-list-pattern pattern-syntax))
        ((constant? pattern)
 	(values (make-pattern-variable-map)
-		(lambda (syntax pattern-syntax)
+		(lambda (syntax)
 		  (and (equal? (unwrap-syntax syntax)
 			       (unwrap-syntax pattern-syntax))
 		       #()))))
@@ -177,13 +177,60 @@
 	   subvariable-map))
 	submatcher))
     
-    (define-values (pattern-elements repeated? dotted-pattern)
+    (define-values (pattern-elements repeated? dotted-pattern?)
       (analyze-pattern-list (unwrap-syntax pattern-syntax)))
-    
+
+    (define pattern
+      (unwrap-syntax pattern-syntax))
+    (define pattern->vector
+      (list->vector (if dotted-pattern?
+			(append (drop-right pattern 0) (list (take-right pattern 0)))
+			pattern)))
+       
     (define submatchers (map-in-order submatcher-compile! pattern-elements))
+
+    (define (submatch! pattern-element submatcher)
+      ;; FIXME
+      #f)
+    
+    (define (matcher syntax)
+      (and-let*
+	  ((form
+	    (unwrap-syntax syntax))
+	   ((or (not (circular-list? form))
+		(raise-syntax-error "circular list in source" syntax)))
+	   (left
+	    (drop-right form 0))
+	   (right
+	    (take-right form 0))
+	   (input-length
+	    (length left))
+	   ((or dotted-pattern? (null? right)))
+	   ((if (or repeated? dotted-pattern?)
+		(>= input-length (- (length pattern-elements)
+				    (if repeated? 1 0)
+				    (if dotted-pattern? 1 0)))
+		(= input-length (length pattern-elements))))
+	   (input
+	    (list->vector (if dotted-pattern?
+			      (if repeated?
+				  (append left (list (if (null? right)
+							 (derive-syntax '() syntax)
+							 right)))
+				  (receive (head tail)
+				      (split-at left (- (length pattern-elements) 1))
+				    (let ((tail (append tail right)))
+				      (append head (list (if (syntax? tail)
+							     tail
+							     (derive-syntax tail syntax))))))
+				  left))))
+	   (match (make-vector variable-count))
+	   ((every submatch! pattern-elements submatchers)))
+	match))
     
     ;; FIXME
-    (values #f #f))
+    (values variable-map
+	    matcher))
   
   ;; Takes a finite list of patterns. Returns three values. The first
   ;; value is a list of pattern elements, the second value is a boolean

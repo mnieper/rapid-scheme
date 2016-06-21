@@ -92,11 +92,13 @@
 	#f
 	(or (pred (car clist)) (loop (cdr clist))))))
 
-(define (every pred clist)
-  (let loop ((clist clist))
-    (if (null? clist)
-	#t
-	(and (pred (car clist)) (loop (cdr clist))))))
+(define (every pred . clist*)
+  (let loop ((clist* clist*))
+    (receive (car* cdr*)
+	(cars+cdrs clist*)
+      (or (null? car*)
+	  (and (apply pred car*)
+	       (loop cdr*))))))
 
 (define (map-in-order proc . list*)
   (let loop ((list* list*))
@@ -121,3 +123,18 @@
 	(tail-gen seed)
 	(cons (proc seed)
 	      (unfold pred? proc step (step seed) tail-gen))))))
+
+;;; Utility procedures
+(define (cars+cdrs list*)
+  (call-with-current-continuation
+   (lambda (return)
+     (let loop ((list* list*))
+       (if (null? list*)
+	   (values '() '())
+	   (let ((list (car list*))
+		 (list* (cdr list*)))
+	     (if (null? list)
+		 (return '() '())
+		 (receive (car* cdr*)
+		     (loop list*)
+		   (values (cons (car list) car*) (cons (cdr list) cdr*))))))))))

@@ -28,5 +28,6 @@
 	  split-at
 	  unfold)
   (import (scheme base)
-	  (scheme case-lambda))
+	  (scheme case-lambda)
+	  (rapid receive))
   (include "lists.scm"))
