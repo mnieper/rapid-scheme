@@ -136,7 +136,7 @@
   (define environment (%make-environment))
 
   (with-import-sets (library-import-sets library)
-    ;; FIXME: Do something with the imported environment
+    (expand-top-level! (library-body library))
     environment))
 
 ;; Local Variables:

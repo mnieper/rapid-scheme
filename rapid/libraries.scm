@@ -184,6 +184,7 @@
 	 (else
 	  (unless import-declaration?
 	    (raise-syntax-error #f "program contains no import declaration"))
+	  (add-body-form! library syntax)
 	  (generator-for-each (lambda (syntax)
 				(add-body-form! library syntax))
 			      reader)
