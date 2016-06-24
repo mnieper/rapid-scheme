@@ -49,8 +49,11 @@
 (define (make-syntax-rules-transformer
 	 %ellipsis? literal? underscore? syntax-rule-syntax* transformer-syntax)
 
+  (define ellipsis-active? (make-parameter #t))
+  
   (define (ellipsis? form)
-    (and (identifier? form)
+    (and (ellipsis-active?)
+	 (identifier? form)
 	 (%ellipsis? form)))
   
   ;; Helper functions for the pattern compilers
@@ -63,14 +66,13 @@
 				  "invalid pattern")))
 	 (*pattern-syntax
 	  (derive-syntax (cdr pattern) pattern-syntax)))
-      (receive (identifiers matcher)
+      (receive (variable-map matcher)
 	  (compile-subpattern *pattern-syntax)
 	(and matcher
-	     (vector identifiers
+	     (vector variable-map
 		     (lambda (syntax)
 		       (matcher
-			(derive-syntax (cdr (unwrap-syntax syntax)) syntax)
-			*pattern-syntax)))))))
+			(derive-syntax (cdr (unwrap-syntax syntax)) syntax))))))))
 
   (define (compile-subpattern pattern-syntax)
     (let ((pattern (unwrap-syntax pattern-syntax)))
@@ -187,10 +189,9 @@
       (let ((element-index (pattern-element-index pattern-element))
 	    (from-end? (pattern-element-from-end? pattern-element))
 	    (element-repeated? (pattern-element-repeated? pattern-element)))
-	(lambda (input match)
+	(lambda (input-length input match)
 	  (let*
-	      ((input-length (length input))
-	       (input-index
+	      ((input-index
 		(if from-end?
 		    (+ input-length (- element-index (length pattern-elements)
 				       1
@@ -262,11 +263,11 @@
 				    (let ((tail (append tail right)))
 				      (append head (list (if (syntax? tail)
 							     tail
-							     (derive-syntax tail syntax))))))
-				  left))))
+							     (derive-syntax tail syntax)))))))
+			      left)))
 	   (match (make-vector variable-count))
 	   ((every (lambda (submatcher)
-		     (submatcher input match))
+		     (submatcher input-length input match))
 		   submatchers)))
 	match))
     
@@ -346,6 +347,8 @@
 
   ;; Template compiler
 
+  (define current-context (make-parameter #f))
+  
   (define (compile-template template-syntax variable-map)
     ;; XXX: Slots is a vector of indices of the matched variables in the
     ;; pattern variables.
@@ -358,10 +361,81 @@
 	      (vector-map
 	       (lambda (slot)
 		 (vector-ref pattern-variables slot))
-	       slots)
-	      template-syntax)))))
+	       slots))))))
 
   (define (compile-subtemplate template-syntax variable-map depth)
+    (let ((template (unwrap-syntax template-syntax)))
+      (cond
+       ((identifier? template)
+	(cond
+	 ((ellipsis? template)
+	  (raise-syntax-error template-syntax "extraneous ellipsis in template")
+	  (values #f #f))
+	 ((imap-ref/default variable-map template #f)
+	  => (lambda (variable)
+	       (let ((variable-depth (pattern-variable-depth variable)))
+		 (if (zero? variable-depth)
+		     (values (vector (pattern-variable-index variable))
+			     (lambda (match)
+			       (derive-syntax (vector-ref match 0)
+					      template-syntax
+					      (current-context))))
+		     (cond
+		      ((> variable-depth depth)
+		       (raise-syntax-error template-syntax
+					   "pattern variable followed by too few ellipses")
+		       (values #f #f))
+		      ((< variable-depth depth)
+		       (raise-syntax-error template-syntax
+					   "pattern variable followed by too many ellipses"))
+		      (else
+		       (values (vector (pattern-variable-index variable))
+			       (lambda (match)
+				 (derive-syntax (vector-ref match 0)
+						template-syntax
+						(current-context))))))))))
+	 (else
+	  (values #()
+		  (lambda (match)
+		    (derive-syntax (rename template) template-syntax (current-context)))))))
+       ((circular-list? template)
+	(raise-syntax-error "circular template in source" template-syntax)
+	(values #f #f))
+       ((null? template)
+	(values #()
+		(lambda (match)
+		  (derive-syntax '() template-syntax (current-context)))))
+       ((pair? template)
+	(if (and (list? template)
+		 (= (length template) 2)
+		 (ellipsis? (unwrap-syntax (car template))))
+	    (parameterize
+		((ellipsis-active? #f))
+	      (compile-subtemplate (cadr template) variable-map depth))
+	    (compile-list-template template-syntax variable-map depth)))
+       ((vector? template)
+	(receive (slots transcriber)
+	    (compile-list-template (derive-syntax (vector->list template) template-syntax)
+				   variable-map
+				   depth)
+	  (if transcriber
+	      (values slots
+		      (lambda (match)
+			(let ((output-syntax (transcriber match)))
+			  (derive-syntax (list->vector (unwrap-syntax output-syntax))
+					 output-syntax))))
+	      (values #f #f))))	  
+       ((constant? template)
+	(values #()
+		(lambda (match)
+		  (derive-syntax (unwrap-syntax template-syntax)
+				 template-syntax
+				 (current-context)))))
+       (else
+	(raise-syntax-error template-syntax "invalid subtemplate")
+	(values #f #f)))))
+
+  (define (compile-list-template template-syntax variables-map depth)
     ;; FIXME
     (values #f #f))
   
@@ -393,7 +467,8 @@
   (make-er-macro-transformer
    (lambda (syntax rename compare)
      (parameterize ((current-rename rename)
-		    (current-compare compare))
+		    (current-compare compare)
+		    (current-context syntax))
        (let loop ((rules rules))
 	 (cond
 	  ((null? rules)

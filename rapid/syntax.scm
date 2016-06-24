@@ -97,7 +97,11 @@
 	  (make-syntax (symbol->identifier datum) location context #f))
 	 (else
 	  (make-syntax datum location context #f))))))))
-		     
+
+;; Syntax messages
+
+(define current-log-level (make-parameter 'warning))
+
 (define error-message-count (make-parameter 0))
 
 (define-record-type <syntax-exception>
@@ -109,6 +113,10 @@
 (define-record-type (<syntax-note> <syntax-exception>)
   (make-syntax-note exception-syntax message)
   syntax-note?)
+
+(define-record-type (<syntax-info> <syntax-exception>)
+  (make-syntax-info exception-syntax message)
+  syntax-info?)
 
 (define-record-type (<syntax-warning> <syntax-exception>)
   (make-syntax-warning exception-syntax message)
@@ -124,12 +132,16 @@
 
 (define (syntax-exception-name exception)
   (cond
+   ((syntax-info? exception) "info")
    ((syntax-note? exception) "note")
    ((syntax-warning? exception) "warning")
    ((syntax-error? exception) "error")
    ((syntax-fatal-error? exception) "fatal error")
    (else (error "not a syntax exception" exception))))
 
+(define (raise-syntax-info syntax message . object*)
+  (raise-continuable (make-syntax-info syntax
+				       (apply format message object*))))
 (define (raise-syntax-note syntax message . object*)
   (raise-continuable (make-syntax-note syntax
 				       (apply format message object*))))
@@ -204,7 +216,8 @@
   (with-exception-handler
    (lambda (condition)
      (cond
-      ((syntax-exception? condition)
+      ((and (syntax-exception? condition)
+	    (or (not (syntax-info? condition)) (eq? (current-log-level) 'info)))
        (print-exception condition)
        (when (syntax-fatal-error? condition)
 	 (exit #f))

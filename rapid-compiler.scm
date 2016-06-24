@@ -21,12 +21,14 @@
 	(rapid format)
 	(rapid args-fold)
 	(rapid version-etc)
+	(rapid syntax)
 	(rapid libraries)
 	(rapid compiler))
 
 (define (help)
   (write-string
    (format "Usage: ~a [OPTION] file\n  \
+              -d, --debug   print more information about progress\n  \
               -I, --include prepends a library search directory\n  \
               -h, --help    display this help and exit\n  \
               -v, --version output version information and exit\n"
@@ -38,6 +40,10 @@
     (((input)
       (args-fold (cdr (command-line))
 		 (list
+		  (option '(#\d "debug") #f #f
+			  (lambda (option name arg input)
+			    (current-log-level 'info)
+			    input))
 		  (option '(#\h "help") #f #f
 			  (lambda (option name arg input)
 			    (help)

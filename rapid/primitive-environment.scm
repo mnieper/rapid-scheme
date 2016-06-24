@@ -60,7 +60,7 @@
 	 (keyword-syntax (list-ref form 1))
 	 ((identifier-syntax? keyword-syntax))
 	 (transformer-syntax (list-ref form 2))
-	 (transformer (expand-transformer transformer-syntax)))
+	 (transformer (expand-transformer transformer-syntax)))    
       (expand-into-syntax-definition
        keyword-syntax
        (make-transformer

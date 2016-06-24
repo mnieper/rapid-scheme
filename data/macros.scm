@@ -2,5 +2,6 @@
 
 (define-syntax foo
   (syntax-rules ()
-    ((foo) 'a)))
+    ((foo a) 1)))
 
+(foo a)

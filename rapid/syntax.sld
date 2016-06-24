@@ -31,6 +31,8 @@
 	  source-location-end-line
 	  source-location-start-column
 	  source-location-end-column
+	  current-log-level
+	  raise-syntax-info
 	  raise-syntax-note
 	  raise-syntax-warning
 	  raise-syntax-error
