@@ -43,7 +43,7 @@
 	      (begin (raise-syntax-error syntax
 					 "bad define-values syntax")
 		     #f))))
-      (unpack-formals (list-ref syntax 1)
+      (unpack-formals (list-ref form 1)
 		      (lambda (fixed rest)
 			(expand-into-definition fixed
 						rest
@@ -190,8 +190,8 @@
 					 "symbol expected")
 		     #f))))
       (expand-into-syntax-definition identifier-syntax
-				     (make-primitive-reference symbol
-							       literal-syntax)
+				     (make-primitive symbol
+						     literal-syntax)
 				     syntax))))
 
 ;;; Utility functions

@@ -83,9 +83,12 @@
 	 ((literal? pattern)
 	  (values (make-pattern-variable-map)
 		  (lambda (syntax)
-		    (and (compare (unwrap-syntax syntax)
-				  (rename (unwrap-syntax pattern-syntax)))
-			 #()))))
+		    (and-let*
+			((datum (unwrap-syntax syntax))
+			 ((identifier? datum))
+			 ((compare (unwrap-syntax syntax)
+				   (rename (unwrap-syntax pattern-syntax)))
+			 #()))))))
 	 ;; _ identifier
 	 ((underscore? pattern)
 	  (values (make-pattern-variable-map)
@@ -364,6 +367,7 @@
 	       slots))))))
 
   (define (compile-subtemplate template-syntax variable-map depth)
+    ;; FIXME: We don't get the contexts right in all cases. Do some experiments.
     (let ((template (unwrap-syntax template-syntax)))
       (cond
        ((identifier? template)
@@ -525,7 +529,9 @@
 			 (list-queue-front output-rest))))))
 	  (receive (first last)
 	      (list-queue-first-last output)
-	    (set-cdr! last tail-syntax)
+	    (if (null? last)
+		(set! first tail-syntax)
+		(set-cdr! last tail-syntax))
 	    (derive-syntax first template-syntax (current-context))))))
       
     (values (list->vector (reverse reversed-slots))

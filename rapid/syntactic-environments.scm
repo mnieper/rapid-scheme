@@ -210,6 +210,11 @@
       ((binding (lookup-syntactic-binding! identifier-syntax)))
     (binding-denotation binding)))
 
+(define (lookup-syntax! identifier-syntax)
+  (and-let*
+      ((binding (lookup-syntactic-binding! identifier-syntax)))
+    (binding-syntax binding)))
+
 (define (syntactic-environment-lookup-denotation! environment identifier-syntax)
   (with-syntactic-environment environment
     (lookup-denotation! identifier-syntax)))

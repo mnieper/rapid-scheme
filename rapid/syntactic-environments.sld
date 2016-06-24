@@ -34,6 +34,7 @@
 	  insert-syntactic-binding!
 	  syntactic-environment-ref binding-denotation
 	  lookup-denotation!
+	  lookup-syntax!
 	  identifier=?
 	  free-identifier=?
 	  make-free-identifier-comparator

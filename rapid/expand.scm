@@ -84,6 +84,9 @@
 		    (expand-into-expression-hook return))
        (expand-syntax! syntax)))))
 
+(define (expand-expression* syntax*)
+  (map-in-order expand-expression syntax*))
+
 (define (expand-transformer syntax)
   (call-with-current-continuation
    (lambda (return)
@@ -110,7 +113,6 @@
 				       "syntax definition of ‘~a’ may not follow "
 				       "expressions in a body"
 				       (syntax->datum identifier-syntax))))))
-    ;; XXX: Is this transformer a correct denotation?
     (insert-syntactic-binding! identifier-syntax transformer)))
 
 ;; FIXME: Define as set! currently not implemented in top-level.
@@ -143,15 +145,38 @@
 	 ((null? form)
 	  (raise-syntax-error syntax "empty application in source"))
 	 ((identifier? form)
-	  #f) ;; FIXME
-         ((list? form)
+	  (cond
+	   ((lookup-denotation! syntax)
+	    => (lambda (denotation)
+		 (cond
+		  ((primitive? denotation)
+		   (expand-into-expression (make-primitive-reference denotation
+								     syntax)))
+		  ((transformer? denotation)
+		   (raise-syntax-error syntax
+				       "invalid use of syntax ‘~a’ as value"
+				       (identifier->symbol form))
+		   (raise-syntax-note (lookup-syntax! syntax)
+				      "identifier ‘~a’ was bound here"
+				      (identifier->symbol form)))
+		  ((location? denotation)
+		   (expand-into-expression (make-reference denotation
+							   syntax)))
+		  (else
+		   (error "invalid denotation" denotation)))))
+	   (else
+	    #f)))
+	 ((list? form)
 	  (cond
 	   ((lookup-transformer! (car form))
 	    => (lambda (transformer)
 		 ((transformer-proc transformer) syntax)))
 	   (else
-	    #f ;; TODO
-	    )))
+	    (let ((operator (expand-expression (car form))))
+	      (expand-into-expression
+	       (make-procedure-call operator
+				    (expand-expression* (cdr form))
+				    syntax))))))
 	 (else
 	  (raise-syntax-error syntax "invalid form")))))))
 

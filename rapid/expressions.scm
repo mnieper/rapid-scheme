@@ -31,10 +31,10 @@
 
 ;; Primitive references
 
-(define-record-type (<primitive-references> <expression>)
-  (make-primitive-reference symbol syntax)
+(define-record-type (<primitive-reference> <expression>)
+  (make-primitive-reference primitive syntax)
   primitive-reference?
-  (symbol primitive-reference-symbol))
+  (primitive primitive-reference-primitive))
 
 ;; Literals
 
@@ -42,6 +42,14 @@
   (make-literal datum syntax)
   literal?
   (datum literal-datum))
+
+;; Procedure calls
+
+(define-record-type (<procedure-call> <expression>)
+  (make-procedure-call operator operands syntax)
+  procedure-call?
+  (operator procedure-call-operator)
+  (operands procedure-call-operands))
 
 ;;; Extra types
 
