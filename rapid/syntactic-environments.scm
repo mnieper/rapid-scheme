@@ -251,8 +251,7 @@
      ((and denotation1 denotation2)
       (eq? denotation1 denotation2))
      ((and (not denotation1) (not denotation2))
-      (symbol=? (identifier->symbol identifier1)
-		(identifier->symbol identifier2)))
+      (eq? identifier1 identifier2))
      (else
       #f))))
 

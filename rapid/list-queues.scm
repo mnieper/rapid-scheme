@@ -27,6 +27,13 @@
 (define (list-queue-empty? list-queue)
   (null? (list-queue-list list-queue)))
 
+(define (list-queue-first-last list-queue)
+  (values (list-queue-list list-queue)
+	  (list-queue-last list-queue)))
+
+(define (list-queue-front list-queue)
+  (car (list-queue-list list-queue)))
+
 (define (list-queue-add-back! list-queue element)
   (let ((last (list-queue-last list-queue)))
     (cond

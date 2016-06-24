@@ -20,6 +20,8 @@
 	  list-queue?
 	  list-queue-empty?
 	  list-queue-list
+	  list-queue-first-last
+	  list-queue-front
 	  list-queue-add-back!
 	  list-queue-for-each
 	  list-queue-map!)

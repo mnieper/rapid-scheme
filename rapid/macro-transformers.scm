@@ -35,10 +35,10 @@
 	
 	(define (rename identifier)
 	  (cond
-	   ((imap-ref renames identifier #f))
+	   ((imap-ref/default renames identifier #f))
 	   (else
 	    (let ((renamed-identifier (close-syntax identifier macro-environment)))
-	      (set! renames (imap-replace identifier renamed-identifier))
+	      (set! renames (imap-replace renames identifier renamed-identifier))
 	      renamed-identifier))))
 
 	(define (compare identifier1 identifier2)
@@ -439,35 +439,97 @@
 
     (define template (unwrap-syntax template-syntax))
 
-    (define (template-element-compile element)
+    (define reversed-slots '())
+    (define slot-table (imap (make-comparator integer? = < #f)))
+    (define index 0)
+    
+    (define (template-element-compile! element)
       (receive (slots transcriber)
 	  (compile-subtemplate (template-element-syntax element)
 			       variable-map
 			       (if (template-element-repeated? element)
 				   (+ 1 depth)
 				   depth))
-	(and transcriber
-	     (if (and (template-element-repeated? element) (= (vector-length slots) 0))
-		 (raise-syntax-error (template-element-syntax element)
-				     "no pattern variable to repeat here")
-		 (make-subtranscriber slots transcriber)))))
-      
+	(and
+	 transcriber
+	 (cond
+	  ((and (template-element-repeated? element)
+		(= (vector-length slots) 0))
+	   (raise-syntax-error (template-element-syntax element)
+			       "no pattern variable to repeat here"))
+	  (else
+	   (vector-for-each
+	    (lambda (slot)
+	      (call-with-current-continuation
+	       (lambda (abort)
+		 (receive (updated-table ret)
+		     (imap-search slot-table
+				  slot
+				  (lambda (insert ignore)
+				    (insert index #f))
+				  abort)
+		   (set! slot-table updated-table)
+		   (set! reversed-slots (cons slot reversed-slots))
+		   (set! index (+ 1 index))))))
+	    slots)
+	   (if (template-element-repeated? element)
+	       (lambda (match output)
+		 (let loop ((match*-vector
+			     (vector-map
+			      (lambda (slot)
+				(vector-ref match
+					    (imap-ref slot-table slot)))
+			      slots)))
+		   (unless (vector-every null? match*-vector)
+		     (cond
+		      ((vector-any null? match*-vector)
+		       (raise-syntax-error template-syntax
+					   "output cannot be built"))
+		      (else
+		       (list-queue-add-back!
+			output
+			(transcriber (vector-map car match*-vector)))
+		       (loop (vector-map cdr match*-vector)))))))
+	       (lambda (match output)
+		 (list-queue-add-back!
+		  output
+		  (transcriber (vector-map
+				(lambda (slot)
+				  (vector-ref match (imap-ref slot-table slot)))
+				slots))))))))))
+	         
     (define-values (template-elements template-element-rest*)
       (analyze-template-list template))
 
     (define subtranscribers
-      (map-in-order template-element-compile template-elements))
+      (map-in-order template-element-compile! template-elements))
     (define subtranscriber-rest*
-      (map-in-order template-element-compile template-element-rest*))
-
-    (define-values (slots slot-table)
-      (make-slots+slot-table (append subtranscriber-rest* subtranscribers)))
+      (map-in-order template-element-compile! template-element-rest*))
 
     (define (transcriber match)
-      ;; FIXME
-      #f)
+      (let ((output (list-queue))
+	    (output-rest (list-queue)))
+	(for-each
+	 (lambda (subtranscriber)
+	   (subtranscriber match output))
+	 subtranscribers)
+	(unless (null? subtranscriber-rest*)
+	  ((car subtranscriber-rest*) match output-rest))
+	(let ((tail-syntax
+	       (if (null? subtranscriber-rest*)
+		   '()
+		   (let ((tail
+			  (unwrap-syntax (list-queue-front output-rest))))
+		     (if (or (pair? tail) (null? tail))
+			 tail
+			 (list-queue-front output-rest))))))
+	  (receive (first last)
+	      (list-queue-first-last output)
+	    (set-cdr! last tail-syntax)
+	    (derive-syntax first template-syntax (current-context))))))
       
-    (values slots transcriber))
+    (values (list->vector (reverse reversed-slots))
+	    transcriber))
 
   (define (analyze-template-list list)
     (let loop ((list list) (reversed-elements '()) (index 0))
@@ -573,39 +635,6 @@
   (vector-ref template-element 1))
 (define (template-element-index template-element)
   (vector-ref template-element 2))
-
-(define (make-subtranscriber slots transcriber)
-  (vector slots transcriber))
-(define (subtranscriber-slots subtranscriber)
-  (vector-ref subtranscriber 0))
-(define (subtranscriber-transcriber subtranscriber)
-  (vector-ref subtranscriber 1))
-
-(define (make-slots+slot-table subtranscribers)
-  (let ((table
-	 (imap (make-comparator integer? = < #f)))
-	(index 0)
-	(reversed-slots '()))
-    (for-each
-     (lambda (subtranscriber)
-       (when subtranscriber
-	 (vector-for-each
-	  (lambda (slot)
-	    (call-with-current-continuation
-	     (lambda (abort)
-	       (receive (updated-table ret)
-		   (imap-search table
-				slot
-				(lambda (insert ignore)
-				  (insert index #f))
-				abort)
-		 (set! table updated-table)
-		 (set! reversed-slots (cons slot reversed-slots))
-		 (set! index (+ 1 index))))))
-	  (subtranscriber-slots subtranscriber))))
-     subtranscribers)
-    (values (list->vector (reverse reversed-slots))
-	    table)))
 
 ;;; Utility functions
 

@@ -16,7 +16,8 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid vectors)
-  (export vector-fold vector-index)
+  (export vector-fold vector-index
+	  vector-any vector-every)
   (cond-expand
    ((library (srfi 133))
     (import (srfi 133)))

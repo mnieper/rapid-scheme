@@ -30,3 +30,25 @@
 	 (if (pred? (vector-ref vector i))
 	     i
 	     (loop (+ i 1))))))
+
+(define (vector-every pred? vector)
+  (let ((length (vector-length vector)))
+    (let loop ((i 0))
+      (cond
+       ((= i length)
+	#t)
+       ((pred? (vector-ref vector i))
+	(loop (+ 1 i)))
+       (else
+	#f)))))
+
+(define (vector-any pred? vector)
+  (let ((length (vector-length vector)))
+    (let loop ((i 0))
+      (cond
+       ((= i length)
+	#f)
+       ((pred? (vector-ref vector i))
+	#t)
+       (else
+	(loop (+ 1 i)))))))

@@ -36,6 +36,16 @@
 
       (test-assert "Trying to find non existing element yields false"
 		   (not (vector-index even? #(1 3 5))))
-	 
+
+      (test-equal "vector-every"
+		  '(#t #f)
+		  (list (vector-every even? #(2 4 6))
+			(vector-every even? #(2 3 4))))
+
+      (test-equal "vector-any"
+		  '(#t #f)
+		  (list (vector-any even? #(1 2 3))
+			(vector-any even? #(1 3 5))))
+      
       (test-end)
       #t)))
