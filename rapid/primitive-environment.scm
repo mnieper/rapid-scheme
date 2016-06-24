@@ -31,6 +31,7 @@
 					 "bad quote syntax")
 		     #f))))
       (expand-into-expression
+       ;; TODO: Rename the literal if the identifier is bound and a closure.
        (make-literal (syntax->datum (list-ref form 1)) syntax))))
 
   ;; define-values syntax

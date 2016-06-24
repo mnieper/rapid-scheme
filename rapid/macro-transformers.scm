@@ -435,9 +435,59 @@
 	(raise-syntax-error template-syntax "invalid subtemplate")
 	(values #f #f)))))
 
-  (define (compile-list-template template-syntax variables-map depth)
-    ;; FIXME
-    (values #f #f))
+  (define (compile-list-template template-syntax variable-map depth)
+
+    (define template (unwrap-syntax template-syntax))
+
+    (define (template-element-compile element)
+      (receive (slots transcriber)
+	  (compile-subtemplate (template-element-syntax element)
+			       variable-map
+			       (if (template-element-repeated? element)
+				   (+ 1 depth)
+				   depth))
+	(and transcriber
+	     (if (and (template-element-repeated? element) (= (vector-length slots) 0))
+		 (raise-syntax-error (template-element-syntax element)
+				     "no pattern variable to repeat here")
+		 (make-subtranscriber slots transcriber)))))
+      
+    (define-values (template-elements template-element-rest*)
+      (analyze-template-list template))
+
+    (define subtranscribers
+      (map-in-order template-element-compile template-elements))
+    (define subtranscriber-rest*
+      (map-in-order template-element-compile template-element-rest*))
+
+    (define-values (slots slot-table)
+      (make-slots+slot-table (append subtranscriber-rest* subtranscribers)))
+
+    (define (transcriber match)
+      ;; FIXME
+      #f)
+      
+    (values slots transcriber))
+
+  (define (analyze-template-list list)
+    (let loop ((list list) (reversed-elements '()) (index 0))
+      (cond
+       ((null? list)
+	(values (reverse reversed-elements) '()))
+       ((pair? list)
+	(let ((template-syntax (car list)))
+	  (if (and (pair? (cdr list)) (ellipsis? (unwrap-syntax (cadr list))))
+	      (loop (cddr list)
+		    (cons (make-template-element template-syntax #t index)
+			  reversed-elements)
+		    (+ 2 index))
+	      (loop (cdr list)
+		    (cons (make-template-element template-syntax #f index)
+			  reversed-elements)
+		    (+ 1 index)))))
+       (else
+	(values (reverse reversed-elements)
+		`(,(make-template-element list #f index)))))))
   
   (define rules
     (let loop ((syntax-rule-syntax* syntax-rule-syntax*))
@@ -514,6 +564,48 @@
   (vector-set! element 3 value))
 
 ;;; Concrete data types used in the template compiler
+
+(define (make-template-element syntax repeated? index)
+  (vector syntax repeated? index))
+(define (template-element-syntax template-element)
+  (vector-ref template-element 0))
+(define (template-element-repeated? template-element)
+  (vector-ref template-element 1))
+(define (template-element-index template-element)
+  (vector-ref template-element 2))
+
+(define (make-subtranscriber slots transcriber)
+  (vector slots transcriber))
+(define (subtranscriber-slots subtranscriber)
+  (vector-ref subtranscriber 0))
+(define (subtranscriber-transcriber subtranscriber)
+  (vector-ref subtranscriber 1))
+
+(define (make-slots+slot-table subtranscribers)
+  (let ((table
+	 (imap (make-comparator integer? = < #f)))
+	(index 0)
+	(reversed-slots '()))
+    (for-each
+     (lambda (subtranscriber)
+       (when subtranscriber
+	 (vector-for-each
+	  (lambda (slot)
+	    (call-with-current-continuation
+	     (lambda (abort)
+	       (receive (updated-table ret)
+		   (imap-search table
+				slot
+				(lambda (insert ignore)
+				  (insert index #f))
+				abort)
+		 (set! table updated-table)
+		 (set! reversed-slots (cons slot reversed-slots))
+		 (set! index (+ 1 index))))))
+	  (subtranscriber-slots subtranscriber))))
+     subtranscribers)
+    (values (list->vector (reverse reversed-slots))
+	    table)))
 
 ;;; Utility functions
 
