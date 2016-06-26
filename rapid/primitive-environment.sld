@@ -18,6 +18,7 @@
 (define-library (rapid primitive-environment)
   (export primitive-environment)
   (import (scheme base)
+	  (scheme write)
 	  (rapid and-let)
 	  (rapid lists)
 	  (rapid list-queues)

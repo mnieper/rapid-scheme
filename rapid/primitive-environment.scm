@@ -19,9 +19,15 @@
 
 (define-syntactic-environment primitive-environment
 
+  ;; ... syntax
+  
   (define-auxiliary-syntax ...)
+
+  ;; _ syntax
   
   (define-auxiliary-syntax _)
+
+  ;; quote syntax
   
   (define-transformer (quote syntax)
     (and-let*
@@ -73,6 +79,7 @@
        syntax)))
 
   ;; syntax-rules syntax
+
   (define-transformer (syntax-rules syntax)
     (and-let*
 	((transformer
@@ -138,8 +145,9 @@
 	    (and (not (literal? identifier))
 		 (if (null? ellipsis*)
 		     (and-let*
-			 ((binding (syntactic-environment-ref (current-syntactic-environment)
-							      identifier))
+			 ((binding (syntactic-environment-ref
+				    (current-syntactic-environment)
+				    identifier))
 			  (denotation (binding-denotation binding))
 			  ((primitive-transformer? denotation)))
 		       (eq? '... (primitive-transformer-name denotation)))
@@ -162,6 +170,25 @@
 							      syntax-rules-syntax*
 							      syntax)
 			       syntax)))
+
+  ;; syntax-error syntax
+  (define-transformer (syntax-error syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 ((or (>= (length form) 2)
+	      (raise-syntax-error syntax "bad syntax-error syntax")))
+	 (message (unwrap-syntax (cadr form)))
+	 ((or (string? message)
+	      (raise-syntax-error (cadr form) "not a string literal")))
+	 (port (open-output-string)))
+      (display message port)
+      (when (> (length form) 2)
+	(display ":" port)
+	(do ((irritant-syntax* (cddr form) (cdr irritant-syntax*)))
+	    ((null? irritant-syntax*))
+	  (display " " port)
+	  (display (syntax->datum (car irritant-syntax*)) port)))
+      (raise-syntax-error syntax (get-output-string port))))
   
   ;; define-primitive syntax
   
