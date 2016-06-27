@@ -22,6 +22,7 @@
 	  expand-transformer
 	  expand-into-syntax-definition
 	  expand-into-definition
+	  expand-into-sequence
 	  expand-into-expression
 	  expand-into-transformer
 	  expand-syntax!)

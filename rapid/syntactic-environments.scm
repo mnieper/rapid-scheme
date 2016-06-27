@@ -91,10 +91,11 @@
 ;;; Syntactic bindings
 
 (define-record-type <syntactic-binding>
-  (make-syntactic-binding binding-syntax denotation)
+  (make-syntactic-binding binding-syntax denotation immutable?)
   syntactic-binding?
   (binding-syntax binding-syntax)
-  (denotation binding-denotation))
+  (denotation binding-denotation)
+  (immutable? binding-immutable?))
 
 ;;; Denotations
 
@@ -175,7 +176,7 @@
 	   (syntactic-environment-lookup-denotation! environment
 						     (export-spec-source
 						      export-spec))))
-       (insert-syntactic-binding! (export-spec-target export-spec) denotation)))
+       (insert-syntactic-binding! (export-spec-target export-spec) denotation #t)))
    exports))
 
 (define (import-syntactic-environment! environment imports)
@@ -219,27 +220,31 @@
   (with-syntactic-environment environment
     (lookup-denotation! identifier-syntax)))
 
-(define (insert-syntactic-binding! identifier-syntax denotation)
-  (let ((identifier (unwrap-syntax identifier-syntax)))
-    (cond
-     ((imap-ref/default (current-used-identifiers)
-			(unwrap-syntax identifier-syntax)
-			#f)
-      => (lambda (binding)
-	   (raise-syntax-error identifier-syntax
-			       "meaning of identifier ‘~a’ cannot be changed"
-			       (syntax->datum identifier-syntax))
-	   (raise-syntax-note (binding-syntax binding)
-			      "identifier ‘~a’ was bound here"
-			      (syntax->datum identifier-syntax))
-	   #f))
-     (else
-      (let ((binding
-	     (make-syntactic-binding identifier-syntax denotation)))	     
-	(use-identifier! (unwrap-syntax identifier-syntax) binding)
-	(current-bindings (imap-replace (current-bindings)
-					identifier
-					binding)))))))
+(define insert-syntactic-binding!
+  (case-lambda
+   ((identifier-syntax denotation)
+    (insert-syntactic-binding! identifier-syntax denotation #f))
+   ((identifier-syntax denotation immutable?)
+    (let ((identifier (unwrap-syntax identifier-syntax)))
+      (cond
+       ((imap-ref/default (current-used-identifiers)
+			  (unwrap-syntax identifier-syntax)
+			  #f)
+	=> (lambda (binding)
+	     (raise-syntax-error identifier-syntax
+				 "meaning of identifier ‘~a’ cannot be changed"
+				 (syntax->datum identifier-syntax))
+	     (raise-syntax-note (binding-syntax binding)
+				"identifier ‘~a’ was bound here"
+				(syntax->datum identifier-syntax))
+	     #f))
+       (else
+	(let ((binding
+	       (make-syntactic-binding identifier-syntax denotation immutable?)))
+	  (use-identifier! (unwrap-syntax identifier-syntax) binding)
+	  (current-bindings (imap-replace (current-bindings)
+					  identifier
+					  binding)))))))))
 
 (define (syntactic-environment-insert-binding! syntactic-environment
 					       identifier-syntax

@@ -32,8 +32,10 @@
 	  import-syntactic-environment!
 	  export-syntactic-environment!
 	  insert-syntactic-binding!
-	  syntactic-environment-ref binding-denotation
+	  syntactic-environment-ref
+	  binding-denotation binding-syntax binding-immutable?
 	  lookup-denotation!
+	  lookup-syntactic-binding!
 	  lookup-syntax!
 	  identifier=?
 	  free-identifier=?

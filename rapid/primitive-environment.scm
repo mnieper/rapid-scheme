@@ -192,7 +192,60 @@
       (expand-into-syntax-definition identifier-syntax
 				     (make-primitive symbol
 						     literal-syntax)
-				     syntax))))
+				     syntax)))
+  ;; begin syntax
+  (define-transformer (begin syntax)
+    (expand-into-sequence (cdr (unwrap-syntax syntax)) syntax))
+
+  ;; set! syntax
+  (define-transformer (set! syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 ((or (= (length form) 3)
+	      (raise-syntax-error syntax "bad set! syntax")))
+	 (identifier-syntax (list-ref form 1))
+	 (syntactic-binding (lookup-syntactic-binding! identifier-syntax))
+	 ((or (not (binding-immutable? syntactic-binding))
+	      (begin (raise-syntax-error identifier-syntax
+					 "identifier ‘~a’ is immutable"
+					 (unwrap-syntax identifier-syntax))
+		     (raise-syntax-note (binding-syntax syntactic-binding)
+					"identifier ‘~a’ was bound here"
+					(unwrap-syntax identifier-syntax)))))
+	 (denotation (binding-denotation syntactic-binding))
+	 ((or (location? denotation)
+	      (begin (raise-syntax-error identifier-syntax
+					 "not a variable")
+		     (raise-syntax-note (lookup-syntax! identifier-syntax)
+					"identifier ‘~a’ was bound here"
+					(unwrap-syntax identifier-syntax))))))
+      (expand-into-expression
+       (make-assignment denotation (expand-expression (list-ref form 2)) syntax))))
+
+  ;; if syntax
+  (define-transformer (if syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 (length (length form))
+	 ((or (or (= length 3) (= length 4))
+	      (raise-syntax-error syntax "bad if syntax")))
+	 (test-syntax (list-ref form 1))
+	 (consequent-syntax (list-ref form 2))
+	 (alternate-syntax (list-ref form 3)))
+      (expand-into-expression
+       (make-conditional (expand-expression test-syntax)
+			 (expand-expression consequent-syntax)
+			 (if alternate-syntax
+			     (expand-expression alternate-syntax)
+			     (make-undefined #f))
+			 syntax))))
+
+  ;; FIXME:
+  ;; case-lambda
+  ;; include
+  ;; include-ci
+  
+  )
 
 ;;; Utility functions
 

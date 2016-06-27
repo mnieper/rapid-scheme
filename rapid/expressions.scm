@@ -51,6 +51,43 @@
   (operator procedure-call-operator)
   (operands procedure-call-operands))
 
+;; Sequences
+
+(define-record-type (<sequence> <expression>)
+  (%make-sequence expressions syntax)
+  sequence?
+  (expressions sequence-expressions))
+
+(define (make-sequence expressions syntax)
+  (let ((expression* (flatten expressions)))
+    (if (= (length expression*) 1)
+	(car expression*)
+	(%make-sequence expression* syntax))))
+
+;; Assignment
+
+(define-record-type (<assignment> <expression>)
+  (make-assignment location expression syntax)
+  assignment?
+  (location assignment-location)
+  (expression assignment-expression))
+
+
+;;; Conditionals
+
+(define-record-type (<conditional> <expression>)
+  (make-conditional test consequent alternate syntax)
+  conditional?
+  (test conditional-test)
+  (consequent conditional-consequent)
+  (alternate conditional-alternate))
+
+;;; Undefined
+
+(define-record-type (<undefined> <expression>)
+  (make-undefined syntax)
+  undefined?)
+
 ;;; Extra types
 
 (define-record-type <variables>
@@ -75,3 +112,14 @@
     (%make-formals fixed #f syntax))
    ((fixed rest syntax)
     (%make-formals fixed '() rest))))
+
+;;; Utility functions
+
+(define (flatten expression*)
+  (apply append (map
+		 (lambda (expression)
+		   (if (sequence? expression)
+		       (sequence-expressions expression)
+		       (list expression)))
+		 expression*)))
+

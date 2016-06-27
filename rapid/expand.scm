@@ -116,7 +116,6 @@
     (insert-syntactic-binding! identifier-syntax transformer)))
 
 ;; FIXME: Define as set! currently not implemented in top-level.
-
 (define (expand-into-definition fixed rest formals-syntax expression-syntax syntax)
   (and-let*
       (((or (not (expression-context?))
@@ -134,6 +133,13 @@
     (add-definition! (make-formals fixed-locations rest-location formals-syntax)
 		     expression-syntax
 		     syntax)))
+
+(define (expand-into-sequence syntax* syntax)
+  (if (expression-context?)
+      (if (null? syntax*)
+	  (raise-syntax-error syntax "begin expression may not be empty")
+	  (make-sequence (map-in-order expand-expression syntax*) syntax))
+      (for-each expand-syntax! syntax*)))
 
 (define (expand-syntax! syntax)
   (maybe-isolate (top-level-context?)
