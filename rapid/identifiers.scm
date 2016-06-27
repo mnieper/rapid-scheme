@@ -39,8 +39,15 @@
 
 (define (close-syntax identifier environment)
   (make-synthetic-identifier (identifier->symbol identifier)
-			     (cons environment (identifier-closure identifier))))
-  
+			     (cons (list identifier environment)
+				   (identifier-closure identifier))))
+
+(define (unclose-syntax identifier)
+   (let ((closure (identifier-closure identifier)))
+    (if (null? closure)
+	(values #f #f)
+	(apply values (car closure)))))
+
 (define (bound-identifier=? identifier1 identifier2)
   (or (and (not (alias? identifier1))
 	   (not (alias? identifier2))

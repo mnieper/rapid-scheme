@@ -364,7 +364,8 @@
 	      (vector-map
 	       (lambda (slot)
 		 (vector-ref pattern-variables slot))
-	       slots))))))
+	       slots)
+	      pattern-variables)))))
 
   (define (compile-subtemplate template-syntax variable-map depth)
     ;; FIXME: We don't get the contexts right in all cases. Do some experiments.
@@ -379,9 +380,11 @@
 	  => (lambda (variable)
 	       (let ((variable-depth (pattern-variable-depth variable)))
 		 (if (zero? variable-depth)
-		     (values (vector (pattern-variable-index variable))
-			     (lambda (match)
-			       (derive-syntax (vector-ref match 0)
+		     (values #()
+			     (lambda (match pattern-variables)
+			       (derive-syntax (vector-ref
+					       pattern-variables
+					       (pattern-variable-index variable))
 					      template-syntax
 					      (current-context))))
 		     (cond
@@ -394,20 +397,20 @@
 					   "pattern variable followed by too many ellipses"))
 		      (else
 		       (values (vector (pattern-variable-index variable))
-			       (lambda (match)
+			       (lambda (match pattern-variables)
 				 (derive-syntax (vector-ref match 0)
 						template-syntax
 						(current-context))))))))))
 	 (else
 	  (values #()
-		  (lambda (match)
+		  (lambda (match pattern-variables)
 		    (derive-syntax (rename template) template-syntax (current-context)))))))
        ((circular-list? template)
 	(raise-syntax-error "circular template in source" template-syntax)
 	(values #f #f))
        ((null? template)
 	(values #()
-		(lambda (match)
+		(lambda (match pattern-variables)
 		  (derive-syntax '() template-syntax (current-context)))))
        ((pair? template)
 	(if (and (list? template)
@@ -424,14 +427,14 @@
 				   depth)
 	  (if transcriber
 	      (values slots
-		      (lambda (match)
-			(let ((output-syntax (transcriber match)))
+		      (lambda (match pattern-variables)
+			(let ((output-syntax (transcriber match pattern-variables)))
 			  (derive-syntax (list->vector (unwrap-syntax output-syntax))
 					 output-syntax))))
 	      (values #f #f))))	  
        ((constant? template)
 	(values #()
-		(lambda (match)
+		(lambda (match pattern-variables)
 		  (derive-syntax (unwrap-syntax template-syntax)
 				 template-syntax
 				 (current-context)))))
@@ -477,7 +480,7 @@
 		   (set! index (+ 1 index))))))
 	    slots)
 	   (if (template-element-repeated? element)
-	       (lambda (match output)
+	       (lambda (match pattern-variables output)
 		 (let loop ((match*-vector
 			     (vector-map
 			      (lambda (slot)
@@ -492,15 +495,17 @@
 		      (else
 		       (list-queue-add-back!
 			output
-			(transcriber (vector-map car match*-vector)))
+			(transcriber (vector-map car match*-vector)
+				     pattern-variables))
 		       (loop (vector-map cdr match*-vector)))))))
-	       (lambda (match output)
+	       (lambda (match pattern-variables output)
 		 (list-queue-add-back!
 		  output
 		  (transcriber (vector-map
 				(lambda (slot)
 				  (vector-ref match (imap-ref slot-table slot)))
-				slots))))))))))
+				slots)
+			       pattern-variables)))))))))
 	         
     (define-values (template-elements template-element-rest*)
       (analyze-template-list template))
@@ -510,15 +515,15 @@
     (define subtranscriber-rest*
       (map-in-order template-element-compile! template-element-rest*))
 
-    (define (transcriber match)
+    (define (transcriber match pattern-variables)
       (let ((output (list-queue))
 	    (output-rest (list-queue)))
 	(for-each
 	 (lambda (subtranscriber)
-	   (subtranscriber match output))
+	   (subtranscriber match pattern-variables output))
 	 subtranscribers)
 	(unless (null? subtranscriber-rest*)
-	  ((car subtranscriber-rest*) match output-rest))
+	  ((car subtranscriber-rest*) match pattern-variables output-rest))
 	(let ((tail-syntax
 	       (if (null? subtranscriber-rest*)
 		   '()
@@ -584,6 +589,7 @@
 
   (make-er-macro-transformer
    (lambda (syntax rename compare)
+     
      (parameterize ((current-rename rename)
 		    (current-compare compare)
 		    (current-context syntax))

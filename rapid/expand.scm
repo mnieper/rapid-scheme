@@ -145,52 +145,55 @@
   (maybe-isolate (top-level-context?)
     (lambda ()
       (let ((form (unwrap-syntax syntax)))
-	(cond
-	 ((simple-datum? form)
-	  (expand-into-expression (make-literal form syntax)))
-	 ((null? form)
-	  (raise-syntax-error syntax "empty application in source"))
-	 ((identifier? form)
-	  (cond
-	   ((lookup-denotation! syntax)
-	    => (lambda (denotation)
-		 (cond
-		  ((primitive? denotation)
-		   (expand-into-expression (make-primitive-reference denotation
-								     syntax)))
-		  ((transformer? denotation)
-		   (raise-syntax-error syntax
-				       "invalid use of syntax ‘~a’ as value"
-				       (identifier->symbol form))
-		   (raise-syntax-note (lookup-syntax! syntax)
-				      "identifier ‘~a’ was bound here"
-				      (identifier->symbol form)))
-		  ((location? denotation)
-		   (expand-into-expression (make-reference denotation
-							   syntax)))
-		  (else
-		   (error "invalid denotation" denotation)))))
-	   (else
-	    #f)))
-	 ((list? form)
-	  (cond
-	   ((lookup-transformer! (car form))
-	    => (lambda (transformer)
-		 ((transformer-proc transformer) syntax)))
-	   (else
-	    (let ((operator (expand-expression (car form))))
-	      (expand-into-expression
-	       (make-procedure-call operator
-				    (expand-expression* (cdr form))
-				    syntax))))))
-	 (else
-	  (raise-syntax-error syntax "invalid form")))))))
+	(call-with-current-continuation
+	 (lambda (abort)
+	   (cond
+	    ((simple-datum? form)
+	     (expand-into-expression (make-literal form syntax)))
+	    ((null? form)
+	     (raise-syntax-error syntax "empty application in source"))
+	    ((identifier? form)
+	     (cond
+	      ((lookup-denotation! syntax)
+	       => (lambda (denotation)
+		    (cond
+		     ((primitive? denotation)
+		      (expand-into-expression (make-primitive-reference denotation
+									syntax)))
+		     ((transformer? denotation)
+		      (raise-syntax-error syntax
+					  "invalid use of syntax ‘~a’ as value"
+					  (identifier->symbol form))
+		      (raise-syntax-note (lookup-syntax! syntax)
+					 "identifier ‘~a’ was bound here"
+					 (identifier->symbol form)))
+		     ((location? denotation)
+		      (expand-into-expression (make-reference denotation
+							      syntax)))
+		     (else
+		      (error "invalid denotation" denotation)))))
+	      (else
+	       #f)))
+	    ((list? form)
+	     (cond
+	      ((lookup-transformer! (car form) abort)
+	       => (lambda (transformer)
+		    ((transformer-proc transformer) syntax)))
+	      (else
+	       (let ((operator (expand-expression (car form))))
+		 (expand-into-expression
+		  (make-procedure-call operator
+				       (expand-expression* (cdr form))
+				       syntax))))))
+	    (else
+	     (raise-syntax-error syntax "invalid form")))))))))
 
-(define (lookup-transformer! syntax)
+(define (lookup-transformer! syntax abort)
   (and-let*
       ((form (unwrap-syntax syntax))
        ((identifier? form))
-       (denotation (lookup-denotation! syntax))
+       (denotation (or (lookup-denotation! syntax)
+		       (abort #f)))
        ((transformer? denotation)))
     denotation))
 

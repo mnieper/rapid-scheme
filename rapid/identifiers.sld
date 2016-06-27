@@ -24,7 +24,8 @@
 	  bound-identifier=?
 	  identifier-comparator
 	  current-identity-counter
-	  close-syntax)
+	  close-syntax
+	  unclose-syntax)
   (import (scheme case-lambda)
 	  (rapid base)
 	  (rapid comparators))

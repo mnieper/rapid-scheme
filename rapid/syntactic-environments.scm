@@ -185,19 +185,19 @@
 					   environment))))
 
 (define (syntactic-environment-ref environment identifier)
-  (let loop ((environments (cons environment
-				 (identifier-closure identifier))))
+  (let loop ((id identifier) (environment environment))
     (cond
-     ((null? environments)
-      #f)
-     ((imap-ref/default (syntactic-environment-bindings (car environments))
-			identifier
+     ((imap-ref/default (syntactic-environment-bindings environment)
+			id
 			#f)
       => (lambda (binding)
 	   (use-identifier! identifier binding)
 	   binding))
      (else
-      (loop (cdr environments))))))
+      (receive (id environment)
+	  (unclose-syntax id)
+	(and id
+	     (loop id environment)))))))
 
 (define (lookup-syntactic-binding! identifier-syntax)
   (or (syntactic-environment-ref (current-syntactic-environment)

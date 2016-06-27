@@ -44,6 +44,7 @@
   (import (scheme case-lambda)
 	  (rapid base)
 	  (rapid and-let)
+	  (rapid receive)
 	  (rapid comparators)
 	  (rapid immutable-maps)
 	  (rapid identifiers)
