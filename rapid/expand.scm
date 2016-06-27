@@ -64,18 +64,40 @@
 			   #f))))
     (for-each expand-syntax! syntax*)
     (current-context 'expression)
-    (list-queue-map!
-     (lambda (definition)
-       (let ((expression (definition-expression definition)))       
-	 (make-variables (definition-formals definition)
-			 (if (syntax? expression)
-			     (expand-expression expression)
-			     expression)
-			 (definition-syntax definition))))
-     (current-definitions))))
+    (expand-definitions!)))
 
-(define (expand-body syntax*)
-  (error "expand-body: not implemented yet"))
+(define (expand-definitions!)
+  (list-queue-map!
+   (lambda (definition)
+     (let ((expression (definition-expression definition)))       
+       (make-variables (definition-formals definition)
+		       (if (syntax? expression)
+			   (expand-expression expression)
+			   expression)
+		       (definition-syntax definition))))
+   (current-definitions))
+  (current-definitions))
+
+(define (expand-body syntax* syntax)
+  (parameterize
+      ((current-context 'body)
+       (current-definitions (list-queue))
+       (current-expressions #f)
+       (expand-into-expression-hook
+	(lambda (expression)
+	  (list-queue-add-back! (or (current-expressions)
+				    (list-queue))
+				expression))))
+    (for-each expand-syntax! syntax*)
+    (unless (current-expressions)
+      (raise-syntax-error syntax "no expression in body"))
+    (current-context 'expression)
+    (make-letrec*-expression
+     (list-queue-list (expand-definitions!))
+     (if (current-expressions)
+	 (list-queue-list (current-expressions))
+	 (make-undefined #f))
+     #f)))
 
 (define (expand-expression syntax)
   (call-with-current-continuation

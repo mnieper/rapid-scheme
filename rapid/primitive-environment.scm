@@ -268,6 +268,33 @@
 			     (make-undefined #f))
 			 syntax))))
 
+  ;; case-lambda syntax
+  (define-transformer (case-lambda syntax)
+    (and-let*
+	((form (unwrap-syntax syntax)))
+      (expand-into-expression
+       (make-procedure
+	(let loop ((clause-syntax* (cdr form)))
+	  (if (null? clause-syntax*)
+	      '()
+	      (or (and-let*
+		      ((clause-syntax (car clause-syntax*))
+		       (clause (unwrap-syntax clause-syntax))
+		       ((or (and (not (null? clause)) (list? clause))
+			    (raise-syntax-error clause-syntax
+						"bad case-lambda clause"))))
+		    (with-scope
+		      (and-let*
+			  ((formals (expand-formals! (car clause))))
+			(cons
+			 (make-clause formals
+				      (list (expand-body (cdr clause)
+							 clause-syntax))
+				      clause-syntax)
+			 (loop (cdr clause-syntax*))))))
+		  (loop (cdr clause-syntax*)))))
+	syntax))))
+  
   ;; include syntax
   (define-transformer (include syntax)
     (expand-include syntax #f))
@@ -275,14 +302,27 @@
   ;; include-ci syntax
   (define-transformer (include-ci syntax)
     (expand-include syntax #t))
-
+  
   ;; FIXME:
-  ;; case-lambda
   ;; cond-expand
+  ;; features
   
   )
 
 ;;; Utility functions
+
+(define (expand-formals! formals-syntax)
+  (unpack-formals formals-syntax
+		  (lambda (fixed rest*)
+		    (make-formals
+		     (map expand-formal! fixed)
+		     (map expand-formal! rest*)
+		     formals-syntax))))
+
+(define (expand-formal! syntax)
+  (let ((location (make-location syntax)))
+    (insert-syntactic-binding! syntax location)
+    location))
 
 (define (expand-include syntax ci?)    
   (and-let*

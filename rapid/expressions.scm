@@ -88,6 +88,21 @@
   (make-undefined syntax)
   undefined?)
 
+;;; Procedures
+
+(define-record-type (<procedure> <expression>)
+  (make-procedure clauses syntax)
+  expression-procedure?
+  (clauses procedure-clauses))
+
+;;; Letrec* expressions
+
+(define-record-type (<letrec*-expression> <expression>)
+  (make-letrec*-expression definitions body syntax)
+  letrec*-expression?
+  (definitions letrec*-expression-definitions)
+  (body letrec*-expression-body))
+
 ;;; Extra types
 
 (define-record-type <variables>
@@ -100,10 +115,10 @@
 ;; Formals
 
 (define-record-type <formals>
-  (%make-formals fixed rest syntax)
+  (%make-formals fixed rest* syntax)
   formals?
   (fixed formals-fixed)
-  (rest formals-rest)
+  (rest* formals-rest)
   (syntax formals-syntax))
 
 (define make-formals
@@ -112,6 +127,13 @@
     (%make-formals fixed #f syntax))
    ((fixed rest syntax)
     (%make-formals fixed '() rest))))
+
+(define-record-type <clause>
+  (make-clause formals body syntax)
+  clause?
+  (formals clause-formals)
+  (body clause-body)
+  (syntax clause-syntax))
 
 ;;; Utility functions
 

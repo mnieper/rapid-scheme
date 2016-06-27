@@ -26,10 +26,14 @@
 	  make-assignment assignment? assignment-location assignment-expression
 	  make-conditional conditional?
 	  conditional-test conditional-consequent conditional-alternate
+	  make-procedure expression-procedure? procedure-clauses
+	  make-letrec*-expression letrec*-expression?
+	  letrec*-expression-definitions letrec*-expression-body
 	  make-undefined undefined?
 	  make-variables variables? variables-formals variables-expression
 	  variables-syntax
-	  make-formals formals? formals-fixed formals-rest formals-syntax)
+	  make-formals formals? formals-fixed formals-rest formals-syntax
+	  make-clause clause? clause-formals clause-body clause-syntax)
   (import (scheme case-lambda)
 	  (rapid base))
   (include "expressions.scm"))  
