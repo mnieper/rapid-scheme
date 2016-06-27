@@ -258,7 +258,8 @@
 	      (raise-syntax-error syntax "bad if syntax")))
 	 (test-syntax (list-ref form 1))
 	 (consequent-syntax (list-ref form 2))
-	 (alternate-syntax (list-ref form 3)))
+	 (alternate-syntax (and (= length 4)
+				(list-ref form 3))))
       (expand-into-expression
        (make-conditional (expand-expression test-syntax)
 			 (expand-expression consequent-syntax)
@@ -271,6 +272,7 @@
   ;; case-lambda
   ;; include
   ;; include-ci
+  ;; cond-expand
   
   )
 
