@@ -18,6 +18,7 @@
 (define-library (rapid libraries)
   (export read-library
 	  read-program
+	  read-file*
 	  import-sets->library
 	  library?
 	  library-exports

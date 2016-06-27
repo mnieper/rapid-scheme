@@ -6,10 +6,7 @@
 
 (foo a)
 
-(define-syntax bar
-  (syntax-rules ()
-    ((bar a b ...)
-     ((a b) ...))))
+(include "bar.scm")
 
 (bar 1 2 3 4)
 

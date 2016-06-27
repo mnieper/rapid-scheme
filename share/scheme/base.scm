@@ -100,8 +100,6 @@
 (define-primitive gcd 'gcd)
 (define-primitive get-output-bytevector 'get-output-bytevector)
 (define-primitive get-output-string 'get-output-string)
-(define-primitive include 'include) ; FIXME: special form
-(define-primitive include-ci 'include-ci) ; FIXME: special form
 (define-primitive inexact 'inexact)
 (define-primitive inexact? 'inexact?)
 (define-primitive input-port-open? 'input-port-open?)

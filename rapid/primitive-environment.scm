@@ -268,15 +268,31 @@
 			     (make-undefined #f))
 			 syntax))))
 
+  ;; include syntax
+  (define-transformer (include syntax)
+    (expand-include syntax #f))
+
+  ;; include-ci syntax
+  (define-transformer (include-ci syntax)
+    (expand-include syntax #t))
+
   ;; FIXME:
   ;; case-lambda
-  ;; include
-  ;; include-ci
   ;; cond-expand
   
   )
 
 ;;; Utility functions
+
+(define (expand-include syntax ci?)    
+  (and-let*
+      ((form (unwrap-syntax syntax))
+       (syntax* (cdr form))
+       ((every (lambda (syntax)
+		 (or (string? (unwrap-syntax syntax))
+		     (raise-syntax-error syntax "not a string")))
+	       syntax*)))
+    (expand-into-sequence (generator->list (read-file* syntax* ci?)) syntax)))
 
 (define (unpack-formals formals-syntax success)
   (define variables (imap identifier-comparator))
