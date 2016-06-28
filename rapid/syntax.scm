@@ -83,21 +83,23 @@
     (derive-syntax datum syntax (if syntax (syntax-context syntax) #f)))
    ((datum syntax context)
     (let ((location (if syntax (syntax-source-location syntax) #f)))
-      (let loop ((datum datum))
-	(cond
-	 ;; XXX: Does not handle vectors or improper lists
-	 ((syntax? datum)
+      (if (syntax? datum)
 	  (make-syntax (unwrap-syntax datum)
 		       (syntax-source-location datum)
 		       context
-		       #f))
-	 ((list? datum)
-	  (make-syntax (map loop datum) location context #f))
-	 ((symbol? datum)
-	  (make-syntax (symbol->identifier datum) location context #f))
-	 (else
-	  (make-syntax datum location context #f))))))))
-
+		       #f)
+	  (let loop ((datum datum))
+	    (cond
+	     ((syntax? datum)
+	      datum)
+	     ((list? datum)
+	      ;; XXX: Does also change the syntax of 
+	      (make-syntax (map loop datum) location context #f))
+	     ((symbol? datum)
+	      (make-syntax (symbol->identifier datum) location context #f))
+	     (else
+	      (make-syntax datum location context #f)))))))))
+  
 ;; Syntax messages
 
 (define current-log-level (make-parameter 'warning))
@@ -195,12 +197,11 @@
 	   (display start-line (current-error-port))
 	   (write-string "." (current-error-port))
 	   (display start-column (current-error-port))
-	   (unless (and (= start-line end-line) (= start-column end-column))
-	     (write-string "-" (current-error-port))
-	     (unless (= start-line end-line)
-	       (display end-line (current-error-port))
-	       (write-string "." (current-error-port)))
-	     (display end-column (current-error-port)))
+	   (write-string "-" (current-error-port))
+	   (unless (= start-line end-line)
+	     (display end-line (current-error-port))
+	     (write-string "." (current-error-port)))
+	   (display end-column (current-error-port))
 	   (write-string ": " (current-error-port)))))
    (else
     (print-program-name))))
@@ -219,7 +220,7 @@
       ((and (syntax-exception? condition)
 	    (or (not (syntax-info? condition)) (eq? (current-log-level) 'info)))
        (print-exception condition)
-       (when (syntax-fatal-error? condition)
+       (when (or (syntax-fatal-error? condition) (>= (error-message-count) 10))
 	 (exit #f))
        #f)
       (else
@@ -231,8 +232,6 @@
   (with-exception-handler
    (lambda (condition)
      (cond
-      ((syntax-error? condition)
-       #f)
       ((syntax-fatal-error? condition)
        (print-exception condition)
        (exit #f))

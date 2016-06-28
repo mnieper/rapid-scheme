@@ -223,125 +223,6 @@
 (define-primitive %write-u8 'write-u8)
 (define-primitive zero? 'zero?)
 
-(define-primitive make-record-type 'make-record-type)
-(define-primitive make-type-predicate 'make-type-predicate)
-(define-primitive make-constructor 'make-constructor)
-(define-primitive make-getter 'make-getter)
-(define-primitive make-setter 'make-setter)
-
-;;; Record types
-
-(define-syntax define-record-type
-  (er-macro-transformer
-   (lambda (syntax rename compare)
-     (define _begin (rename 'begin))
-     (define _define (rename 'define))
-     (define _let (rename 'let))
-     (define _make-record-type (rename 'make-record-type))
-     (define _make-type-predicate (rename 'make-type-predicate))
-     (define _make-constructor (rename 'make-constructor))
-     (define _make-getter (rename 'make-getter))
-     (define _make-setter (rename 'make-setter))
-     (define identifier-comparator
-       (make-comparator identifier? compare #f #f))
-     (define field-name-set (make-table identifier-comparator))
-     (define field-indices (make-table identifier-comparator))
-     (define field-count 0)
-     (define (get-field-index field-name-syntax)
-       (table-ref field-indices (syntax-datum field-name-syntax)))
-     (define (assert-identifier syntax)
-       (or (identifier? (syntax-datum syntax))
-	   (compile-error "bad identifier" syntax)))
-     (define (assert-unique-field-name field-name-syntax)
-       (assert-identifier field-name-syntax)
-       (table-update!
-	field-name-set
-	(syntax-datum field-name-syntax)
-	(lambda (syntax) syntax)
-	(lambda () field-name-syntax)
-	(lambda (syntax)
-	  (compile-note "previous appearance was here" syntax)
-	  (compile-error "duplicate field name" field-name-syntax)))
-       #t)
-     (and-let*
-	 ((form (syntax-datum syntax))
-	  ((or (>= (length form) 4)
-	       (compile-error "bad define-record-type syntax" syntax)))
-	  (name-syntax (list-ref form 1))
-	  ((assert-identifier name-syntax))
-	  (constructor-syntax (list-ref form 2))
-	  (constructor (syntax-datum constructor-syntax))
-	  ((or (and (not (null? constructor)) (list? constructor))
-	       (compile-error "bad constructor" constructor-syntax)))
-	  ((every assert-identifier constructor))
-	  ((every assert-unique-field-name constructor))
-	  ((begin
-	     (set! field-name-set (make-table (make-eq-comparator)))
-	     #t))
-	  (constructor-name-syntax (car constructor))
-	  (field-name-syntax* (cdr constructor))
-	  (field-name* (map syntax-datum field-name-syntax*))
-	  (pred-syntax (list-ref form 3))
-	  ((assert-identifier pred-syntax))
-	  (field*
-	   (map-in-order
-	    (lambda (field-syntax)
-	      (and-let*
-		  ((field (syntax-datum field-syntax))
-		   ((or (and (list? field) (<= 2 (length field) 3))
-			(compile-error "bad field" syntax)))
-		   ((every assert-identifier field))
-		   ((assert-unique-field-name (car field))))
-		(table-set! field-indices (syntax-datum (car field)) field-count)
-		(set! field-count (+ field-count 1))
-		field))
-	    (list-tail form 4)))
-	  (_constructor (make-synthetic-identifier 'constructor))
-	  (_record (make-synthetic-identifier 'record))
-	  (_setter* (map-in-order
-		     (lambda (field-name-syntax)
-		       (unless
-			 (table-ref/default field-name-set (syntax-datum field-name-syntax) #f)
-			 (compile-error "not a field name" field-name-syntax))
-		       (make-synthetic-identifier 'setter))
-		     field-name-syntax*)))
-       `(,_begin
-	 ;; Type
-	 (,_define ,name-syntax (,_make-record-type ,(length field*)))
-	 ;; Predicate
-	 (,_define ,pred-syntax (,_make-type-predicate ,name-syntax))
-	 ;; Fields
-	 ,@(let loop ((field* field*))
-	     (if (null? field*)
-		 '()
-		 (let*
-		     ((field (car field*))
-		      (index (get-field-index (car field)))
-		      (definitions (loop (cdr field*)))
-		      (definitions
-			(if (= (length field) 3)
-			    (cons `(,_define ,(list-ref field 2)
-					     (,_make-setter ,name-syntax ,index))
-				  definitions)
-			    definitions)))
-		   (cons `(,_define ,(list-ref field 1)
-				    (,_make-getter ,name-syntax ,index))
-			 definitions))))
-	 ;; Constructor
-	 (,_define ,_constructor (,_make-constructor ,name-syntax))
-	 ,@(map (lambda (field-name-syntax _setter)
-		  `(,_define ,_setter
-			     (,_make-setter ,name-syntax
-					    ,(get-field-index field-name-syntax)))) 
-		field-name-syntax* _setter*)
-	 (,_define
-	  (,constructor-name-syntax ,@field-name-syntax*)
-	  (,_let ((,_record (,_constructor)))
-		 ,@(map (lambda (field-name-syntax _setter)
-			  `(,_setter ,_record ,field-name-syntax))
-			field-name-syntax* _setter*)
-		 ,_record)))))))
-       
 ;;; Procedures
 
 (define-syntax lambda
@@ -373,7 +254,7 @@
 
 (define-syntax =>
   (syntax-rules ()
-    ((else . _)
+    ((=> . _)
      (syntax-error "invalid use of auxiliary syntax ‘else’"))))
 
 (define-syntax cond
@@ -491,6 +372,7 @@
 
 ;;; Exception handling
 
+;; FIXME: Apply R7RS erratum 17.
 (define-syntax guard
   (syntax-rules ()
     ((guard (var clause ...) e1 e2 ...)

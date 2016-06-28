@@ -101,33 +101,48 @@
 
 ;; Variable bindings
 
-(define-record-type <location>
-  (make-location syntax)
+(define-record-type <denotation>
+  (make-denotation identity)
+  denotation?
+  (identity denotation-identity))
+
+(define-record-type (<location> <denotation>)
+  (%make-location syntax identity)
   location?
   (syntax location-syntax))
 
-(define-record-type <primitive>
-  (make-primitive value syntax)
+(define (make-location syntax)
+  (%make-location syntax (generate-identity)))
+
+(define-record-type (<primitive> <denotation>)
+  (%make-primitive value syntax identity)
   primitive?
   (value primitive-value)
   (syntax primitive-syntax))
 
-(define-record-type <transformer>
-  (make-transformer proc syntax)
+(define (make-primitive value syntax)
+  (%make-primitive value syntax (generate-identity)))
+
+(define-record-type (<transformer> <denotation>)
+  (%make-transformer proc syntax identity)
   transformer?
   (proc transformer-proc)
   (syntax transformer-syntax))
 
+(define (make-transformer proc syntax)
+  (%make-transformer proc syntax (generate-identity)))
+
+;; XXX
 ;; Instead of defining primitive values and transformers, we could simply give
 ;; them a name that distingishes these type.
 
 (define-record-type (<primitive-transformer> <transformer>)
-  (%make-primitive-transformer proc name syntax)
+  (%make-primitive-transformer proc name syntax identity)
   primitive-transformer?
   (name primitive-transformer-name))
 
 (define (make-primitive-transformer proc name)
-  (%make-primitive-transformer proc name #f))
+  (%make-primitive-transformer proc name #f (generate-identity)))
 
 (define (invalid-use-of-auxiliary-syntax name)
   (lambda (syntax)
@@ -135,7 +150,6 @@
 
 ;;; Syntactic environments
 
-;; bindings is a map identifier->syntactic-binding
 (define-record-type <syntactic-environment>
   (%make-syntactic-environment bindings used-identifiers)
   syntactic-environment?
@@ -165,7 +179,6 @@
 
 (define (make-syntactic-environment)
   (%make-syntactic-environment (imap identifier-comparator)
-			       ;; TODO: Use an iset when it is implemented.
 			       (imap identifier-comparator)))
 
 (define (export-syntactic-environment! environment exports)
@@ -227,9 +240,13 @@
    ((identifier-syntax denotation immutable?)
     (let ((identifier (unwrap-syntax identifier-syntax)))
       (cond
-       ((imap-ref/default (current-used-identifiers)
-			  (unwrap-syntax identifier-syntax)
-			  #f)
+       ((and-let*
+	    ((binding
+	      (imap-ref/default (current-used-identifiers)
+				(unwrap-syntax identifier-syntax)
+				#f))
+	     ((not (eq? (binding-denotation binding) denotation))))
+	  binding)
 	=> (lambda (binding)
 	     (raise-syntax-error identifier-syntax
 				 "meaning of identifier ‘~a’ cannot be changed"
@@ -253,10 +270,15 @@
     (insert-syntactic-binding! identifier-syntax denotation)))
 
 (define (identifier=? environment1 identifier1 environment2 identifier2)
-  (let ((denotation1
-	 (syntactic-environment-ref environment1 identifier1))
-	(denotation2
-	 (syntactic-environment-ref environment2 identifier2)))
+  (let*
+      ((binding1
+	(syntactic-environment-ref environment1 identifier1))
+       (binding2
+	(syntactic-environment-ref environment2 identifier2))
+       (denotation1
+	(and binding1 (binding-denotation binding1)))
+       (denotation2
+	(and binding2 (binding-denotation binding2))))
     (cond
      ((and denotation1 denotation2)
       (eq? denotation1 denotation2))
@@ -282,9 +304,23 @@
 		  environment identifier2))
   
   (define (free-identifier<? identifier1 identifier2)
-    (and (not (free-identifier=? identifier1 identifier2))
-	 (identifier<? identifier1 identifier2)))
-
+    (let*
+	((binding1
+	  (syntactic-environment-ref environment identifier1))
+	 (binding2
+	  (syntactic-environment-ref environment identifier2))
+	 (denotation1
+	  (and binding1 (binding-denotation binding1)))
+	 (denotation2
+	  (and binding2 (binding-denotation binding2))))
+      (cond
+       ((and denotation1 denotation2)
+	(< (denotation-identity denotation1)
+	   (denotation-identity denotation2)))
+       ((not denotation1))
+       (else
+	(identifier<? identifier1 identifier2)))))
+  
   (make-comparator identifier?
 		   free-identifier=?
 		   free-identifier<?

@@ -37,8 +37,9 @@
 					 "bad quote syntax")
 		     #f))))
       (expand-into-expression
-       ;; TODO: Rename the literal if the identifier is bound and a closure.
-       (make-literal (syntax->datum (list-ref form 1)) syntax))))
+       (delay
+	 ;; TODO: Rename the literal if the identifier is bound and a closure.
+	 (make-literal (syntax->datum (list-ref form 1)) syntax)))))
 
   ;; define-values syntax
   
@@ -191,7 +192,6 @@
       (raise-syntax-error syntax (get-output-string port))))
   
   ;; define-primitive syntax
-  
   (define-transformer (define-primitive syntax)
     (and-let*
 	((form (unwrap-syntax syntax))
@@ -235,10 +235,10 @@
 	 ((or (not (binding-immutable? syntactic-binding))
 	      (begin (raise-syntax-error identifier-syntax
 					 "identifier ‘~a’ is immutable"
-					 (unwrap-syntax identifier-syntax))
+					 (syntax->datum identifier-syntax))
 		     (raise-syntax-note (binding-syntax syntactic-binding)
 					"identifier ‘~a’ was bound here"
-					(unwrap-syntax identifier-syntax)))))
+					(syntax->datum identifier-syntax)))))
 	 (denotation (binding-denotation syntactic-binding))
 	 ((or (location? denotation)
 	      (begin (raise-syntax-error identifier-syntax
@@ -247,7 +247,8 @@
 					"identifier ‘~a’ was bound here"
 					(unwrap-syntax identifier-syntax))))))
       (expand-into-expression
-       (make-assignment denotation (expand-expression (list-ref form 2)) syntax))))
+       (delay
+	 (make-assignment denotation (expand-expression (list-ref form 2)) syntax)))))
 
   ;; if syntax
   (define-transformer (if syntax)
@@ -257,43 +258,45 @@
 	 ((or (or (= length 3) (= length 4))
 	      (raise-syntax-error syntax "bad if syntax")))
 	 (test-syntax (list-ref form 1))
-	 (consequent-syntax (list-ref form 2))
-	 (alternate-syntax (and (= length 4)
-				(list-ref form 3))))
-      (expand-into-expression
-       (make-conditional (expand-expression test-syntax)
-			 (expand-expression consequent-syntax)
-			 (if alternate-syntax
-			     (expand-expression alternate-syntax)
-			     (make-undefined #f))
-			 syntax))))
+	 (consequent-syntax (list-ref form 2)))
+      (let ((alternate-syntax (and (= length 4)
+				   (list-ref form 3))))
+	(expand-into-expression
+	 (delay
+	   (make-conditional (expand-expression test-syntax)
+			     (expand-expression consequent-syntax)
+			     (if alternate-syntax
+				 (expand-expression alternate-syntax)
+				 (make-undefined #f))
+			     syntax))))))
 
   ;; case-lambda syntax
   (define-transformer (case-lambda syntax)
     (and-let*
 	((form (unwrap-syntax syntax)))
       (expand-into-expression
-       (make-procedure
-	(let loop ((clause-syntax* (cdr form)))
-	  (if (null? clause-syntax*)
-	      '()
-	      (or (and-let*
-		      ((clause-syntax (car clause-syntax*))
-		       (clause (unwrap-syntax clause-syntax))
-		       ((or (and (not (null? clause)) (list? clause))
-			    (raise-syntax-error clause-syntax
-						"bad case-lambda clause"))))
-		    (with-scope
-		      (and-let*
-			  ((formals (expand-formals! (car clause))))
-			(cons
-			 (make-clause formals
-				      (list (expand-body (cdr clause)
-							 clause-syntax))
-				      clause-syntax)
-			 (loop (cdr clause-syntax*))))))
-		  (loop (cdr clause-syntax*)))))
-	syntax))))
+       (delay
+	 (make-procedure
+	  (let loop ((clause-syntax* (cdr form)))
+	    (if (null? clause-syntax*)
+		'()
+		(or (and-let*
+			((clause-syntax (car clause-syntax*))
+			 (clause (unwrap-syntax clause-syntax))
+			 ((or (and (not (null? clause)) (list? clause))
+			      (raise-syntax-error clause-syntax
+						  "bad case-lambda clause"))))
+		      (with-scope
+			(and-let*
+			    ((formals (expand-formals! (car clause))))
+			  (cons
+			   (make-clause formals
+					(list (expand-body (cdr clause)
+							   clause-syntax))
+					clause-syntax)
+			   (loop (cdr clause-syntax*))))))
+		    (loop (cdr clause-syntax*)))))
+	  syntax)))))
   
   ;; include syntax
   (define-transformer (include syntax)
@@ -302,6 +305,152 @@
   ;; include-ci syntax
   (define-transformer (include-ci syntax)
     (expand-include syntax #t))
+
+  ;; define-record-type syntax
+  (define-transformer (define-record-type syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 ((or (>= (length form) 4)
+	      (raise-syntax-error syntax "bad define-record-type syntax")))
+	 (rtd-syntax (list-ref form 1))
+	 ((identifier-syntax? rtd-syntax))
+	 (constructor-syntax (list-ref form 2))
+	 (constructor (unwrap-syntax constructor-syntax))
+	 ((or (and (not (null? constructor)) (list? constructor))
+	      (raise-syntax-error constructor-syntax "bad constructor spec")))
+	 ((every identifier-syntax? (cdr constructor)))
+	 (predicate-syntax (list-ref form 3))
+	 ((identifier-syntax? predicate-syntax))
+	 (field-syntax* (list-tail form 4))
+	 (field-table (imap identifier-comparator))
+	 (identifier-table (imap identifier-comparator))
+	 (index 0)
+	 ((every
+	   (lambda (field-syntax)
+	     (and-let*
+		 ((field (unwrap-syntax field-syntax))
+		  ((or (list? field)
+		       (raise-syntax-error field-syntax "bad field spec")))
+		  (length (length field))
+		  ((or (= length 2) (= length 3)
+		       (raise-syntax-error field-syntax "invalid field spec")))
+		  (field-name-syntax (list-ref field 0))
+		  ((identifier-syntax? field-name-syntax))
+		  (field-name (unwrap-syntax field-name-syntax))
+		  (accessor-syntax (list-ref field 1))
+		  ((identifier-syntax? accessor-syntax))
+		  (accessor (unwrap-syntax accessor-syntax))
+		  (mutator-syntax (if (= length 3) (list-ref field 2) #t))
+		  (mutator (if (not (eq? mutator-syntax #t)) (unwrap-syntax mutator-syntax) #t))
+		  ((or (eq? mutator-syntax #t)
+		       (identifier-syntax? mutator-syntax)))
+		  ((or (not (imap-ref/default field-table field-name #f))
+		       (begin (raise-syntax-error field-name-syntax
+						  "duplicate field name ‘~a’"
+						  (identifier->symbol field-name))
+			      (raise-syntax-note (vector-ref (imap-ref field-table field-name)
+							     0)
+						 "previous occurrence was here"))))
+		  ((or (not (imap-ref/default identifier-table accessor #f))
+		       (begin (raise-syntax-error accessor-syntax
+						  "duplicate identifier ‘~a’"
+						  (identifier->symbol accessor))
+			      (raise-syntax-note (imap-ref identifier-table accessor)
+						 "previous occurrence was here"))))
+		  ((or (eq? mutator #t)
+		       (not (imap-ref/default identifier-table accessor #f))
+		       (begin (raise-syntax-error mutator-syntax
+						  "duplicate identifier ‘~a’"
+						  (identifier->symbol mutator))
+			      (raise-syntax-note (imap-ref identifier-table mutator)
+						 "previous occurrence was here")))))
+	       (set! field-table
+		     (imap-replace field-table field-name (vector field-name-syntax index)))
+	       (set! index (+ 1 index))
+	       (set! identifier-table 
+		     (imap-replace identifier-table accessor accessor-syntax))
+	       (unless (eq? mutator #t)
+		 (set! identifier-table
+		       (imap-replace identifier-table mutator mutator-syntax)))
+	       #t))
+	   field-syntax*))
+	 (arg-table (imap identifier-comparator))
+	 ((every
+	   (lambda (identifier-syntax)
+	     (and-let*
+		 ((identifier (unwrap-syntax identifier-syntax))
+		  ((or (not (imap-ref/default arg-table identifier #f))
+		       (begin (raise-syntax-error identifier-syntax
+						  "duplicate field name ‘~a’ in constructor spec"
+						  (identifier->symbol identifier))
+			      (raise-syntax-note (vector-ref (imap-ref arg-table identifier) 0)
+						 "previous occurrence was here"))))
+		  (syntax+index (imap-ref/default field-table identifier #f)))
+	       (set! arg-table
+		     (imap-replace arg-table identifier (vector identifier-syntax
+								(vector-ref syntax+index 1))))
+	       #t))
+	   (cdr constructor))))
+      (receive (rtd-location* _)
+	  (expand-into-definition (list rtd-syntax) '() rtd-syntax
+				  (make-procedure-call (make-primitive-reference 'make-rtd
+										 rtd-syntax)
+						       (list)
+						       rtd-syntax)
+				  rtd-syntax)
+	(expand-into-definition (list (car constructor)) '() (car constructor)
+				(make-procedure-call (make-primitive-reference 'make-constructor
+									       (car constructor))
+						     (list (make-reference (car rtd-location*)
+									   constructor-syntax)
+							   (make-literal
+							    (list->vector
+							     (map
+							      (lambda (identifier-syntax)
+								(vector-ref
+								 (imap-ref field-table
+									   (unwrap-syntax
+									    identifier-syntax))
+								 1))
+							      (cdr constructor)))
+							    constructor-syntax))
+						     constructor-syntax)
+				constructor-syntax)
+	(expand-into-definition (list predicate-syntax) '() predicate-syntax
+				(make-procedure-call (make-primitive-reference 'make-predicate
+									       predicate-syntax)
+						     (list (make-reference (car rtd-location*)
+									   predicate-syntax))
+						     predicate-syntax)
+				predicate-syntax)
+	(for-each
+	 (lambda (field-syntax)
+	   (let*
+	       ((field (unwrap-syntax field-syntax))
+		(index (vector-ref (imap-ref field-table (unwrap-syntax (list-ref field 0)))
+				   1)))
+	     (expand-into-definition
+	      (list (list-ref field 1)) '() (list-ref field 1)
+	      (make-procedure-call (make-primitive-reference 'make-accessor
+							     (list-ref field 1))
+				   (list (make-reference (car rtd-location*)
+							 (list-ref field 1))
+					 (make-literal index
+						       (list-ref field 1)))
+				   (list-ref field 1))
+	      (list-ref field 1))
+	     (unless (null? (cddr field))
+	       (expand-into-definition
+		(list (list-ref field 2)) '() (list-ref field 2)
+		(make-procedure-call (make-primitive-reference 'make-mutator
+							       (list-ref field 1))
+				     (list (make-reference (car rtd-location*)
+							   (list-ref field 2))
+					   (make-literal index
+							 (list-ref field 2)))
+				     (list-ref field 2))		      
+		(list-ref field 2)))))
+	 field-syntax*))))
   
   ;; FIXME:
   ;; cond-expand
@@ -374,7 +523,7 @@
 	   (loop (cdr formals)))
 	  (else
 	   (if (unique-variable? formals)
-	       (success (list-queue-list fixed) formals)
+	       (success (list-queue-list fixed) (list formals))
 	       (success (list-queue-list fixed) '()))))))))
 
 (define (identifier-syntax? syntax)

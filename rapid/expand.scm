@@ -44,15 +44,7 @@
 	     (syntactic-environment-ref (current-syntactic-environment)
 					(unwrap-syntax identifier-syntax))))))
     (cond
-     ((and previous-binding (not (top-level-context?)))
-	(raise-syntax-error identifier-syntax
-			    "cannot redefine identifier ‘~a’"
-			    (syntax->datum identifier-syntax))
-	(raise-syntax-note (binding-syntax previous-binding)
-				"identifier ‘~a’ was defined here"
-				(syntax->datum identifier-syntax))
-	(abort #f))
-     ((and previous-binding (location? (binding-denotation previous-binding)))
+     ((and previous-binding (top-level-context?) (location? (binding-denotation previous-binding)))
       (values (make-location identifier-syntax) previous-binding))
      (else
       (let ((location (make-location identifier-syntax)))
@@ -91,7 +83,7 @@
        (make-variables (definition-formals definition)
 		       (if (syntax? expression)
 			   (expand-expression expression)
-			   expression)
+			   (force expression))
 		       (definition-syntax definition))))
    (current-definitions))
   (current-definitions))
@@ -105,7 +97,7 @@
 	(lambda (expression)
 	  (unless (current-expressions)
 	    (current-expressions (list-queue)))	  
-	  (list-queue-add-back! (current-expressions) expression))))
+	  (list-queue-add-back! (current-expressions) (force expression)))))
     (for-each expand-syntax! syntax*)
     (unless (current-expressions)
       (raise-syntax-error syntax "no expression in body"))
@@ -121,7 +113,9 @@
   (call-with-current-continuation
    (lambda (return)
      (parameterize ((current-context 'expression)
-		    (expand-into-expression-hook return))
+		    (expand-into-expression-hook
+		     (lambda (expression)
+		       (return (force expression)))))
        (expand-syntax! syntax)))))
 
 (define (expand-expression* syntax*)
@@ -195,19 +189,21 @@
 	   (map car fixed-location+binding*))
 	  (rest*-location
 	   (map car rest*-location+binding*)))
-       (and (add-definition! (make-formals fixed-locations rest*-location formals-syntax)
-			     expression-syntax
-			     syntax)
-	    (for-each (lambda (location+binding)
-			(let ((location (car location+binding))
-			      (binding (cadr location+binding)))
-			  (when binding
-			    (add-definition! (make-dummy-formals)
-					     (make-assignment (binding-denotation binding)
-							      (make-reference location #f)
-							      #f)
-					     #f))))
-		      (append rest*-location+binding* fixed-location+binding*)))))))
+       (and-let*
+	   (((add-definition! (make-formals fixed-locations rest*-location formals-syntax)
+			      expression-syntax
+			      syntax)))
+	 (for-each (lambda (location+binding)
+		     (let ((location (car location+binding))
+			   (binding (cadr location+binding)))
+		       (when binding
+			 (add-definition! (make-dummy-formals)
+					  (make-assignment (binding-denotation binding)
+							   (make-reference location syntax)
+							   syntax)
+					  syntax))))
+		   (append rest*-location+binding* fixed-location+binding*))
+	 (values fixed-locations rest*-location))))))
 
 (define (expand-into-sequence syntax* syntax)
   (if (expression-context?)
@@ -224,7 +220,7 @@
 	 (lambda (abort)
 	   (cond
 	    ((simple-datum? form)
-	     (expand-into-expression (make-literal form syntax)))
+	     (expand-into-expression (delay (make-literal form syntax))))
 	    ((null? form)
 	     (raise-syntax-error syntax "empty application in source"))
 	    ((identifier? form)
@@ -233,8 +229,8 @@
 	       => (lambda (denotation)
 		    (cond
 		     ((primitive? denotation)
-		      (expand-into-expression (make-primitive-reference denotation
-									syntax)))
+		      (expand-into-expression (delay (make-primitive-reference denotation
+									       syntax))))
 		     ((transformer? denotation)
 		      (raise-syntax-error syntax
 					  "invalid use of syntax ‘~a’ as value"
@@ -243,8 +239,8 @@
 					 "identifier ‘~a’ was bound here"
 					 (identifier->symbol form)))
 		     ((location? denotation)
-		      (expand-into-expression (make-reference denotation
-							      syntax)))
+		      (expand-into-expression (delay (make-reference denotation
+								     syntax))))
 		     (else
 		      (error "invalid denotation" denotation)))))
 	      (else
@@ -255,11 +251,12 @@
 	       => (lambda (transformer)
 		    ((transformer-proc transformer) syntax)))
 	      (else
-	       (let ((operator (expand-expression (car form))))
-		 (expand-into-expression
-		  (make-procedure-call operator
-				       (expand-expression* (cdr form))
-				       syntax))))))
+	       (expand-into-expression
+		(delay
+		  (let ((operator (expand-expression (car form))))
+		    (make-procedure-call operator
+					 (expand-expression* (cdr form))
+					 syntax)))))))
 	    (else
 	     (raise-syntax-error syntax "invalid form")))))))))
 

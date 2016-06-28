@@ -32,7 +32,7 @@ check: tests
 	$(SCHEME) tests.scm
 
 tests: rapid-compiler $(TESTS)
-	@! ./rapid-compiler -d data/macros.scm 2>&1 | grep -e error -e note -e info
+	@! ./rapid-compiler -d -Idata data/macros.scm 2>&1 | grep -e error -e note -e info
 
 clean:
 	rm -rf rapid-compiler

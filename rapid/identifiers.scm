@@ -17,6 +17,11 @@
 
 (define current-identity-counter (make-parameter 0))
 
+(define (generate-identity)
+  (let ((identity (current-identity-counter)))
+    (current-identity-counter (+ 1 identity))
+    identity))
+
 (define-record-type <identifier>
   (make-identifier symbol closure identity hash)
   identifier?
@@ -30,8 +35,7 @@
    ((symbol)
     (make-synthetic-identifier symbol '()))
    ((symbol closure)
-    (let ((identity (current-identity-counter)))
-      (current-identity-counter (+ identity 1))
+    (let ((identity (generate-identity)))
       (make-identifier symbol closure identity identity)))))
 
 (define (symbol->identifier symbol)

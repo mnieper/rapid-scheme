@@ -1,4 +1,29 @@
-(import (rapid primitive))
+(import (lib)
+        (rapid primitive))
+
+(define-record-type <comparator>
+  (%make-comparator type-test equality ordering hash)
+  comparator?
+  (type-test comparator-type-test-predicate)
+  (equality comparator-equality-predicate)
+  (ordering comparator-ordering-predicate)
+  (hash comparator-hash-function))
+
+%make-comparator
+
+
+(define-syntax quux
+  (syntax-rules (=> if)
+    ((quux =>)
+     1)
+    ((quux . _)
+     (syntax-error ":-("))))
+
+(quux =>)
+
+(case-lambda
+ (()
+  (if #f #f)))
 
 (define-syntax foo
   (syntax-rules ()
@@ -7,7 +32,9 @@
 (foo a)
 
 (case-lambda
- (() 1))
+ (a
+  (define-values (if) 1)
+  if))
 
 (include "bar.scm")
 

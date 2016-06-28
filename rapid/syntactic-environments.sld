@@ -34,6 +34,7 @@
 	  insert-syntactic-binding!
 	  syntactic-environment-ref
 	  binding-denotation binding-syntax binding-immutable?
+	  denotation-identity
 	  lookup-denotation!
 	  lookup-syntactic-binding!
 	  lookup-syntax!

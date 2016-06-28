@@ -87,8 +87,8 @@
 			((datum (unwrap-syntax syntax))
 			 ((identifier? datum))
 			 ((compare (unwrap-syntax syntax)
-				   (rename (unwrap-syntax pattern-syntax)))
-			 #()))))))
+				   (rename (unwrap-syntax pattern-syntax)))))
+		      #()))))
 	 ;; _ identifier
 	 ((underscore? pattern)
 	  (values (make-pattern-variable-map)
@@ -100,7 +100,7 @@
 				pattern
 				(make-pattern-variable 0 0 pattern-syntax))
 		  (lambda (syntax)
-		    (vector (unwrap-syntax syntax)))))))
+		    (vector syntax))))))
        ;; Vector
        ((vector? pattern)
 	(receive (variables-map matcher)
@@ -266,7 +266,8 @@
 				    (let ((tail (append tail right)))
 				      (append head (list (if (syntax? tail)
 							     tail
-							     (derive-syntax tail syntax)))))))
+							     (derive-syntax tail
+									    syntax)))))))
 			      left)))
 	   (match (make-vector variable-count))
 	   ((every (lambda (submatcher)
@@ -368,7 +369,6 @@
 	      pattern-variables)))))
 
   (define (compile-subtemplate template-syntax variable-map depth)
-    ;; FIXME: We don't get the contexts right in all cases. Do some experiments.
     (let ((template (unwrap-syntax template-syntax)))
       (cond
        ((identifier? template)
@@ -382,11 +382,13 @@
 		 (if (zero? variable-depth)
 		     (values #()
 			     (lambda (match pattern-variables)
-			       (derive-syntax (vector-ref
-					       pattern-variables
-					       (pattern-variable-index variable))
-					      template-syntax
-					      (current-context))))
+			       (let ((variable-syntax
+				      (vector-ref pattern-variables
+						  (pattern-variable-index
+						   variable))))
+				 (derive-syntax (unwrap-syntax variable-syntax)
+						template-syntax
+						variable-syntax))))
 		     (cond
 		      ((> variable-depth depth)
 		       (raise-syntax-error template-syntax
@@ -398,13 +400,15 @@
 		      (else
 		       (values (vector (pattern-variable-index variable))
 			       (lambda (match pattern-variables)
-				 (derive-syntax (vector-ref match 0)
+				 (derive-syntax (unwrap-syntax (vector-ref match 0))
 						template-syntax
-						(current-context))))))))))
+						(vector-ref match 0))))))))))
 	 (else
 	  (values #()
 		  (lambda (match pattern-variables)
-		    (derive-syntax (rename template) template-syntax (current-context)))))))
+		    (derive-syntax (rename template)
+				   template-syntax
+				   (current-context)))))))
        ((circular-list? template)
 	(raise-syntax-error "circular template in source" template-syntax)
 	(values #f #f))
@@ -422,7 +426,8 @@
 	    (compile-list-template template-syntax variable-map depth)))
        ((vector? template)
 	(receive (slots transcriber)
-	    (compile-list-template (derive-syntax (vector->list template) template-syntax)
+	    (compile-list-template (derive-syntax (vector->list template)
+						  template-syntax)
 				   variable-map
 				   depth)
 	  (if transcriber
@@ -534,7 +539,7 @@
 			 (list-queue-front output-rest))))))
 	  (receive (first last)
 	      (list-queue-first-last output)
-	    (if (null? last)
+	    (if (null? first)
 		(set! first tail-syntax)
 		(set-cdr! last tail-syntax))
 	    (derive-syntax first template-syntax (current-context))))))
