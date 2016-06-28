@@ -6,6 +6,9 @@
 
 (foo a)
 
+(case-lambda
+ (() 1))
+
 (include "bar.scm")
 
 (bar 1 2 3 4)

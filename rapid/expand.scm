@@ -32,16 +32,34 @@
 (define current-definitions (make-parameter #f))
 
 (define (add-definition! formals expression syntax)
-  (when expression
-    (list-queue-add-back! (current-definitions)
-			  (make-definition formals expression syntax))))
+  (and expression
+       (begin (list-queue-add-back! (current-definitions)
+				    (make-definition formals expression syntax))
+	      #t)))
 
-(define (create-location identifier-syntax)
-  (and-let*
-      ((location (make-location identifier-syntax))
-       ((insert-syntactic-binding! identifier-syntax location)))
-    location))
-	       
+(define (create-location identifier-syntax abort)
+  (let ((previous-binding
+	 (maybe-isolate #t
+	   (lambda ()
+	     (syntactic-environment-ref (current-syntactic-environment)
+					(unwrap-syntax identifier-syntax))))))
+    (cond
+     ((and previous-binding (not (top-level-context?)))
+	(raise-syntax-error identifier-syntax
+			    "cannot redefine identifier ‘~a’"
+			    (syntax->datum identifier-syntax))
+	(raise-syntax-note (binding-syntax previous-binding)
+				"identifier ‘~a’ was defined here"
+				(syntax->datum identifier-syntax))
+	(abort #f))
+     ((and previous-binding (location? (binding-denotation previous-binding)))
+      (values (make-location identifier-syntax) previous-binding))
+     (else
+      (let ((location (make-location identifier-syntax)))
+	(and (or (insert-syntactic-binding! identifier-syntax location)
+		 (abort #f))
+	     (values location #f)))))))
+
 (define current-expressions (make-parameter #f))
 
 (define expand-into-expression-hook (make-parameter #f))
@@ -85,9 +103,9 @@
        (current-expressions #f)
        (expand-into-expression-hook
 	(lambda (expression)
-	  (list-queue-add-back! (or (current-expressions)
-				    (list-queue))
-				expression))))
+	  (unless (current-expressions)
+	    (current-expressions (list-queue)))	  
+	  (list-queue-add-back! (current-expressions) expression))))
     (for-each expand-syntax! syntax*)
     (unless (current-expressions)
       (raise-syntax-error syntax "no expression in body"))
@@ -135,26 +153,61 @@
 				       "syntax definition of ‘~a’ may not follow "
 				       "expressions in a body"
 				       (syntax->datum identifier-syntax))))))
-    (insert-syntactic-binding! identifier-syntax transformer)))
+    (let ((previous-binding
+	   (maybe-isolate #t
+	     (lambda ()
+	       (syntactic-environment-ref (current-syntactic-environment)
+					  (unwrap-syntax identifier-syntax))))))
+      (cond
+       ((and previous-binding (not (top-level-context?)))
+	(raise-syntax-error identifier-syntax
+			    "cannot redefine identifier ‘~a’"
+			    (syntax->datum identifier-syntax))
+	(raise-syntax-note (binding-syntax previous-binding)
+				"identifier ‘~a’ was defined here"
+				(syntax->datum identifier-syntax)))
+       (else
+	(insert-syntactic-binding! identifier-syntax transformer))))))
 
-;; FIXME: Define as set! currently not implemented in top-level.
-(define (expand-into-definition fixed rest formals-syntax expression-syntax syntax)
-  (and-let*
-      (((or (not (expression-context?))
-	    (begin (raise-syntax-error syntax "unexpected definition")
-		   #f)))
-       ((or (not (current-expressions))
-	    (begin (raise-syntax-error syntax
-				       "definitions may not follow expressions "
-				       "in a body")
-		   #f)))
-       (fixed-locations
-	(map-in-order create-location fixed))
-       (rest-location
-	(map create-location rest)))
-    (add-definition! (make-formals fixed-locations rest-location formals-syntax)
-		     expression-syntax
-		     syntax)))
+(define (expand-into-definition fixed rest* formals-syntax expression-syntax syntax)
+  (call-with-current-continuation
+   (lambda (abort)
+     (and-let*
+	 (((or (not (expression-context?))
+	       (begin (raise-syntax-error syntax "unexpected definition")
+		      #f)))
+	  ((or (not (current-expressions))
+	       (raise-syntax-error syntax
+				   "definitions may not follow expressions in a body")))
+	  (fixed-location+binding*
+	   (map-in-order (lambda (identifier-syntax)
+			   (call-with-values
+			       (lambda () (create-location identifier-syntax abort))
+			     list))
+			 fixed))
+	  (rest*-location+binding*
+	   (map (lambda (identifier-syntax)
+		  (call-with-values
+		      (lambda () (create-location identifier-syntax abort))
+		    list))
+		rest*))
+	  (fixed-locations
+	   (map car fixed-location+binding*))
+	  (rest*-location
+	   (map car rest*-location+binding*)))
+       (and (add-definition! (make-formals fixed-locations rest*-location formals-syntax)
+			     expression-syntax
+			     syntax)
+	    (for-each (lambda (location+binding)
+			(let ((location (car location+binding))
+			      (binding (cadr location+binding)))
+			  (when binding
+			    (add-definition! (make-dummy-formals)
+					     (make-assignment (binding-denotation binding)
+							      (make-reference location #f)
+							      #f)
+					     #f))))
+		      (append rest*-location+binding* fixed-location+binding*)))))))
 
 (define (expand-into-sequence syntax* syntax)
   (if (expression-context?)
