@@ -33,5 +33,6 @@
 	  (rapid syntactic-environments)
 	  (rapid libraries)
 	  (rapid expand)
-	  (rapid macro-transformers))
+	  (rapid macro-transformers)
+	  (rapid features))
   (include "primitive-environment.scm"))

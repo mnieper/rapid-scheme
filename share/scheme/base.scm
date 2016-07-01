@@ -89,7 +89,6 @@
 (define-primitive exact-integer? 'exact-integer?)
 (define-primitive exact? 'exact?)
 (define-primitive expt 'expt)
-(define-primitive features 'features)
 (define-primitive file-error? 'file-error?)
 (define-primitive floor 'floor)
 (define-primitive floor-quotient 'floor-quotient)
@@ -433,7 +432,6 @@
 
 ;;; Binding constructs
 
-
 (define-syntax let
   (syntax-rules ()
     ((let ((name val) ...) body1 body2 ...)
@@ -713,3 +711,8 @@
   (case-lambda
    (() (%flush-output-port (current-output-port)))
    ((port) (%flush-output-port port))))
+
+;;; Features
+
+(define (features)
+  (rapid-features))

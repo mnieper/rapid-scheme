@@ -20,15 +20,12 @@
 (define-syntactic-environment primitive-environment
 
   ;; ... syntax
-  
   (define-auxiliary-syntax ...)
 
   ;; _ syntax
-  
   (define-auxiliary-syntax _)
 
   ;; quote syntax
-  
   (define-transformer (quote syntax)
     (and-let*
 	((form (unwrap-syntax syntax))
@@ -42,7 +39,6 @@
 	 (make-literal (syntax->datum (list-ref form 1)) syntax)))))
 
   ;; define-values syntax
-  
   (define-transformer (define-values syntax)
     (and-let*
 	((form (unwrap-syntax syntax))
@@ -59,7 +55,6 @@
 						syntax)))))
 
   ;; define-syntax syntax
-
   (define-transformer (define-syntax syntax)
     (and-let*
 	((form (unwrap-syntax syntax))
@@ -80,7 +75,6 @@
        syntax)))
 
   ;; syntax-rules syntax
-
   (define-transformer (syntax-rules syntax)
     (and-let*
 	((transformer
@@ -456,10 +450,18 @@
 				       (list-ref field 2)))
 		(list-ref field 2)))))
 	 field-syntax*))))
+
+  (define-transformer (rapid-features syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 ((or (= (length form) 1)
+	      (raise-syntax-error syntax "bad features syntax"))))
+      (expand-into-expression
+       (delay
+	 (make-literal features syntax)))))
   
   ;; FIXME:
   ;; cond-expand
-  ;; features
   
   )
 
