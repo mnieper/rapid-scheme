@@ -37,7 +37,7 @@ rapid-compiler: rapid-compiler.scm
 	cat $< >> $@
 	chmod a+x $@
 
-check: tests
+check:
 	$(SCHEME) tests.scm
 
 tests: rapid-compiler $(TESTS)

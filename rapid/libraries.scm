@@ -86,26 +86,39 @@
 				 (library-declaration! library syntax))
 			       (read-file* (cdr declaration) #f)))
 	  ((cond-expand)
-	   (do ((clause-syntax* (cdr declaration) (cdr clause-syntax*)))
-	       ((null? clause-syntax*))
-	     (let* ((clause-syntax (car clause-syntax*))
-		    (clause (unwrap-syntax clause-syntax)))
-	       (cond
-		((or (null? clause) (not (list? clause)))
-		 (raise-syntax-error clause-syntax "bad cond-expand clause"))
-		((eq? (syntax->datum (car clause)) 'else)
-		 (if (null? (cdr clause-syntax*))
-		     (for-each (lambda (syntax)
-				 (library-declaration! library syntax))
-			       (cdr clause))
-		     (raise-syntax-error clause-syntax "else clause not last")))
-		((feature? (car clause))
-		 (for-each (lambda (syntax)
-			     (library-declaration! library syntax))
-			   (cdr clause)))))))
+	   (for-each (lambda (syntax)
+		       (library-declaration! library syntax))
+		     (or (expand-cond-expand syntax) '())))
 	  (else
 	   (raise-syntax-error (car declaration)
 			       "invalid library declaration"))))))
+
+(define (expand-cond-expand syntax)
+  (let*
+      ((form (unwrap-syntax syntax))
+       (expanded-clause*
+	(let loop ((clause-syntax* (cdr form)))
+	  (if (null? clause-syntax*)
+	      '()
+	      (let ((expanded-clause
+		     (and-let*
+			 ((clause-syntax (car clause-syntax*))
+			  (clause (unwrap-syntax clause-syntax))
+			  ((or (and (not (null? clause)) (list? clause))
+			       (raise-syntax-error clause-syntax
+						   "bad cond-expand clause"))))
+		       (if (eq? (syntax->datum (car clause)) 'else)
+			   (if (null? (cdr clause-syntax*))
+			       (cdr clause)
+			       (raise-syntax-error clause-syntax
+						   "else clause not last"))
+			   (and (feature? (car clause))
+				(cdr clause))))))
+		(cons expanded-clause (loop (cdr clause-syntax*))))))))
+    (let loop ((expanded-clause* expanded-clause*))
+      (and (not (null? expanded-clause*))
+	   (let ((expanded-clause (car expanded-clause*)))
+	     (or expanded-clause (loop (cdr expanded-clause*))))))))
 
 (define (feature? syntax)
   (let ((datum (unwrap-syntax syntax)))

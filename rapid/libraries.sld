@@ -19,6 +19,7 @@
   (export read-library
 	  read-program
 	  read-file*
+	  expand-cond-expand
 	  import-sets->library
 	  library?
 	  library-exports

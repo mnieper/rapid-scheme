@@ -459,11 +459,12 @@
       (expand-into-expression
        (delay
 	 (make-literal features syntax)))))
-  
-  ;; FIXME:
-  ;; cond-expand
-  
-  )
+
+  (define-transformer (cond-expand syntax)
+    (and-let*
+	((expanded-clause (expand-cond-expand syntax))
+	 ((not (null? expanded-clause))))
+      (expand-into-sequence expanded-clause syntax))))
 
 ;;; Utility functions
 

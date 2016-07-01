@@ -65,7 +65,6 @@
 (define-primitive close-output-port 'close-output-port)
 (define-primitive close-port 'close-port)
 (define-primitive complex? 'complex?)
-(define-primitive cond-expand 'cond-expand) ; FIXME
 (define-primitive cons 'cons)
 (define-primitive %current-error-port 'current-error-port)
 (define-primitive %current-input-port 'current-input-port)
