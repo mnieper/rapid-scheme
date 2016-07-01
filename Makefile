@@ -41,7 +41,7 @@ check: tests
 	$(SCHEME) tests.scm
 
 tests: rapid-compiler $(TESTS)
-	@! ./rapid-compiler -d -Idata data/macros.scm 2>&1 | grep -e error -e note -e info
+	@! $(SCHEME) rapid-compiler.scm -- -d -Idata data/macros.scm 2>&1 | grep -e "error:" -e note -e info
 
 clean:
 	rm -rf rapid-compiler $(SCRIPTS)
