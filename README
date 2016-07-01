@@ -1,5 +1,6 @@
 This is intended to become a complete implementation of the Scheme programming
 language described by R7RS. The implementation is itself written in R7RS.
 
-Type ‘make check’ to run the tests. (You will need to have ‘chibi-scheme’ in
-your path.)
+Type ‘make check’ to run the tests. (You will need a recent
+development version of Larceny in your path or you will have to patch
+the Makefile.)

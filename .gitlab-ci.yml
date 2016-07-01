@@ -1,9 +1,5 @@
 image: registry.gitlab.com/nieper/rapid-scheme:larceny
 
-before_script:
-  - git clone https://github.com/ashinn/chibi-scheme
-  - cd chibi-scheme && make && make install && cd ..
-
 check:
   script:
     - make check
