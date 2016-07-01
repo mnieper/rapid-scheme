@@ -19,12 +19,21 @@
 
 .SILENT: check
 
-SCHEME = chibi-scheme -h150M $(SCHEME_FLAGS)
+SCHEME = larceny -path . -r7rs $(SCHEME_FLAGS) -program
+
+SCRIPTS = compile-stale.scm
 
 all: rapid-compiler
 
+compile: compile-stale.scm
+	cd rapid && larceny -path .. -r7rs -program ../compile-stale.scm
+
+compile-stale.scm: Makefile
+	echo "(import (larceny compiler))" > $@
+	echo "(compile-stale-libraries)" >> $@
+
 rapid-compiler: rapid-compiler.scm
-	echo "#! /usr/bin/env chibi-scheme" > $@
+	echo "#! /usr/bin/env scheme-script" > $@
 	cat $< >> $@
 	chmod a+x $@
 
@@ -35,4 +44,4 @@ tests: rapid-compiler $(TESTS)
 	@! ./rapid-compiler -d -Idata data/macros.scm 2>&1 | grep -e error -e note -e info
 
 clean:
-	rm -rf rapid-compiler
+	rm -rf rapid-compiler $(SCRIPTS)

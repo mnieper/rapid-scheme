@@ -1,5 +1,5 @@
 (define-library (lib)
-  (export => foo define)
+  (export => define)
   (import (rapid primitive))
   (begin
     (define-syntax =>
@@ -11,11 +11,5 @@
       (syntax-rules ()
 	((define f e ...)
 	 (begin
-	   (define-values (f) e ...)))))
-
-    
-    (define-syntax foo
-      (syntax-rules ()
-	((foo a x)
-	 (define a (case-lambda (() x))))))))
+	   (define-values (f) e ...)))))))
     

@@ -26,7 +26,8 @@
 						   (lambda (value)
 						     (box (converter value))))))
       (case-lambda
-       (() (unbox (scheme-parameter)))
+       (()
+	(unbox (scheme-parameter)))
        ((value)
 	(if (eq? value <param>)
 	    scheme-parameter	

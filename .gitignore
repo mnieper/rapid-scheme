@@ -1,2 +1,4 @@
+/compile-stale.scm
 /rapid-compiler
+*.slfasl
 

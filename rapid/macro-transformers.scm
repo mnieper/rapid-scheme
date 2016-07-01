@@ -19,7 +19,7 @@
 
 (define current-rename (make-parameter #f))
 (define current-compare (make-parameter #f))
-(define (rename identifier)
+(define (%rename identifier)
   ((current-rename) identifier))
 (define (compare identifier1 identifier2)
   ((current-compare) identifier1 identifier2))
@@ -87,7 +87,7 @@
 			((datum (unwrap-syntax syntax))
 			 ((identifier? datum))
 			 ((compare (unwrap-syntax syntax)
-				   (rename (unwrap-syntax pattern-syntax)))))
+				   (%rename (unwrap-syntax pattern-syntax)))))
 		      #()))))
 	 ;; _ identifier
 	 ((underscore? pattern)
@@ -406,7 +406,7 @@
 	 (else
 	  (values #()
 		  (lambda (match pattern-variables)
-		    (derive-syntax (rename template)
+		    (derive-syntax (%rename template)
 				   template-syntax
 				   (current-context)))))))
        ((circular-list? template)

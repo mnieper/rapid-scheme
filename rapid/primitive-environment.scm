@@ -393,35 +393,38 @@
 	   (cdr constructor))))
       (receive (rtd-location* _)
 	  (expand-into-definition (list rtd-syntax) '() rtd-syntax
-				  (make-procedure-call (make-primitive-reference 'make-rtd
-										 rtd-syntax)
-						       (list)
-						       rtd-syntax)
+				  (delay
+				    (make-procedure-call (make-primitive-reference 'make-rtd
+										   rtd-syntax)
+							 (list)
+							 rtd-syntax))
 				  rtd-syntax)
 	(expand-into-definition (list (car constructor)) '() (car constructor)
-				(make-procedure-call (make-primitive-reference 'make-constructor
-									       (car constructor))
-						     (list (make-reference (car rtd-location*)
-									   constructor-syntax)
-							   (make-literal
-							    (list->vector
-							     (map
-							      (lambda (identifier-syntax)
-								(vector-ref
-								 (imap-ref field-table
-									   (unwrap-syntax
-									    identifier-syntax))
-								 1))
-							      (cdr constructor)))
-							    constructor-syntax))
-						     constructor-syntax)
+				(delay
+				  (make-procedure-call (make-primitive-reference 'make-constructor
+										 (car constructor))
+						       (list (make-reference (car rtd-location*)
+									     constructor-syntax)
+							     (make-literal
+							      (list->vector
+							       (map
+								(lambda (identifier-syntax)
+								  (vector-ref
+								   (imap-ref field-table
+									     (unwrap-syntax
+									      identifier-syntax))
+								   1))
+								(cdr constructor)))
+							      constructor-syntax))
+						       constructor-syntax))
 				constructor-syntax)
 	(expand-into-definition (list predicate-syntax) '() predicate-syntax
-				(make-procedure-call (make-primitive-reference 'make-predicate
-									       predicate-syntax)
-						     (list (make-reference (car rtd-location*)
-									   predicate-syntax))
-						     predicate-syntax)
+				(delay
+				  (make-procedure-call (make-primitive-reference 'make-predicate
+										 predicate-syntax)
+						       (list (make-reference (car rtd-location*)
+									     predicate-syntax))
+						       predicate-syntax))
 				predicate-syntax)
 	(for-each
 	 (lambda (field-syntax)
@@ -431,24 +434,26 @@
 				   1)))
 	     (expand-into-definition
 	      (list (list-ref field 1)) '() (list-ref field 1)
-	      (make-procedure-call (make-primitive-reference 'make-accessor
-							     (list-ref field 1))
-				   (list (make-reference (car rtd-location*)
-							 (list-ref field 1))
-					 (make-literal index
-						       (list-ref field 1)))
-				   (list-ref field 1))
+	      (delay
+		(make-procedure-call (make-primitive-reference 'make-accessor
+							       (list-ref field 1))
+				     (list (make-reference (car rtd-location*)
+							   (list-ref field 1))
+					   (make-literal index
+							 (list-ref field 1)))
+				     (list-ref field 1)))
 	      (list-ref field 1))
 	     (unless (null? (cddr field))
 	       (expand-into-definition
 		(list (list-ref field 2)) '() (list-ref field 2)
-		(make-procedure-call (make-primitive-reference 'make-mutator
-							       (list-ref field 1))
-				     (list (make-reference (car rtd-location*)
-							   (list-ref field 2))
-					   (make-literal index
-							 (list-ref field 2)))
-				     (list-ref field 2))		      
+		(delay
+		  (make-procedure-call (make-primitive-reference 'make-mutator
+								 (list-ref field 1))
+				       (list (make-reference (car rtd-location*)
+							     (list-ref field 2))
+					     (make-literal index
+							   (list-ref field 2)))
+				       (list-ref field 2)))
 		(list-ref field 2)))))
 	 field-syntax*))))
   
