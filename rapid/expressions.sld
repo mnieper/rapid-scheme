@@ -33,7 +33,9 @@
 	  make-variables variables? variables-formals variables-expression
 	  variables-syntax
 	  make-formals formals? formals-fixed formals-rest formals-syntax
-	  make-clause clause? clause-formals clause-body clause-syntax)
+	  make-clause clause? clause-formals clause-body clause-syntax
+	  expression->datum)
   (import (scheme case-lambda)
-	  (rapid base))
+	  (rapid base)
+	  (rapid syntactic-environments))
   (include "expressions.scm"))  

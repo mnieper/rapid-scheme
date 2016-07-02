@@ -137,6 +137,8 @@
 
   (with-import-sets (library-import-sets library)
     (expand-top-level! (library-body library))
+    ;; FIXME: return letrec*-form with values as body; and adapt
+    ;; syntactic environment to position...
     environment))
 
 ;; Local Variables:
