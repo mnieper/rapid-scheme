@@ -107,9 +107,9 @@
   (identity denotation-identity))
 
 (define-record-type (<location> <denotation>)
-  (%make-location syntax identity)
+  (%make-location location-syntax identity)
   location?
-  (syntax location-syntax))
+  (location-syntax location-syntax))
 
 (define (make-location syntax)
   (%make-location syntax (generate-identity)))

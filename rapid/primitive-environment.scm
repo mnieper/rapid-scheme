@@ -388,15 +388,19 @@
       (receive (rtd-location* _)
 	  (expand-into-definition (list rtd-syntax) '() rtd-syntax
 				  (delay
-				    (make-procedure-call (make-primitive-reference 'make-rtd
-										   rtd-syntax)
+				    (make-procedure-call (make-primitive-reference
+							  (make-primitive 'make-rtd
+									  rtd-syntax)
+							  rtd-syntax)
 							 (list)
 							 rtd-syntax))
 				  rtd-syntax)
 	(expand-into-definition (list (car constructor)) '() (car constructor)
 				(delay
-				  (make-procedure-call (make-primitive-reference 'make-constructor
-										 (car constructor))
+				  (make-procedure-call (make-primitive-reference
+							(make-primitive 'make-constructor
+									(car constructor))
+							(car constructor))
 						       (list (make-reference (car rtd-location*)
 									     constructor-syntax)
 							     (make-literal
@@ -414,8 +418,10 @@
 				constructor-syntax)
 	(expand-into-definition (list predicate-syntax) '() predicate-syntax
 				(delay
-				  (make-procedure-call (make-primitive-reference 'make-predicate
-										 predicate-syntax)
+				  (make-procedure-call (make-primitive-reference
+							(make-primitive 'make-predicate
+									predicate-syntax)
+							predicate-syntax)
 						       (list (make-reference (car rtd-location*)
 									     predicate-syntax))
 						       predicate-syntax))
@@ -429,8 +435,10 @@
 	     (expand-into-definition
 	      (list (list-ref field 1)) '() (list-ref field 1)
 	      (delay
-		(make-procedure-call (make-primitive-reference 'make-accessor
-							       (list-ref field 1))
+		(make-procedure-call (make-primitive-reference
+				      (make-primitive 'make-accessor
+						      (list-ref field 1))
+				      (list-ref field 1))
 				     (list (make-reference (car rtd-location*)
 							   (list-ref field 1))
 					   (make-literal index
@@ -441,8 +449,10 @@
 	       (expand-into-definition
 		(list (list-ref field 2)) '() (list-ref field 2)
 		(delay
-		  (make-procedure-call (make-primitive-reference 'make-mutator
-								 (list-ref field 1))
+		  (make-procedure-call (make-primitive-reference
+					(make-primitive 'make-mutator
+							(list-ref field 1))
+					(list-ref field 1))
 				       (list (make-reference (car rtd-location*)
 							     (list-ref field 2))
 					     (make-literal index

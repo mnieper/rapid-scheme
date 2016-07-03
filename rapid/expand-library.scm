@@ -51,16 +51,6 @@
 (define library-name-comparator
   (make-list-comparator library-element-comparator list? null? car cdr))
 
-(define-record-type <environment>
-  (%make-environment )
-  environment?)
-
-;; XXX: Should return a syntactic environment
-;; and some code
-;; Check: in which form
-;; And: Rename make-environment into which???
-;; e.g. ---> expand-library?
-
 (define (expand-library library)
 
   (define-syntax with-import-sets
@@ -70,9 +60,11 @@
 	 (for-each import-import-set! import-sets)
 	 body1 body2 ...))))
   
-  (define store
-    ;; Locations for values for variables
-    (imap identifier-comparator))
+  (define definitions (list-queue))
+
+  (define (add-definitions! list-queue)
+    (set! definitions
+	  (list-queue-append! definitions list-queue)))
   
   (define syntactic-environments
     (imap library-name-comparator
@@ -127,19 +119,23 @@
 			     (unwrap-syntax library-name-syntax))))
       (and-let* ((library (read-library library-name-syntax)))
 	(with-import-sets (library-import-sets library)
-	  (expand-top-level! (library-body library))
+	  (add-definitions!
+	   (expand-top-level! (library-body library)))
 	  (let ((environment (current-syntactic-environment)))	
 	    (with-syntactic-environment (make-syntactic-environment)
 	      (export-syntactic-environment! environment (library-exports library))
 	      (current-syntactic-environment)))))))
 
-  (define environment (%make-environment))
-
   (with-import-sets (library-import-sets library)
-    (expand-top-level! (library-body library))
-    ;; FIXME: return letrec*-form with values as body; and adapt
-    ;; syntactic environment to position...
-    environment))
+    (add-definitions!
+     (expand-top-level! (library-body library)))
+    (values
+     ;; FIXME: Return the locations of the exported variables
+     #f
+     (make-letrec*-expression (list-queue-list definitions)
+			      ;; FIXME: (values ...)
+			      (list (make-undefined #f))
+			      #f))))
 
 ;; Local Variables:
 ;; eval: (put 'with-import-sets 'scheme-indent-function 1)

@@ -45,6 +45,16 @@
       (set-cdr! last (list element)) 
       (list-queue-set-last! list-queue (cdr last))))))
 
+(define (list-queue-append! list-queue1 list-queue2)
+  (let ((last (list-queue-last list-queue1)))
+    (cond
+     ((null? last)
+      list-queue2)
+     (else
+      (set-cdr! last (list-queue-list list-queue2))
+      (%make-list-queue (list-queue-list list-queue1)
+			(list-queue-last list-queue2))))))
+
 (define (list-queue-for-each proc list-queue)
   (for-each proc (list-queue-list list-queue)))
 

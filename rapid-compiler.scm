@@ -17,6 +17,8 @@
 
 (import (scheme base)
 	(scheme process-context)
+	(scheme write)
+	(rapid and-let)
 	(rapid error)
 	(rapid format)
 	(rapid args-fold)
@@ -70,4 +72,7 @@
     (help)
     (exit 1))
 
-  (compile input))
+  (and-let*
+      ((expanded-program (compile input)))
+    (write-shared expanded-program)
+    (newline)))

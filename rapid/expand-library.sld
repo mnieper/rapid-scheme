@@ -16,17 +16,18 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid expand-library)
-  (export expand-library
-	  environment?)
+  (export expand-library)
   (import (rapid base)
 	  (rapid and-let)
 	  (rapid comparators)
 	  (rapid identifiers)
+	  (rapid list-queues)
 	  (rapid immutable-maps)
 	  (rapid syntax)
 	  (rapid import-sets)
 	  (rapid libraries)
 	  (rapid syntactic-environments)
 	  (rapid expand)
+	  (rapid expressions)
 	  (rapid primitive-environment))
   (include "expand-library.scm"))

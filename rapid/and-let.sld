@@ -18,7 +18,7 @@
 (define-library (rapid and-let)
   (export and-let*)
   (cond-expand
-   ((library (srfi 2))
+   ((and (not larceny) (library (srfi 2)))
     (import (srfi 2)))
    (else
     (import (scheme base))

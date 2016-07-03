@@ -32,6 +32,7 @@
 	  source-location-start-column
 	  source-location-end-column
 	  current-log-level
+	  error-message-count
 	  raise-syntax-info
 	  raise-syntax-note
 	  raise-syntax-warning

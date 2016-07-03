@@ -19,29 +19,30 @@
 
 .SILENT: check
 
-SCHEME = larceny -path . -r7rs $(SCHEME_FLAGS) -program
+SCHEME = larceny -path . -r7rs -program
 
-SCRIPTS = compile-stale.scm
+SCRIPTS = rapid-compiler compile-stale.scm
 
 all: rapid-compiler
 
 compile: compile-stale.scm
-	cd rapid && larceny -path .. -r7rs -program ../compile-stale.scm
+	cd rapid && larceny -path .. -r7rs -quiet -program ../compile-stale.scm
 
 compile-stale.scm: Makefile
 	echo "(import (larceny compiler))" > $@
 	echo "(compile-stale-libraries)" >> $@
 
-rapid-compiler: rapid-compiler.scm
-	echo "#! /usr/bin/env scheme-script" > $@
-	cat $< >> $@
-	chmod a+x $@
+rapid-compiler: Makefile
+	echo -n "$(SCHEME) " > $@
+	echo "rapid-compiler.scm -- \"\$$@\"" >> $@
+	chmod a+x rapid-compiler
 
-check:
+check: compile
 	$(SCHEME) tests.scm
 
 tests: rapid-compiler $(TESTS)
-	@! $(SCHEME) rapid-compiler.scm -- -d -Idata data/macros.scm 2>&1 | grep -e "error:" -e note -e info
+	@! ./rapid-compiler -d -Idata data/macros.scm 2>&1 | grep -e "error:" -e note -e info
 
 clean:
-	rm -rf rapid-compiler $(SCRIPTS)
+	rm -rf $(SCRIPTS)
+	find . -type f -name '*.slfasl' -exec rm {} +

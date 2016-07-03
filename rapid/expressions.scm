@@ -124,9 +124,9 @@
 (define make-formals
   (case-lambda
    ((fixed syntax)
-    (%make-formals fixed #f syntax))
-   ((fixed rest syntax)
-    (%make-formals fixed '() rest))))
+    (%make-formals fixed '() syntax))
+   ((fixed rest* syntax)
+    (%make-formals fixed rest* syntax))))
 
 (define-record-type <clause>
   (make-clause formals body syntax)

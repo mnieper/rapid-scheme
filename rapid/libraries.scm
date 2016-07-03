@@ -137,8 +137,7 @@
 		     (lambda ()
 		       (read-library-definition (cadr datum)))))))
 	  (else
-	   (raise-syntax-error syntax "bad library feature requirement")
-	   #f)))
+	   (raise-syntax-error syntax "bad library feature requirement"))))
 	((and)
 	 (let loop ((syntax* (cdr datum)))
 	   (if (null? syntax*)
@@ -230,8 +229,7 @@
      ((null? directories)
       (raise-syntax-error library-name-syntax
 			  "library definition of ‘~a’ not found"
-			  library-name)
-      #f)
+			  library-name))
      (else
       (or (and-let*
 	      ((source (locate-library (car directories)))
@@ -246,7 +244,7 @@
 				   (begin (raise-syntax-warning
 					   syntax
 					   "invalid library definition")
-				       (loop))))
+					  (loop))))
 			      ((library-name? (cadr datum) raise-syntax-warning))
 			      ((equal? (syntax->datum (cadr datum)) library-name)))
 			   syntax)

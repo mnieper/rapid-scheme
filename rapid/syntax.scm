@@ -93,7 +93,6 @@
 	     ((syntax? datum)
 	      datum)
 	     ((list? datum)
-	      ;; XXX: Does also change the syntax of 
 	      (make-syntax (map loop datum) location context #f))
 	     ((symbol? datum)
 	      (make-syntax (symbol->identifier datum) location context #f))
@@ -151,7 +150,6 @@
   (raise-continuable (make-syntax-warning syntax
 					  (apply format message object*))))
 (define (raise-syntax-error syntax message . object*)
-  (error-message-count (+ (error-message-count) 1))
   (raise-continuable (make-syntax-error syntax
 					(apply format message object*))))
 (define (raise-syntax-fatal-error syntax message . object*)
@@ -220,6 +218,8 @@
       ((and (syntax-exception? condition)
 	    (or (not (syntax-info? condition)) (eq? (current-log-level) 'info)))
        (print-exception condition)
+       (when (syntax-error? condition)
+	 (error-message-count (+ (error-message-count) 1)))
        (when (or (syntax-fatal-error? condition) (>= (error-message-count) 10))
 	 (exit #f))
        #f)

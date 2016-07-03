@@ -17,7 +17,7 @@
 
 (define-library (rapid expand-library test)
   (export run-tests)
-  (import (rapid base)
+  (import (rapid base) (scheme write)
 	  (rapid test)
 	  (rapid syntax)
 	  (rapid libraries)
@@ -26,13 +26,13 @@
     (define (run-tests)
       (test-begin "Environments")
 
-      (test-assert "environment?"
+      (test-assert "expand-library"
 		   (parameterize
 		       ((current-library-directories
 			 (cons "./share" (current-library-directories))))
 		     (with-syntax-exception-handler
 		      (lambda ()
-			(environment? (expand-library (read-program
-						       "tests.scm")))))))
+			(expand-library (read-program "tests.scm"))
+			(zero? (error-message-count))))))
 
       (test-end))))

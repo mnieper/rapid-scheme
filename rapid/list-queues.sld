@@ -23,10 +23,12 @@
 	  list-queue-first-last
 	  list-queue-front
 	  list-queue-add-back!
+	  list-queue-append!
 	  list-queue-for-each
 	  list-queue-map!)
   (cond-expand
-   ((library (srfi 117))
+   ((and (not larceny)
+	 (library (srfi 117)))
     (import (srfi 117)))
    (else
     (import (scheme base))
