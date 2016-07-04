@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define rapid-environment (environment '(rapid base)))
+(define rapid-environment (environment '(rapid primitive)))
 
 (define (compile filename)
   (parameterize
@@ -24,14 +24,14 @@
     (with-syntax-exception-handler
      (lambda ()
        (receive (exports expression)
-		(expand-library (read-program filename))
-		(and (= 0 (error-message-count))
-		     `((import (rapid primitive))
-		       ,(expression->datum expression))))))))
-	     
+	   (expand-library (read-program filename))
+	 (and (= 0 (error-message-count))
+	      `((import (rapid primitive))
+		,(expression->datum expression))))))))
+
 (define (evaluate filename)
-  (receive (exports expression)
+  (receive (expression*)
       (compile filename)
     (if (= 0 (error-message-count))
-	(eval expression environment)
+	(eval (cadr expression*) rapid-environment)
 	(exit #f))))

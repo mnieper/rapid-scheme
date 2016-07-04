@@ -52,7 +52,7 @@
 			    (exit)))
 		  (option '(#\v "version") #f #f
 			  (lambda (option name arg input)
-			    (version-etc "rapid-compiler")
+			    (version-etc "rapid-scheme")
 			    (exit)))
 		  (option '(#\I "include") #t #t
 			  (lambda (option name arg input)
@@ -72,7 +72,4 @@
     (help)
     (exit 1))
 
-  (and-let*
-      ((expanded-program (compile input)))
-    (map write-shared expanded-program)
-    (newline)))
+  (evaluate input))

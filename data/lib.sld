@@ -1,15 +1,6 @@
 (define-library (lib)
-  (export => define)
+  (export define
+	  make-record bar bar? set-bar!
+	  foo)
   (import (rapid primitive))
-  (begin
-    (define-syntax =>
-      (syntax-rules ()
-	((=> . _) (syntax-error "invalid syntax"))))
-
-
-    (define-syntax define
-      (syntax-rules ()
-	((define f e ...)
-	 (begin
-	   (define-values (f) e ...)))))))
-    
+  (include "lib.scm"))

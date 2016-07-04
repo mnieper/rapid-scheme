@@ -46,12 +46,15 @@
       (list-queue-set-last! list-queue (cdr last))))))
 
 (define (list-queue-append! list-queue1 list-queue2)
-  (let ((last (list-queue-last list-queue1)))
+  (let ((last (list-queue-last list-queue1))
+	(first (list-queue-list list-queue2)))
     (cond
      ((null? last)
       list-queue2)
+     ((null? first)
+      list-queue1)
      (else
-      (set-cdr! last (list-queue-list list-queue2))
+      (set-cdr! last first)
       (%make-list-queue (list-queue-list list-queue1)
 			(list-queue-last list-queue2))))))
 

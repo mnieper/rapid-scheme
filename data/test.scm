@@ -1,12 +1,7 @@
 (import (rapid primitive)
-	(lib))
+	(rename (lib) (bar bar2)))
 
-((case-lambda
-  (()
-   (case-lambda
-    (()
-     x
-     2))
-     1)))
 
-(define x 1)
+(define x (make-record 42))
+
+(bar2 x)

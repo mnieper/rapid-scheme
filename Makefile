@@ -21,9 +21,9 @@
 
 SCHEME = larceny -path . -r7rs -program
 
-SCRIPTS = rapid-compiler compile-stale.scm
+SCRIPTS = rapid-compiler rapid-scheme compile-stale.scm
 
-all: rapid-compiler
+all: compile rapid-scheme rapid-compiler
 
 compile: compile-stale.scm
 	cd rapid && larceny -path .. -r7rs -quiet -program ../compile-stale.scm
@@ -37,11 +37,18 @@ rapid-compiler: Makefile
 	echo "rapid-compiler.scm -- \"\$$@\"" >> $@
 	chmod a+x rapid-compiler
 
-check: compile
+rapid-scheme: Makefile
+	echo -n "$(SCHEME) " > $@
+	echo "rapid-scheme.scm -- \"\$$@\"" >> $@
+	chmod a+x rapid-scheme
+
+check: compile rapid-scheme tests meta-tests
+
+tests:
 	$(SCHEME) tests.scm
 
-tests: rapid-compiler $(TESTS)
-	@! ./rapid-compiler -d -Idata data/macros.scm 2>&1 | grep -e "error:" -e note -e info
+meta-tests:
+	./rapid-scheme -Ishare data/hello-world.scm | grep "Hello, World!"
 
 clean:
 	rm -rf $(SCRIPTS)

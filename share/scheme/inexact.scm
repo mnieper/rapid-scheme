@@ -23,7 +23,7 @@
 (define-primitive finite? 'finite?)
 (define-primitive infinite? 'infinite?)
 (define-primitive log 'log)
-(define-primitive nan? 'nan)
+(define-primitive nan? 'nan?)
 (define-primitive sin 'sin)
 (define-primitive sqrt 'sqrt)
 (define-primitive tan 'tan)

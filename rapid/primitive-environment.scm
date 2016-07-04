@@ -392,7 +392,9 @@
 							  (make-primitive 'make-rtd
 									  rtd-syntax)
 							  rtd-syntax)
-							 (list)
+							 (list (make-literal
+								(length field-syntax*)
+								rtd-syntax))
 							 rtd-syntax))
 				  rtd-syntax)
 	(expand-into-definition (list (car constructor)) '() (car constructor)
@@ -468,7 +470,7 @@
 	      (raise-syntax-error syntax "bad features syntax"))))
       (expand-into-expression
        (delay
-	 (make-literal features syntax)))))
+	 (make-literal (features) syntax)))))
 
   (define-transformer (cond-expand syntax)
     (and-let*

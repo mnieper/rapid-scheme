@@ -16,7 +16,8 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid compiler)
-  (export compile)
+  (export compile
+	  evaluate)
   (import (scheme base)
 	  (scheme eval)
 	  (scheme process-context)

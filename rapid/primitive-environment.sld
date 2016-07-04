@@ -17,7 +17,7 @@
 
 (define-library (rapid primitive-environment)
   (export primitive-environment)
-  (import (scheme base)
+  (import (except (scheme base) features)
 	  (scheme lazy)
 	  (scheme write)
 	  (rapid and-let)
@@ -34,5 +34,6 @@
 	  (rapid libraries)
 	  (rapid expand)
 	  (rapid macro-transformers)
-	  (rapid features))
+	  (rename (rapid features)
+		  (rapid-features features)))
   (include "primitive-environment.scm"))

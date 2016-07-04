@@ -198,9 +198,10 @@
 			   (binding (cadr location+binding)))
 		       (when binding
 			 (add-definition! (make-dummy-formals)
-					  (make-assignment (binding-denotation binding)
-							   (make-reference location syntax)
-							   syntax)
+					  (delay
+					    (make-assignment (binding-denotation binding)
+							     (make-reference location syntax)
+							     syntax))
 					  syntax))))
 		   (append rest*-location+binding* fixed-location+binding*))
 	 (values fixed-locations rest*-location))))))
@@ -220,7 +221,7 @@
 	 (lambda (abort)
 	   (cond
 	    ((simple-datum? form)
-	     (expand-into-expression (delay (make-literal form syntax))))
+	     (expand-into-expression (delay (make-literal (syntax->datum syntax) syntax))))
 	    ((null? form)
 	     (raise-syntax-error syntax "empty application in source"))
 	    ((identifier? form)
