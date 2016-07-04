@@ -23,8 +23,11 @@
    ((library (srfi 99))
     (import (srfi 99)))
    (else
-    (import (rename (scheme base) (define-record-type scheme-define-record-type))
+    (import (rename (scheme base)
+		    (define-record-type scheme-define-record-type)
+		    (make-parameter scheme-make-parameter))
 	    (scheme case-lambda)
+	    (only (rapid parameter-objects) make-parameter)
 	    (rapid vectors)
 	    (rapid comparators)
 	    (rapid immutable-sets)

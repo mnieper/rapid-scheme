@@ -121,11 +121,12 @@
 	    ...))))
 
 (scheme-define-record-type <rtd>
-  (%make-rtd name fieldspecs size ancestors)
+  (%make-rtd name fieldspecs size identity ancestors)
   rtd?
   (name rtd-name)
   (fieldspecs rtd-fieldspecs)
   (size rtd-size)
+  (identity rtd-identity)
   (ancestors rtd-ancestors rtd-set-ancestors!))
 
 (scheme-define-record-type <record>
@@ -134,13 +135,27 @@
   (rtd record-rtd)
   (fields record-fields))
 
+(define current-record-type-identity (make-parameter 0))
+
+(define (generate-record-type-identity)
+  (let ((identity (current-record-type-identity)))
+    (current-record-type-identity (+ 1 identity))
+    identity))
+
 (define field-comparator
   (make-comparator symbol? symbol=?
 		   (lambda (x y)
 		     (string<? (symbol->string x) (symbol->string y)))
 		   #f))
 
-(define root (%make-rtd '<> (imap field-comparator) 0 (iset field-comparator)))
+(define identity-comparator
+  (make-comparator exact-integer? = < #f))
+
+(define root (%make-rtd '<>
+			(imap field-comparator)
+			0
+			(generate-record-type-identity)
+			(iset identity-comparator)))
 
 (define make-rtd
   (case-lambda
@@ -157,11 +172,13 @@
 		       (+ size 1))))
 	   (vector (rtd-fieldspecs parent) (rtd-size parent))
 	   fieldspecs)))
-      (let ((rtd (%make-rtd name
-		            (vector-ref fieldspecs+size 0)
-			    (vector-ref fieldspecs+size 1)
-			    #f)))
-	(rtd-set-ancestors! rtd (iset-adjoin (rtd-ancestors parent) rtd))
+      (let*
+	  ((identity (generate-record-type-identity))
+	   (rtd (%make-rtd name
+			   (vector-ref fieldspecs+size 0)
+			   (vector-ref fieldspecs+size 1)
+			   identity
+			   (iset-adjoin (rtd-ancestors parent) identity))))
 	rtd)))))
 
 (define (rtd-constructor rtd fieldspecs)
@@ -182,8 +199,8 @@
 
 (define (rtd-predicate rtd)
   (lambda (obj)
-    ;; FIXME: rtd-ancestors is not a set of symbols, which the comparator assumes.
-    (and (record? obj) (iset-member? (rtd-ancestors (record-rtd obj)) rtd))))
+    (and (record? obj) (iset-member? (rtd-ancestors (record-rtd obj))
+				     (rtd-identity rtd)))))
 
 (define (rtd-accessor rtd field)
   (let ((index (imap-ref (rtd-fieldspecs rtd) field)))
@@ -191,7 +208,7 @@
       ;; FIXME: Better error handling for records
       (unless (record? record)
 	(error "not a record" record))
-      (unless (iset-member? (rtd-ancestors (record-rtd record)) rtd)
+      (unless (iset-member? (rtd-ancestors (record-rtd record)) (rtd-identity rtd))
 	(error "record type-mismatch" (rtd-name (record-rtd record))
 	       (rtd-name rtd)))
       (vector-ref (record-fields record) index))))
