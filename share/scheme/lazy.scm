@@ -32,7 +32,7 @@
 
 (define (make-promise)
   (lambda (done? proc)
-    (list (cons (done? proc)))))
+    (list (cons done? proc))))
 
 (define (force promise)
   (if (promise-done? promise)

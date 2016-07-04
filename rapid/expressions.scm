@@ -211,8 +211,13 @@
     (error "bad expression" expression))))
 
 (define (location->symbol location)
-  (string->symbol (string-append "g"
-				 (number->string (denotation-identity location)))))
+  (let ((string (string-append "g"
+			       (number->string (denotation-identity location)))))
+    (string->symbol
+     (if (location-syntax location)
+	 (string-append string "_"
+			(symbol->string (syntax->datum (location-syntax location))))
+	 string))))
 
 (define (formals->datum formals)
   (let loop ((fixed (formals-fixed formals)))

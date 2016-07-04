@@ -37,5 +37,6 @@
 	  expression->datum)
   (import (scheme case-lambda)
 	  (rapid base)
+	  (rapid syntax)
 	  (rapid syntactic-environments))
   (include "expressions.scm"))  

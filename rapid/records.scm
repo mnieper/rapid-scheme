@@ -182,6 +182,7 @@
 
 (define (rtd-predicate rtd)
   (lambda (obj)
+    ;; FIXME: rtd-ancestors is not a set of symbols, which the comparator assumes.
     (and (record? obj) (iset-member? (rtd-ancestors (record-rtd obj)) rtd))))
 
 (define (rtd-accessor rtd field)
