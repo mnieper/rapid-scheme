@@ -32,6 +32,6 @@
 (define (evaluate filename)
   (receive (expression*)
       (compile filename)
-    (if (= 0 (error-message-count))
+    (if expression*
 	(eval (cadr expression*) rapid-environment)
 	(exit #f))))
