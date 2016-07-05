@@ -1,0 +1,62 @@
+This README-hacking file describes the development environment.
+
+  Copyright (C) 2016 Marc Nieper-Wißkirchen
+
+  Copying and distribution of this file, with or without modification,
+  are permitted in any medium without royalty provided the copyright
+  notice and this notice are preserved.
+
+The development sources are available through git at GitLab:
+
+  https://gitlab.com/nieper/rapid-scheme
+
+
+Tools
+-----
+
+As Rapid Scheme is written in Scheme code as described by R7RS, a
+suitable implementation of the R7RS is needed. The Makefile distributed
+with the development sources assumes that a sufficiently new development
+version of Larceny (the release 0.99 still contains a few unfortunate bugs
+that are fixed in the development sources) is installed on the system, however
+any other Scheme system that fully implements the R7RS should also work.
+(Chibi Scheme has been proven to work, but it is several orders of magnitude
+slower than Larceny.)
+
+
+Building
+--------
+
+After installing Larceny (or any other implementation of the R7RS after suitably
+patching the provided Makefile), you can run
+
+  make
+
+to build the two executables ./rapid-scheme and ./rapid-compile.
+
+
+Run tests
+---------
+
+You can run
+
+  make check
+
+to execute the provided tests.
+
+
+Compiling Scheme programs
+-------------------------
+
+You can run the program ./rapid-compile to expand Scheme programs as described by the
+R7RS. You need to add the -I share option so that the standard library of the R7RS
+can be found. The expanded program is written to stdout, and is self-contained apart from
+a minimal runtime exported by (rapid primitive).
+
+
+Execute Scheme programs
+-----------------------
+
+You can run the program ./rapid-scheme to expand and evaluate Scheme programs as described
+by the R7RS. You need to add the -I share option so that the standard library of the R7RS
+can be found.
