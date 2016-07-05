@@ -13,14 +13,13 @@ Developer page: https://gitlab.com/nieper/rapid-scheme
   possible (otherwise, feel free to email the author)
 
 Bug reports:
- Please include enough information for the maintainers to reproduce the
+ Please include enough information for the author to reproduce the
  problem.  Generally speaking, that means:
 - the contents of any input files necessary to reproduce the bug
   and command line invocations of the program(s) involved (crucial!).
 - a description of the problem and any samples of the erroneous output.
 - the version number of the program(s) involved (use --version).
 - hardware, operating system, and compiler versions (uname -a).
-- unusual options you gave to configure, if any (see config.status).
 - anything else that you think would be helpful.
 
 See README-hacking for information on the development environment -- any
