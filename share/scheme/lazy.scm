@@ -30,9 +30,8 @@
     ((delay expression)
      (delay-force (make-promise #t expression)))))
 
-(define (make-promise)
-  (lambda (done? proc)
-    (list (cons done? proc))))
+(define (make-promise done? proc)
+  (list (cons done? proc)))
 
 (define (force promise)
   (if (promise-done? promise)
