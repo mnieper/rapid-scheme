@@ -126,8 +126,8 @@
 (define-record-type (<transformer> <denotation>)
   (%make-transformer proc syntax identity)
   transformer?
-  (proc transformer-proc)
-  (syntax transformer-syntax))
+  (proc transformer-proc transformer-set-proc!)
+  (syntax transformer-syntax transformer-set-syntax!))
 
 (define (make-transformer proc syntax)
   (%make-transformer proc syntax (generate-identity)))

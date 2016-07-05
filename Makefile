@@ -49,6 +49,7 @@ unit-tests:
 
 integration-tests:
 	./rapid-scheme -Ishare data/hello-world.scm | grep "Hello, World!"
+	./rapid-scheme -Ishare examples/syntax-parameters.scm | grep "10"
 
 meta-tests:
 	./rapid-scheme -Ishare tests.scm

@@ -18,6 +18,7 @@
 (define-library (rapid syntactic-environments)
   (export make-location location? location-syntax
 	  make-transformer transformer? transformer-proc transformer-syntax
+	  transformer-set-proc! transformer-set-syntax!
 	  make-parameterized-transformer parameterized-transformer?
 	  make-primitive primitive? primitive-value primitive-syntax
 	  make-primitive-transformer primitive-transformer?

@@ -94,6 +94,79 @@
 	transformer-syntax)
        syntax)))
 
+  (define-transformer (syntax-parameterize syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 ((or (<= 3 (length form))
+	      (raise-syntax-error syntax "bad syntax-parameterize syntax")))
+	 (binding-syntax* (unwrap-syntax (list-ref form 1)))
+	 ((or (list? binding-syntax*)
+	      (raise-syntax-error (list-ref form 1)
+				  "bad syntax-parameterize syntax")))
+	 (denotation+old-proc+old-syntax+new-proc+new-syntax*
+	  (let loop ((binding-syntax* binding-syntax*))
+	    (if (null? binding-syntax*)
+		'()
+		(or (and-let*
+			((binding-syntax (car binding-syntax*))
+			 (binding (unwrap-syntax binding-syntax))
+			 ((or (and (list? binding)
+				   (= 2 (length binding)))
+			      (raise-syntax-error binding-syntax
+						  "bad syntax binding")))
+			 (keyword-syntax (car binding))
+			 (transformer-spec-syntax (cadr binding))
+			 (keyword (unwrap-syntax keyword-syntax))
+			 ((identifier? keyword))
+			 (denotation (lookup-denotation! keyword-syntax))
+			 ((or (parameterized-transformer? denotation)
+			      (begin
+				(raise-syntax-error
+				 keyword-syntax
+				 "identifier ‘a’ does not denote a syntax parameter"
+				 (identifier->symbol keyword))
+				(raise-syntax-note
+				 (lookup-syntax! keyword-syntax)
+				 "identifier ‘a’ was bound here"
+				 (identifier->symbol keyword)))))
+			 (transformer (expand-transformer transformer-spec-syntax))
+			 (proc
+			  (lambda (syntax)
+			    (and-let*
+				((transformed-syntax (transformer syntax)))
+			      (expand-syntax! transformed-syntax)))))
+		      (cons (vector denotation
+				    (transformer-proc denotation)
+				    (transformer-syntax denotation)
+				    proc
+				    transformer-syntax)
+			    (loop (cdr binding-syntax*))))
+		    (loop (cdr binding-syntax*)))))))
+      (dynamic-wind
+	  (lambda ()
+	    (for-each (lambda (vector)
+			(transformer-set-proc!
+			 (vector-ref vector 0)
+			 (vector-ref vector 3))
+			(transformer-set-syntax!
+			 (vector-ref vector 0)
+			 (vector-ref vector 4)))
+		      denotation+old-proc+old-syntax+new-proc+new-syntax*))
+	  (lambda ()
+	    (expand-into-expression
+	     (delay
+	       (with-scope
+		 (expand-body (list-tail form 2) syntax)))))
+	  (lambda ()
+	    (for-each (lambda (vector)
+			(transformer-set-proc!
+			 (vector-ref vector 0)
+			 (vector-ref vector 1))
+			(transformer-set-syntax!
+			 (vector-ref vector 0)
+			 (vector-ref vector 2)))
+		      denotation+old-proc+old-syntax+new-proc+new-syntax*)))))
+
   ;; syntax-rules syntax
   (define-transformer (syntax-rules syntax)
     (and-let*
