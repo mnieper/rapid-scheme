@@ -26,13 +26,6 @@
     (define (run-tests)
       (test-begin "Environments")
 
-		   (parameterize
-		       ((current-library-directories
-			 (cons "./share" (current-library-directories))))
-		     (expand-library (read-program "tests.scm"))
-		     (zero? (error-message-count)))
-
-      
       (test-assert "expand-library"
 		   (parameterize
 		       ((current-library-directories
