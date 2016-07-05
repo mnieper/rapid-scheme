@@ -132,6 +132,14 @@
 (define (make-transformer proc syntax)
   (%make-transformer proc syntax (generate-identity)))
 
+(define-record-type (<parameterized-transformer> <transformer>)
+  (%make-parameterized-transformer proc syntax identity)
+  parameterized-transformer?)
+
+(define (make-parameterized-transformer proc syntax)
+  (%make-parameterized-transformer proc syntax (generate-identity)))
+
+
 ;; XXX
 ;; Instead of defining primitive values and transformers, we could simply give
 ;; them a name that distingishes these type.

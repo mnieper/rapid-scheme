@@ -74,6 +74,26 @@
 	transformer-syntax)
        syntax)))
 
+  ;; define-syntax-parameter syntax
+  (define-transformer (define-syntax-parameter syntax)
+    (and-let*
+	((form (unwrap-syntax syntax))
+	 ((or (= (length form) 3)
+	      (raise-syntax-error syntax "bad define-syntax syntax")))
+	 (keyword-syntax (list-ref form 1))
+	 ((identifier-syntax? keyword-syntax))
+	 (transformer-syntax (list-ref form 2))
+	 (transformer (expand-transformer transformer-syntax)))    
+      (expand-into-syntax-definition
+       keyword-syntax
+       (make-parameterized-transformer
+	(lambda (syntax)
+	  (and-let*
+	      ((transformed-syntax (transformer syntax)))
+	    (expand-syntax! transformed-syntax)))
+	transformer-syntax)
+       syntax)))
+
   ;; syntax-rules syntax
   (define-transformer (syntax-rules syntax)
     (and-let*
@@ -532,19 +552,19 @@
 	      datum
 	      formals-syntax)))
        ((flist? formals))
-       (fixed (list-queue))
-       (let loop ((formals formals))
-	 (cond
-	  ((null? formals)
-	   (success (list-queue-list fixed) '()))
-	  ((pair? formals)
-	   (when (unique-variable? (car formals))
-	     (list-queue-add-back! fixed (car formals)))
-	   (loop (cdr formals)))
-	  (else
-	   (if (unique-variable? formals)
-	       (success (list-queue-list fixed) (list formals))
-	       (success (list-queue-list fixed) '()))))))))
+       (fixed (list-queue)))
+    (let loop ((formals formals))
+      (cond
+       ((null? formals)
+	(success (list-queue-list fixed) '()))
+       ((pair? formals)
+	(when (unique-variable? (car formals))
+	  (list-queue-add-back! fixed (car formals)))
+	(loop (cdr formals)))
+       (else
+	(if (unique-variable? formals)
+	    (success (list-queue-list fixed) (list formals))
+	    (success (list-queue-list fixed) '())))))))
 
 (define (identifier-syntax? syntax)
   (and-let*
