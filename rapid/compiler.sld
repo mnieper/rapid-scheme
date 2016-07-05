@@ -18,9 +18,9 @@
 (define-library (rapid compiler)
   (export compile
 	  evaluate)
-  (import (scheme base)
-	  (scheme eval)
+  (import (scheme eval)
 	  (scheme process-context)
+	  (rapid base)
 	  (rapid receive)
 	  (rapid identifiers)
 	  (rapid syntax)

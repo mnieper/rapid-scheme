@@ -26,7 +26,7 @@
 	  expand-into-expression
 	  expand-into-transformer
 	  expand-syntax!)
-  (import (scheme base)
+  (import (rapid base)
 	  (scheme lazy)
 	  (rapid and-let)
 	  (rapid lists)

@@ -93,7 +93,7 @@
 				(load-syntactic-environment!
 				 library-name-syntax)))
 			   (syntactic-environment-set! library-name
-							     syntactic-environment)
+						       syntactic-environment)
 			    syntactic-environment)))))
 	 (cond
 	  ((eq? syntactic-environment #t)

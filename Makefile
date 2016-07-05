@@ -42,13 +42,16 @@ rapid-scheme: Makefile
 	echo "rapid-scheme.scm -- \"\$$@\"" >> $@
 	chmod a+x rapid-scheme
 
-check: compile rapid-scheme tests meta-tests
+check: compile rapid-scheme unit-tests integration-tests meta-tests
 
-tests:
+unit-tests:
 	$(SCHEME) tests.scm
 
-meta-tests:
+integration-tests:
 	./rapid-scheme -Ishare data/hello-world.scm | grep "Hello, World!"
+
+meta-tests:
+	./rapid-scheme -Ishare tests.scm
 
 clean:
 	rm -rf $(SCRIPTS)
