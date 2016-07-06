@@ -18,4 +18,4 @@
 (define rapid-features
   (make-parameter 
    '(r7rs exact-closed exact-complex ieee-float full-unicode ratios posix
-	  rapid-scheme rapid-scheme-0.1)))
+	  rapid-scheme rapid-scheme-0.1.0)))
