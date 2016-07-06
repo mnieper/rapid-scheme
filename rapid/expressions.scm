@@ -20,7 +20,8 @@
 (define-record-type <expression>
   #f
   expression?
-  (syntax expression-syntax))
+  (syntax expression-syntax)
+  (aux expression-aux expression-set-aux!))
 
 ;; References
 
@@ -121,6 +122,9 @@
   (rest* formals-rest)
   (syntax formals-syntax))
 
+(define (formals-locations formals)
+  (append (formals-fixed formals) (formals-rest formals)))
+
 (define make-formals
   (case-lambda
    ((fixed syntax)
@@ -214,9 +218,12 @@
   (let ((string (string-append "g"
 			       (number->string (denotation-identity location)))))
     (string->symbol
-     (if (location-syntax location)
-	 (string-append string "_"
-			(symbol->string (syntax->datum (location-syntax location))))
+     (or (and-let*
+	     ((syntax (location-syntax location))
+	      (form (unwrap-syntax (location-syntax location)))
+	      ((identifier? form)))
+	   (string-append string "_"
+			  (symbol->string (identifier->symbol form))))
 	 string))))
 
 (define (formals->datum formals)

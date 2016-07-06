@@ -51,7 +51,8 @@
  (rename (rapid primitive-environment test)
 	 (run-tests run-rapid-primitive-environment-tests))
  (rename (rapid expand-library test)
-	 (run-tests run-rapid-expand-library-tests)))
+	 (run-tests run-rapid-expand-library-tests))
+ (rename (rapid lambda-lift test) (run-tests run-rapid-lambda-lift-tests)))
 
 (test-begin "Rapid Scheme")
 
@@ -83,6 +84,7 @@
 (run-rapid-macro-transformers-tests)
 (run-rapid-primitive-environment-tests)
 (run-rapid-expand-library-tests)
+(run-rapid-lambda-lift-tests)
 
 (test-end "Rapid Scheme")
 

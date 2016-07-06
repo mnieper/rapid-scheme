@@ -104,7 +104,8 @@
 (define-record-type <denotation>
   (make-denotation identity)
   denotation?
-  (identity denotation-identity))
+  (identity denotation-identity)
+  (aux denotation-aux denotation-set-aux!))
 
 (define-record-type (<location> <denotation>)
   (%make-location location-syntax identity)

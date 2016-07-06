@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define (version-etc command-name)
-  (write-string (format "~a (Rapid Scheme) 0.1.0~%" command-name))
+  (write-string (format "~a (Rapid Scheme) 0.1.1~%" command-name))
   (write-string
    "Copyright © 2016 Marc Nieper-Wißkirchen\n\
     License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\

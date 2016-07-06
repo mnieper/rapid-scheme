@@ -15,7 +15,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define rapid-features
-  (make-parameter 
-   '(r7rs exact-closed exact-complex ieee-float full-unicode ratios posix
-	  rapid-scheme rapid-scheme-0.1.1)))
+(define-library (rapid lambda-lift)
+  (export lambda-lift)
+  (import (scheme base)
+	  (scheme case-lambda)
+	  (rapid receive)
+	  (rapid syntactic-environments)
+	  (rapid expressions))
+  (include "lambda-lift.scm"))

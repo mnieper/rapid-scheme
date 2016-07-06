@@ -15,7 +15,14 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define rapid-features
-  (make-parameter 
-   '(r7rs exact-closed exact-complex ieee-float full-unicode ratios posix
-	  rapid-scheme rapid-scheme-0.1.1)))
+(define-library (rapid lambda-lift test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
+	  (rapid lambda-lift))
+  (begin
+    (define (run-tests)
+      (test-begin "Lambda Lifting")
+
+
+      (test-end))))

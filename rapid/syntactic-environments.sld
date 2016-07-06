@@ -37,6 +37,7 @@
 	  syntactic-environment-ref
 	  binding-denotation binding-syntax binding-immutable?
 	  denotation-identity
+	  denotation-aux denotation-set-aux!
 	  lookup-denotation!
 	  lookup-syntactic-binding!
 	  lookup-syntax!

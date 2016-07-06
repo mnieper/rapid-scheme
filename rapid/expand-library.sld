@@ -29,5 +29,6 @@
 	  (rapid syntactic-environments)
 	  (rapid expand)
 	  (rapid expressions)
-	  (rapid primitive-environment))
+	  (rapid primitive-environment)
+	  (rapid lambda-lift))
   (include "expand-library.scm"))

@@ -129,13 +129,18 @@
   (with-import-sets (library-import-sets library)
     (add-definitions!
      (expand-top-level! (library-body library)))
-    (values
-     ;; FIXME: Return the locations of the exported variables
-     #f
-     (make-letrec*-expression (list-queue-list definitions)
-			      ;; FIXME: (values ...)
-			      (list (make-undefined #f))
-			      #f))))
+    (let*
+	((expression
+	  (make-letrec*-expression (list-queue-list definitions)
+				   ;; FIXME: (values ...)
+				   (list (make-undefined #f))
+				   #f))
+	 (expression
+	  (lambda-lift expression)))
+      (values
+       ;; FIXME: Return the locations of the exported variables
+       #f
+       expression))))
 
 ;; Local Variables:
 ;; eval: (put 'with-import-sets 'scheme-indent-function 1)

@@ -17,6 +17,7 @@
 
 (define-library (rapid expressions)
   (export expression? expression-syntax
+	  expression-aux expression-set-aux!
 	  make-reference reference? reference-location
 	  make-primitive-reference primitive-reference? primitive-reference-primitive
 	  make-literal literal? literal-datum
@@ -33,10 +34,13 @@
 	  make-variables variables? variables-formals variables-expression
 	  variables-syntax
 	  make-formals formals? formals-fixed formals-rest formals-syntax
+	  formals-locations
 	  make-clause clause? clause-formals clause-body clause-syntax
 	  expression->datum)
   (import (scheme case-lambda)
 	  (rapid base)
+	  (rapid and-let)
+	  (rapid identifiers)
 	  (rapid syntax)
 	  (rapid syntactic-environments))
   (include "expressions.scm"))  
