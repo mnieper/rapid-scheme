@@ -18,11 +18,36 @@
 (define-library (rapid lambda-lift test)
   (export run-tests)
   (import (scheme base)
+	  (rapid and-let)
+	  (rapid receive)
+	  (rapid lists)
 	  (rapid test)
+	  (rapid expressions)
+	  (rapid libraries)
+	  (rapid expand-library)
 	  (rapid lambda-lift))
   (begin
     (define (run-tests)
       (test-begin "Lambda Lifting")
 
-
+      (test-assert "expand-library"
+		   (parameterize
+		       ((current-library-directories
+			 (cons "./share" (current-library-directories))))
+		     (receive (_ expression)
+			 (expand-library (read-program "data/lambda-lift.scm"))
+		       (any
+			(lambda (variables)
+			  (and-let*
+			      ((expression (variables-expression variables))
+			       ((expression-procedure? expression))
+			       (clauses (procedure-clauses expression))
+			       ((not (null? clauses)))
+			       (expression
+				(car
+				    (letrec*-expression-body (car (clause-body (car clauses))))))
+			       ((literal? expression)))
+			    (equal? 'foo (literal-datum expression))))
+			(letrec*-expression-definitions expression)))))
+      
       (test-end))))
