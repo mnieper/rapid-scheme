@@ -25,7 +25,7 @@
   (begin
     (define (run-tests)
       (test-begin "Environments")
-
+      
       (test-assert "expand-library"
 		   (parameterize
 		       ((current-library-directories
@@ -34,5 +34,5 @@
 		      (lambda ()
 			(expand-library (read-program "tests.scm"))
 			(zero? (error-message-count))))))
-
+      
       (test-end))))

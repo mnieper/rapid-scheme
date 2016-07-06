@@ -17,7 +17,7 @@
 
 (define-library (rapid lambda-lift test)
   (export run-tests)
-  (import (scheme base)
+  (import (rapid base)
 	  (rapid and-let)
 	  (rapid receive)
 	  (rapid lists)
@@ -30,7 +30,7 @@
     (define (run-tests)
       (test-begin "Lambda Lifting")
 
-      (test-assert "expand-library"
+      (test-assert "Procedures without closure variables are lifted"
 		   (parameterize
 		       ((current-library-directories
 			 (cons "./share" (current-library-directories))))
