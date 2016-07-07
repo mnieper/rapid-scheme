@@ -45,7 +45,8 @@
 			       ((not (null? clauses)))
 			       (expression
 				(car
-				    (letrec*-expression-body (car (clause-body (car clauses))))))
+				 (letrec*-expression-body
+				  (car (clause-body (car clauses))))))
 			       ((literal? expression)))
 			    (equal? 'foo (literal-datum expression))))
 			(letrec*-expression-definitions expression)))))

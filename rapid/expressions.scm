@@ -17,45 +17,74 @@
 
 ;;; Expressions
 
+(define (default-method expression . args)
+  (error "unhandled expression type" expression))
+
 (define-record-type <expression>
   #f
   expression?
   (syntax expression-syntax)
+  (method current-expression-method)
   (aux expression-aux expression-set-aux!))
+
+(define (expression-dispatch expression . args)
+  (apply ((current-expression-method expression)) expression args))
 
 ;; References
 
+(define current-reference-method (make-parameter default-method))
+
 (define-record-type (<reference> <expression>)
-  (make-reference location syntax)
+  (%make-reference location syntax method)
   reference?
   (location reference-location))
 
+(define (make-reference location syntax)
+  (%make-reference location syntax current-reference-method))
+
 ;; Primitive references
 
+(define current-primitive-reference-method (make-parameter default-method))
+
 (define-record-type (<primitive-reference> <expression>)
-  (make-primitive-reference primitive syntax)
+  (%make-primitive-reference primitive syntax method)
   primitive-reference?
   (primitive primitive-reference-primitive))
 
+(define (make-primitive-reference primitive syntax)
+  (%make-primitive-reference primitive syntax current-primitive-reference-method))
+
 ;; Literals
 
+(define current-literal-method (make-parameter default-method))
+
 (define-record-type (<literal> <expression>)
-  (make-literal datum syntax)
+  (%make-literal datum syntax method)
   literal?
   (datum literal-datum))
 
+(define (make-literal datum syntax)
+  (%make-literal datum syntax current-literal-method))
+
 ;; Procedure calls
 
+(define current-procedure-call-method (make-parameter default-method))
+
 (define-record-type (<procedure-call> <expression>)
-  (make-procedure-call operator operands syntax)
+  (%make-procedure-call operator operands syntax method)
   procedure-call?
   (operator procedure-call-operator)
   (operands procedure-call-operands))
 
+(define (make-procedure-call operator operands syntax)
+  (%make-procedure-call operator operands syntax current-procedure-call-method))
+
 ;; Sequences
 
+(define current-sequence-method (make-parameter default-method))
+
 (define-record-type (<sequence> <expression>)
-  (%make-sequence expressions syntax)
+  (%make-sequence expressions syntax method)
   sequence?
   (expressions sequence-expressions))
 
@@ -63,48 +92,75 @@
   (let ((expression* (flatten expressions)))
     (if (= (length expression*) 1)
 	(car expression*)
-	(%make-sequence expression* syntax))))
+	(%make-sequence expression* syntax current-sequence-method))))
 
 ;; Assignment
 
+(define current-assignment-method (make-parameter default-method))
+
 (define-record-type (<assignment> <expression>)
-  (make-assignment location expression syntax)
+  (%make-assignment location expression syntax method)
   assignment?
   (location assignment-location)
   (expression assignment-expression))
 
+(define (make-assignment location expression syntax)
+  (%make-assignment location expression syntax current-assignment-method))
 
-;;; Conditionals
+;; Conditionals
+
+(define current-conditional-method (make-parameter default-method))
 
 (define-record-type (<conditional> <expression>)
-  (make-conditional test consequent alternate syntax)
+  (%make-conditional test consequent alternate syntax method)
   conditional?
   (test conditional-test)
   (consequent conditional-consequent)
   (alternate conditional-alternate))
 
-;;; Undefined
+(define (make-conditional test consequent alternate syntax)
+  (%make-conditional test consequent alternate syntax
+		     current-conditional-method))
+
+;; Undefined
+
+(define current-undefined-method (make-parameter default-method))
 
 (define-record-type (<undefined> <expression>)
-  (make-undefined syntax)
+  ;; Current Larceny compiler produces an error on (%make-undefined syntax method). 
+  (%make-undefined method syntax)
   undefined?)
 
-;;; Procedures
+(define (make-undefined syntax)
+  (%make-undefined current-undefined-method syntax))
+
+;; Procedures
+
+(define current-procedure-method (make-parameter default-method))
 
 (define-record-type (<procedure> <expression>)
-  (make-procedure clauses syntax)
+  (%make-procedure clauses syntax method)
   expression-procedure?
   (clauses procedure-clauses))
 
-;;; Letrec* expressions
+(define (make-procedure clauses syntax)
+  (%make-procedure clauses syntax current-procedure-method))
+
+;; Letrec* expressions
+
+(define current-letrec*-expression-method (make-parameter default-method))
 
 (define-record-type (<letrec*-expression> <expression>)
-  (make-letrec*-expression definitions body syntax)
+  (%make-letrec*-expression definitions body syntax method)
   letrec*-expression?
   (definitions letrec*-expression-definitions)
   (body letrec*-expression-body))
 
-;;; Extra types
+(define (make-letrec*-expression definitions body syntax)
+  (%make-letrec*-expression definitions body syntax
+			    current-letrec*-expression-method))
+
+;; Extra types
 
 (define-record-type <variables>
   (make-variables formals expression syntax)

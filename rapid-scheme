@@ -1,1 +1,0 @@
-larceny -path . -r7rs -program rapid-scheme.scm -- "$@"

@@ -17,7 +17,7 @@
 
 (define-library (rapid lambda-lift)
   (export lambda-lift)
-  (import (scheme base)
+  (import (rapid base)
 	  (scheme case-lambda)
 	  (rapid receive)
 	  (rapid syntactic-environments)

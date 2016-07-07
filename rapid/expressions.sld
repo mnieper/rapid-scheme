@@ -18,6 +18,17 @@
 (define-library (rapid expressions)
   (export expression? expression-syntax
 	  expression-aux expression-set-aux!
+	  expression-dispatch
+	  current-reference-method
+	  current-undefined-method
+	  current-primitive-reference-method
+	  current-literal-method
+	  current-procedure-call-method
+	  current-sequence-method
+	  current-assignment-method
+	  current-conditional-method
+	  current-procedure-method
+	  current-letrec*-expression-method
 	  make-reference reference? reference-location
 	  make-primitive-reference primitive-reference? primitive-reference-primitive
 	  make-literal literal? literal-datum

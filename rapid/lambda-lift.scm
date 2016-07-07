@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define (lambda-lift root-expression)
-
+  
   (define (set-binding-construct! location binding-construct)
     (denotation-set-aux! location binding-construct))
 
@@ -58,56 +58,7 @@
 	binding-construct2))
   
   (define (lift expression depth)
-    (let ((syntax (expression-syntax expression)))
-      (cond
-       ((literal? expression)
-	(values root-expression
-		expression))
-       ((undefined? expression)
-	(values root-expression
-		expression))
-       ((primitive-reference? expression)
-	(values root-expression
-		expression))
-       ((reference? expression)
-	(values (lookup-binding-construct (reference-location expression))
-		expression))
-       ((procedure-call? expression)
-	(receive (binding-construct expression*)
-	    (lift* (cons (procedure-call-operator expression)
-			 (procedure-call-operands expression))
-		   (+ depth 1))
-	  (values binding-construct
-		  (make-procedure-call (car expression*) (cdr expression*) syntax))))
-       ((expression-procedure? expression)
-	(lift-procedure expression depth))
-       ((assignment? expression)
-	(receive (binding-construct init)
-	    (lift (assignment-expression expression) (+ depth 1))
-	  (let ((location (assignment-location expression)))
-	    (values (binding-construct-deepest binding-construct
-					       (lookup-binding-construct location))
-		    (make-assignment location init syntax)))))
-       ((letrec*-expression? expression)
-	(lift-letrec*-expression expression depth))
-       ((sequence? expression)
-	(receive (binding-construct expression*)
-	    (lift* (sequence-expressions expression) (+ depth 1))
-	  (values binding-construct
-		  (make-sequence expression* syntax))))
-       ((conditional? expression)
-	(receive (binding-construct expression*)
-	    (lift* (list (conditional-test expression)
-			 (conditional-consequent expression)
-			 (conditional-alternate expression))
-		   (+ depth 1))
-	  (values binding-construct
-		  (make-conditional (list-ref expression* 0)
-				    (list-ref expression* 1)
-				    (list-ref expression* 2)
-				    syntax))))
-       (else
-	(error "unhandled expression type" expression)))))
+    (expression-dispatch expression depth))
 
   (define (lift-procedure expression depth)
     (let ((syntax (expression-syntax expression))
@@ -161,9 +112,10 @@
 	  (lift* (map variables-expression definitions) (+ depth 1))
 	(receive (binding-construct2 lifted-body)
 	    (lift* (letrec*-expression-body expression) (+ depth 2))
-	  (values (binding-construct-highest expression
-					     (binding-construct-deepest binding-construct1
-									binding-construct2))
+	  (values (binding-construct-highest
+		   expression
+		   (binding-construct-deepest binding-construct1
+					      binding-construct2))
 		  (make-letrec*-expression
 		   (append
 		    (binding-construct-bindings expression)
@@ -189,7 +141,67 @@
 	    expression*)))
       (values (apply binding-construct-deepest (map car lift*))
 	      (map cadr lift*))))
-  
-  (receive (_ lifted-expression)
-      (lift root-expression 0)
-    lifted-expression))
+
+  (parameterize
+      ((current-literal-method
+	(lambda (expression depth)
+	  (values root-expression
+		  expression)))
+       (current-undefined-method
+	(lambda (expression depth)
+	  (values root-expression
+		  expression)))
+       (current-primitive-reference-method
+	(lambda (expression depth)
+	  (values root-expression
+		  expression)))
+       (current-reference-method
+	(lambda (expression depth)
+	  (values (lookup-binding-construct (reference-location expression))
+		  expression)))
+       (current-procedure-call-method
+	(lambda (expression depth)
+	  (receive (binding-construct expression*)
+	      (lift* (cons (procedure-call-operator expression)
+			   (procedure-call-operands expression))
+		     (+ depth 1))
+	    (values binding-construct
+		    (make-procedure-call (car expression*)
+					 (cdr expression*)
+					 (expression-syntax expression))))))
+       (current-procedure-method
+	lift-procedure)
+       (current-assignment-method
+	(lambda (expression depth)
+	  (receive (binding-construct init)
+	      (lift (assignment-expression expression) (+ depth 1))
+	    (let ((location (assignment-location expression)))
+	      (values (binding-construct-deepest
+		       binding-construct
+		       (lookup-binding-construct location))
+		      (make-assignment location init
+				       (expression-syntax expression)))))))
+       (current-letrec*-expression-method
+	lift-letrec*-expression)
+       (current-sequence-method
+	(lambda (expression depth)
+	  (receive (binding-construct expression*)
+	      (lift* (sequence-expressions expression) (+ depth 1))
+	    (values binding-construct
+		    (make-sequence expression*
+				   (expression-syntax expression))))))
+       (current-conditional-method
+	(lambda (expression depth)
+	  (receive (binding-construct expression*)
+	      (lift* (list (conditional-test expression)
+				(conditional-consequent expression)
+				(conditional-alternate expression))
+		     (+ depth 1))
+	    (values binding-construct
+		    (make-conditional (list-ref expression* 0)
+				      (list-ref expression* 1)
+				      (list-ref expression* 2)
+				      (expression-syntax expression)))))))  
+    (receive (_ lifted-expression)
+	(lift root-expression 0)
+      lifted-expression)))
