@@ -66,8 +66,9 @@ Compiler Front-end
 -----------------
 
 The compiler frontend reads text files containing Scheme programs and
-library definitions, imports libraries and macro-expands the code. The
-output of the frontend is a very restricted subset of R7RS code.
+library definitions, imports libraries and macro-expands the code.
+The output of the frontend is a very restricted subset of R7RS code.
+The main binding construct is letrec*-values.
 
 Compiler Middle-end
 -------------------
@@ -75,8 +76,8 @@ Compiler Middle-end
 The middle-end consists of a number of passes executed in succession:
 
   * lambda-lift: Procedures are hoisted as far as possible without
-    changing their signatures. All procedures become bound to
-    identifiers.
+    changing their signatures.  All procedures become bound to
+    identifiers.  The main binding construct is still letrec*-values.
 
 Compiler Back-end
 -----------------
