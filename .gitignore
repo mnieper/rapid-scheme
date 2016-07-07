@@ -1,4 +1,5 @@
 /compile-stale.scm
 /rapid-compiler
+/rapid-scheme
 *.slfasl
 
