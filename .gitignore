@@ -1,5 +1,9 @@
 /compile-stale.scm
 /rapid-compiler
 /rapid-scheme
+/.sass-cache
 *.slfasl
+_site
+.sass-cache
+.jekyll-metadata
 
