@@ -1,10 +1,15 @@
 Rapid Scheme NEWS
   History of user-visible changes
-  06 July 2016
+  08 July 2016
 
 See the end of this file for copyrights and conditions.
 
 See the README file for instructions for reporting bugs.
+
+Version 0.1.1 (07 July 2016)
+
+* Run a simple lambda-lift pass at the first pass in the middle-end.
+  This pass guarantees that all procedures are bound to identifiers.
 
 Version 0.1.0 (06 July 2016)
 
