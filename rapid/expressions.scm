@@ -107,6 +107,19 @@
 (define (make-assignment location expression syntax)
   (%make-assignment location expression syntax current-assignment-method))
 
+;; Multiple assignment
+
+(define current-multiple-assignment-method (make-parameter default-method))
+
+(define-record-type (<multiple-assignment> <expression>)
+  (%make-multiple-assignment formals expression syntax method)
+  multiple-assignment?
+  (formals multiple-assignment-formals)
+  (expression multiple-assignment-expression))
+
+(define (make-multiple-assignment formals expression syntax)
+  (%make-multiple-assignment formals expression syntax current-multiple-assignment-method))
+
 ;; Conditionals
 
 (define current-conditional-method (make-parameter default-method))
@@ -157,17 +170,53 @@
   (body letrec*-expression-body))
 
 (define (make-letrec*-expression definitions body syntax)
+  ;; XXX: The body may be flattened.
   (%make-letrec*-expression definitions body syntax
 			    current-letrec*-expression-method))
+
+;; Letrec expressions
+
+(define current-letrec-expression-method (make-parameter default-method))
+
+(define-record-type (<letrec-expression> <expression>)
+  (%make-letrec-expression definitions body syntax method)
+  letrec-expression?
+  (definitions letrec-expression-definitions)
+  (body letrec-expression-body))
+
+(define (make-letrec-expression definitions body syntax)
+  (if (null? definitions)
+      (make-sequence body syntax)   
+      (%make-letrec-expression definitions (flatten body) syntax
+			       current-letrec-expression-method)))
+
+;; Let-values expression
+
+(define current-let-values-expression-method (make-parameter default-method))
+
+(define-record-type (<let-values-expression> <expression>)
+  (%make-let-values-expression definition body syntax method)
+  let-values-expression?
+  (definition let-values-expression-definition)
+  (body let-values-expression-body))
+
+(define (make-let-values-expression definition body syntax)
+  (%make-let-values-expression definition (flatten body) syntax
+			       current-let-values-expression-method))
+
 
 ;; Extra types
 
 (define-record-type <variables>
-  (make-variables formals expression syntax)
+  (%make-variables formals expression syntax aux)
   variables?
   (formals variables-formals)
   (expression variables-expression)
-  (syntax variables-syntax))
+  (syntax variables-syntax)
+  (aux variables-aux variables-set-aux!))
+
+(define (make-variables formals expression syntax)
+  (%make-variables formals expression syntax #f))
 
 ;; Formals
 
@@ -180,6 +229,11 @@
 
 (define (formals-locations formals)
   (append (formals-fixed formals) (formals-rest formals)))
+
+(define (formals-location formals)
+  (and (= (length (formals-fixed formals)) 1)
+       (null? (formals-rest formals))
+       (car (formals-fixed formals))))
 
 (define make-formals
   (case-lambda
@@ -208,6 +262,7 @@
 ;;; Expression datums
 
 (define (expression->datum expression)
+  ;; TODO: Make use of expression-dispatch in this procedure.
   (cond
    ;; References
    ((reference? expression)
@@ -247,6 +302,11 @@
     `(set! ,(location->symbol (assignment-location expression))
 	   ,(expression->datum (assignment-expression expression))))
 
+   ;; Multiple assignments
+   ((multiple-assignment? expression)
+    `(set!-values ,(formals->datum (multiple-assignment-formals expression))
+		 ,(expression->datum (multiple-assignment-expression expression))))
+   
    ;; Letrec* expressions
    ((letrec*-expression? expression)
     `(letrec*-values
@@ -257,6 +317,24 @@
 	(letrec*-expression-definitions expression))
       ,@(map expression->datum (letrec*-expression-body expression))))
 
+   ;; Letrec expression
+   ((letrec-expression? expression)
+    `(letrec
+	 ,(map
+	   (lambda (variables)
+	     `(,(car (formals->datum (variables-formals variables)))
+	       ,(expression->datum (variables-expression variables))))
+	   (letrec-expression-definitions expression))
+       ,@(map expression->datum (letrec-expression-body expression))))
+
+   ;; Let-values expression
+   ((let-values-expression? expression)
+    `(let-values
+	 (,(let ((variables (let-values-expression-definition expression)))
+	     `(,(formals->datum (variables-formals variables))
+	       ,(expression->datum (variables-expression variables)))))
+       ,@(map expression->datum (let-values-expression-body expression))))
+         
    ;; Sequences
    ((sequence? expression)
     `(begin ,@(map expression->datum (sequence-expressions expression))))
@@ -268,7 +346,8 @@
 	 ,(expression->datum (conditional-alternate expression))))
    
    (else
-    (error "bad expression" expression))))
+    `BAD ;; XXX
+    #;(error "bad expression" expression))))
 
 (define (location->symbol location)
   (let ((string (string-append "g"

@@ -60,26 +60,31 @@
   (define (lift expression depth)
     (expression-dispatch expression depth))
 
-  (define (lift-procedure expression depth)
-    (let ((syntax (expression-syntax expression))
-	  (clauses (procedure-clauses expression)))
-      (receive (binding-construct clause*)
-	  (do-lift* lift-procedure-clause clauses depth)
-	(let ((procedure (make-procedure
-			  clause*
-			  syntax)))
-	  (if (>= (binding-construct-depth binding-construct)
-		  (- depth 1))
-	      ;; The procedure cannot be lifted further.
-	      (values binding-construct procedure)
-	      ;; The procedure is to be lifted.
-	      (let ((f (make-location syntax)))
-		(insert-binding! binding-construct
-				 (make-variables (make-formals (list f) syntax)
-						 procedure
-						 syntax))
-		(values binding-construct
-			(make-reference f syntax))))))))
+  (define lift-procedure
+    (case-lambda
+     ((expression depth)
+      (lift-procedure expression depth #f))
+     ((expression depth not-simple?)
+      (let ((syntax (expression-syntax expression))
+	    (clauses (procedure-clauses expression)))
+	(receive (binding-construct clause*)
+	    (do-lift* lift-procedure-clause clauses depth)
+	  (let ((procedure (make-procedure
+			    clause*
+			    syntax)))
+	    (if (and (>= (binding-construct-depth binding-construct)
+			 (- depth 1))
+		     (not not-simple?))
+		;; The procedure cannot be lifted further.
+		(values binding-construct procedure)
+		;; The procedure is to be lifted.
+		(let ((f (make-location syntax)))
+		  (insert-binding! binding-construct
+				   (make-variables (make-formals (list f) syntax)
+						   procedure
+						   syntax))
+		  (values binding-construct
+			  (make-reference f syntax))))))))))
 
   (define (lift-procedure-clause clause depth)
     (let*
@@ -109,7 +114,7 @@
 	  (formals-locations (variables-formals variables))))
        definitions)
       (receive (binding-construct1 init*)
-	  (lift* (map variables-expression definitions) (+ depth 1))
+	  (do-lift* lift-definition definitions (+ depth 1))
 	(receive (binding-construct2 lifted-body)
 	    (lift* (letrec*-expression-body expression) (+ depth 2))
 	  (values (binding-construct-highest
@@ -128,6 +133,13 @@
 		   lifted-body
 		   (expression-syntax expression)))))))
 
+  (define (lift-definition definition depth)
+    (let ((formals (variables-formals definition))
+	  (expression (variables-expression definition)))
+      (if (expression-procedure? expression)
+	  (lift-procedure expression depth (not (formals-location formals)))
+	  (lift expression depth))))
+  
   (define (lift* expression* depth)
     (do-lift* lift expression* depth))
 

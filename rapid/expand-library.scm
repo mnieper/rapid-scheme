@@ -136,7 +136,9 @@
 				   (list (make-undefined #f))
 				   #f))
 	 (expression
-	  (lambda-lift expression)))
+	  (lambda-lift expression))
+	 (expression
+	  (fix-letrec expression)))
       (values
        ;; FIXME: Return the locations of the exported variables
        #f

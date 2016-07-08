@@ -26,9 +26,12 @@
 	  current-procedure-call-method
 	  current-sequence-method
 	  current-assignment-method
+	  current-multiple-assignment-method
 	  current-conditional-method
 	  current-procedure-method
 	  current-letrec*-expression-method
+	  current-letrec-expression-method
+	  current-let-values-expression-method	
 	  make-reference reference? reference-location
 	  make-primitive-reference primitive-reference? primitive-reference-primitive
 	  make-literal literal? literal-datum
@@ -36,16 +39,23 @@
 	  procedure-call-operator procedure-call-operands
 	  make-sequence sequence? sequence-expressions
 	  make-assignment assignment? assignment-location assignment-expression
+	  make-multiple-assignment multiple-assignment?
+	  multiple-assignment-formals multiple-assignment-expression
 	  make-conditional conditional?
 	  conditional-test conditional-consequent conditional-alternate
 	  make-procedure expression-procedure? procedure-clauses
 	  make-letrec*-expression letrec*-expression?
 	  letrec*-expression-definitions letrec*-expression-body
+	  make-letrec-expression letrec-expression?
+	  letrec-expression-definitions letrec-expression-body
+	  make-let-values-expression let-values-expression?
+	  let-values-expression-definition let-values-expression-body
 	  make-undefined undefined?
 	  make-variables variables? variables-formals variables-expression
 	  variables-syntax
+	  variables-aux variables-set-aux!
 	  make-formals formals? formals-fixed formals-rest formals-syntax
-	  formals-locations
+	  formals-locations formals-location
 	  make-clause clause? clause-formals clause-body clause-syntax
 	  expression->datum)
   (import (scheme case-lambda)

@@ -33,6 +33,7 @@
  (rename (rapid immutable-sets test) (run-tests run-rapid-immutable-sets-tests))
  (rename (rapid immutable-maps test) (run-tests run-rapid-immutable-maps-tests))
  (rename (rapid lists test) (run-tests run-rapid-lists-tests))
+ (rename (rapid graphs test) (run-tests run-rapid-graphs-tests))
  (rename (rapid parameter-objects test)
 	 (run-tests run-rapid-parameter-objects-tests))
  (rename (rapid features test) (run-tests run-rapid-features-tests))
@@ -52,7 +53,8 @@
 	 (run-tests run-rapid-primitive-environment-tests))
  (rename (rapid expand-library test)
 	 (run-tests run-rapid-expand-library-tests))
- (rename (rapid lambda-lift test) (run-tests run-rapid-lambda-lift-tests)))
+ (rename (rapid lambda-lift test) (run-tests run-rapid-lambda-lift-tests))
+ (rename (rapid fix-letrec test) (run-tests run-rapid-fix-letrec-tests)))
 
 (test-begin "Rapid Scheme")
 
@@ -70,6 +72,7 @@
 (run-rapid-immutable-maps-tests)
 (run-rapid-immutable-sets-tests)
 (run-rapid-lists-tests)
+(run-rapid-graphs-tests)
 (run-rapid-parameter-objects-tests)
 (run-rapid-features-tests)
 (run-rapid-paths-tests)
@@ -83,8 +86,9 @@
 (run-rapid-expand-tests)
 (run-rapid-macro-transformers-tests)
 (run-rapid-primitive-environment-tests)
-(run-rapid-expand-library-tests)
 (run-rapid-lambda-lift-tests)
+(run-rapid-fix-letrec-tests)
+(run-rapid-expand-library-tests)
 
 (test-end "Rapid Scheme")
 

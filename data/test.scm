@@ -1,7 +1,10 @@
-(import (rapid primitive)
-	(rename (lib) (bar bar2)))
+(import (rapid primitive))
 
+(define-primitive p 'p)
 
-(define x (make-record 42))
+(define-values (f)
+  (case-lambda
+   ((a b)
+    (p a b))))
 
-(bar2 x)
+(f 1 2)

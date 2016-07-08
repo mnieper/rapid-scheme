@@ -21,8 +21,10 @@
 	  begin
 	  quote
 	  set!
-	  define-values
+	  set!-values
 	  letrec*-values
+	  letrec
+	  let-values
 
 	  make-rtd
 	  make-constructor

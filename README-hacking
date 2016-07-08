@@ -79,6 +79,13 @@ The middle-end consists of a number of passes executed in succession:
     changing their signatures.  All procedures become bound to
     identifiers.  The main binding construct is still letrec*-values.
 
+  * fix-letrec: The letrec*-values binding construct is rewritten
+    according to the algorithm described by Abdulaziz Ghuloum and Kent
+    Dybvig in "Fixing Letrec (reloaded)" extended to handle multiple
+    value bindings.  The binding construct for procedure variables becomes
+    letrec.  All other variables are bound by let-values.  Multiple
+    assignments by set!-values are introduced in this pass.
+
 Compiler Back-end
 -----------------
 

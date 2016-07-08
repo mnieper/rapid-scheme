@@ -28,6 +28,24 @@
 	 body2
 	 ...)))))
 
+;; Set multiple values
+
+(define-syntax set!-values
+  (syntax-rules ()
+    ((set!-values formals expression)
+     (set!-values-aux formals () () expression))))
+
+(define-syntax set!-values-aux
+  (syntax-rules ()
+    ((set!-values-aux () new-formals ((var new) ...) expression)
+     (let-values ((new-formals expression))
+       (set! var new)
+       ...))
+    ((set!-values-aux (var . formals) (new-formal ...) (tmp ...) expression)
+     (set!-values-aux formals (new-formal ... new) (tmp ... (var new)) expression))
+    ((set!-values-aux var new-formals (tmp ...) expression)
+     (set!-values-aux () (new-formals . var) (tmp ... (var new)) expression))))
+
 ;; Procedural records
 
 (define-record-type <rtd>
