@@ -108,15 +108,8 @@
 
     (define current-free-reference-adder (make-parameter #f))
 
-    ;; FIXME: The procedure does not handle the case (let-values
-    ;; ((list (lambda ...)))).
     (define (lambda-definition? variables)
-      (and (expression-procedure? (transformed-init variables))
-	   (or (formals-location (variables-formals variables))
-	       ;; FIXME: Need to handle the error gracefully.
-	       (raise-syntax-warning (variables-syntax variables)
-				     "not enough values"))
-	   #t))
+      (expression-procedure? (transformed-init variables)))
 
     (define (make-definitions variables thunk)
       (let loop ((locations (formals-locations (variables-formals variables))))
