@@ -50,7 +50,7 @@ unit-tests:
 	$(SCHEME) tests.scm
 
 integration-tests:
-	./rapid-scheme -Ishare data/hello-world.scm | grep "Hello, World!"
+	./rapid-scheme -Ishare examples/hello-world.scm | grep "Hello, world!"
 	./rapid-scheme -Ishare examples/syntax-parameters.scm | grep "10"
 
 meta-tests:
