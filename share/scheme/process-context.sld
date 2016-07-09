@@ -21,5 +21,9 @@
 	  exit
 	  get-environment-variable
 	  get-environment-variables)
-  (import (rapid primitive))
-  (include "process-context.scm"))
+  (import (only (rapid runtime)
+		command-line
+		emergency-exit
+		exit
+		get-environment-variable
+		get-environment-variables)))

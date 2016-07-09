@@ -28,5 +28,16 @@
 	  sin
 	  sqrt
 	  tan)
-  (import (rapid primitive))
-  (include "inexact.scm"))
+  (import (only (rapid runtime)
+		acos
+		asin
+		atan
+		cos
+		exp
+		finite?
+		infinite?
+		log
+		nan?
+		sin
+		sqrt
+		tan)))

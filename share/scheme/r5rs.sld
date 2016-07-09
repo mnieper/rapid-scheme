@@ -49,10 +49,12 @@
 	  truncate values vector vector->list vector-fill! vector-length
 	  vector-ref vector-set! vector? with-input-from-file
 	  with-output-to-file write write-char zero?)
-  (import (rapid primitive)
-	  (rename (scheme base)
+  (import (rename (scheme base)
 		  (exact inexact->exact)
 		  (inexact exact->inexact))
+	  (only (rapid runtime)
+		null-environment
+		scheme-report-environment)
 	  (scheme cxr)
 	  (scheme char)
 	  (scheme inexact)
@@ -63,5 +65,4 @@
 	  (scheme lazy)
 	  (scheme eval)
 	  (scheme repl)
-	  (scheme load)) 
-  (include "r5rs.scm"))
+	  (scheme load)))

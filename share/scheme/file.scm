@@ -15,15 +15,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-primitive call-with-input-file 'call-with-input-file)
-(define-primitive call-with-output-file 'call-with-output-file)
-(define-primitive delete-file 'delete-file)
-(define-primitive file-exists? 'file-exists?)
-(define-primitive open-binary-input-file 'open-binary-input-file)
-(define-primitive open-binary-output-file 'open-binary-output-file)
-(define-primitive open-input-file 'open-input-file)
-(define-primitive open-output-file 'open-output-file)
-
 (define (with-input-from-file string thunk)
   (call-with-input-file
       (lambda (port)

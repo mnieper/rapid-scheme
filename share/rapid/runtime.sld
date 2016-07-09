@@ -15,27 +15,22 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (scheme base)
+(define-library (rapid runtime)
   (export *
 	  +
 	  -
-	  ...
 	  /
 	  <
 	  <=
 	  =
-	  =>
 	  >
 	  >=
-	  _
 	  abs
-	  and
 	  append
 	  apply
 	  assoc
 	  assq
 	  assv
-	  begin
 	  binary-port?
 	  boolean=?
 	  boolean?
@@ -50,11 +45,10 @@
 	  caar
 	  cadr
 	  call-with-current-continuation
-	  call-with-port	  
+	  call-with-port
 	  call-with-values
 	  call/cc
 	  car
-	  case
 	  cdar
 	  cddr
 	  cdr
@@ -71,20 +65,12 @@
 	  close-output-port
 	  close-port
 	  complex?
-	  cond
-	  cond-expand
 	  cons
 	  current-error-port
 	  current-input-port
 	  current-output-port
-	  define
-	  define-record-type
-	  define-syntax
-	  define-values
 	  denominator
-	  do
 	  dynamic-wind
-	  else
 	  eof-object
 	  eof-object?
 	  eq?
@@ -100,7 +86,6 @@
 	  exact-integer?
 	  exact?
 	  expt
-	  features
 	  file-error?
 	  floor
 	  floor-quotient
@@ -111,27 +96,14 @@
 	  gcd
 	  get-output-bytevector
 	  get-output-string
-	  if
-	  guard
-	  include
-	  include-ci
 	  inexact
 	  inexact?
 	  input-port-open?
 	  input-port?
 	  integer->char
 	  integer?
-	  lambda
 	  lcm
 	  length
-	  let
-	  let*
-	  let*-values
-	  let-syntax
-	  let-values
-	  letrec
-	  letrec*
-	  letrec-syntax
 	  list
 	  list->string
 	  list->vector
@@ -142,7 +114,6 @@
 	  list?
 	  make-bytevector
 	  make-list
-	  make-parameter
 	  make-string
 	  make-vector
 	  map
@@ -164,18 +135,14 @@
 	  open-input-string
 	  open-output-bytevector
 	  open-output-string
-	  or
 	  output-port-open?
 	  output-port?
 	  pair?
-	  parameterize
 	  peek-char
 	  peek-u8
 	  port?
 	  positive?
 	  procedure?
-	  quasiquote
-	  quote
 	  quotient
 	  raise
 	  raise-continuable
@@ -192,7 +159,6 @@
 	  remainder
 	  reverse
 	  round
-	  set!
 	  set-car!
 	  set-cdr!
 	  square
@@ -212,26 +178,21 @@
 	  string-ref
 	  string-set!
 	  string<=?
-	  string<?
-	  string=?
 	  string>=?
 	  string>?
+	  string<?
+	  string=?
 	  string?
 	  substring
 	  symbol->string
 	  symbol=?
 	  symbol?
-	  syntax-error
-	  syntax-rules
 	  textual-port?
 	  truncate
 	  truncate-quotient
 	  truncate-remainder
 	  truncate/
 	  u8-ready?
-	  unless
-	  unquote
-	  unquote-splicing
 	  utf8->string
 	  values
 	  vector
@@ -247,32 +208,115 @@
 	  vector-ref
 	  vector-set!
 	  vector?
-	  when
 	  with-exception-handler
 	  write-bytevector
 	  write-char
 	  write-string
 	  write-u8
-	  zero?)	  
-  (import (rapid primitive)
-	  (rename (rapid runtime)
-		  (char-ready? %char-ready?)
-		  (current-error-port %current-error-port)
-		  (current-input-port %current-input-port)
-		  (current-output-port %current-output-port)
-		  (flush-output-port %flush-output-port)
-		  (newline %newline)
-		  (peek-char %peek-char)
-		  (peek-u8 %peek-u8)
-		  (read-bytevector %read-bytevector)
-		  (read-bytevector! %read-bytevector!)
-		  (read-char %read-char)
-		  (read-line %read-line)
-		  (read-string %read-string)
-		  (read-u8 %read-u8)
-		  (u8-ready? %u8-ready?)
-		  (write-bytevector %write-bytevector)
-		  (write-char %write-char)
-		  (write-string %write-string)
-		  (write-u8 %write-u8)))
-  (include "base.scm"))
+	  zero?
+
+	  display
+	  write
+	  write-shared
+	  write-simple
+
+	  caaar
+	  caadr
+	  cadar
+	  caddr
+	  cdaar
+	  cdadr
+	  cddar
+	  cdddr
+	  caaaar
+	  caaadr
+	  caadar
+	  caaddr
+	  cadaar
+	  cadadr
+	  caddar
+	  cadddr
+	  cdaaar
+	  cdaadr
+	  cdadar
+	  cdaddr
+	  cddaar
+	  cddadr
+	  cdddar
+	  cddddr
+
+	  call-with-input-file
+	  call-with-output-file
+	  delete-file
+	  file-exists?
+	  open-binary-input-file
+	  open-binary-output-file
+	  open-input-file
+	  open-output-file
+
+	  interaction-environment
+
+	  null-environment
+	  scheme-report-environment
+
+	  acos
+	  asin
+	  atan
+	  cos
+	  exp
+	  finite?
+	  infinite?
+	  log
+	  nan?
+	  sin
+	  sqrt
+	  tan
+
+	  char-alphabetic?
+	  char-ci<=?
+	  char-ci<?
+	  char-ci=?
+	  char-ci>=?
+	  char-ci>?
+	  char-downcase
+	  char-foldcase
+	  char-lower-case?
+	  char-numeric?
+	  char-upcase
+	  char-upper-case?
+	  char-whitespace?
+	  digit-value
+	  string-ci<=?
+	  string-ci<?
+	  string-ci=?
+	  string-ci>=?
+	  string-ci>?
+	  string-downcase
+	  string-foldcase
+	  string-upcase
+
+	  current-jiffy
+	  current-second
+	  jiffies-per-second
+	  
+	  command-line
+	  emergency-exit
+	  exit
+	  get-environment-variable
+	  get-environment-variables
+
+	  angle
+	  imag-part
+	  magnitude
+	  make-polar
+	  make-rectangular
+	  real-part
+
+	  environment
+	  eval
+
+	  read
+
+	  load)
+  (import (rapid primitive))
+  (include "runtime.scm"))

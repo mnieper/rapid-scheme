@@ -19,5 +19,7 @@
   (export current-jiffy
 	  current-second
 	  jiffies-per-second)
-  (import (rapid primitive))
-  (include "time.scm"))
+  (import (only (rapid runtime)
+		current-jiffy
+		current-second
+		jiffies-per-second)))

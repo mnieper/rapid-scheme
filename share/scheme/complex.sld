@@ -22,5 +22,10 @@
 	  make-polar
 	  make-rectangular
 	  real-part)
-  (import (rapid primitive))
-  (include "complex.scm"))
+  (import (only (rapid runtime)
+		angle
+		imag-part
+		magnitude
+		make-polar
+		make-rectangular
+		real-part)))
