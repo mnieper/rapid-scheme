@@ -19,14 +19,16 @@
 
 .SILENT: check
 
-SCHEME = larceny -path . -r7rs -program
+LARCENY = larceny
+
+SCHEME = $(LARCENY) -path . -r7rs -program
 
 SCRIPTS = rapid-compiler rapid-scheme compile-stale.scm
 
 all: compile rapid-scheme rapid-compiler
 
 compile: compile-stale.scm
-	cd rapid && larceny -path .. -r7rs -quiet -program ../compile-stale.scm
+	cd rapid && $(LARCENY) -path .. -r7rs -quiet -program ../compile-stale.scm
 
 compile-stale.scm: Makefile
 	echo "(import (larceny compiler))" > $@
