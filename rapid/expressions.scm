@@ -346,8 +346,7 @@
 	 ,(expression->datum (conditional-alternate expression))))
    
    (else
-    `BAD ;; XXX
-    #;(error "bad expression" expression))))
+    (error "bad expression" expression))))
 
 (define (location->symbol location)
   (let ((string (string-append "g"

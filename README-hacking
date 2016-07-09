@@ -15,13 +15,12 @@ Tools
 -----
 
 As Rapid Scheme is written in Scheme code as described by R7RS, a
-suitable implementation of the R7RS is needed. The Makefile distributed
-with the development sources assumes that a sufficiently new development
-version of Larceny (the release 0.99 still contains a few unfortunate bugs
-that are fixed in the development sources) is installed on the system, however
-any other Scheme system that fully implements the R7RS should also work.
-(Chibi Scheme has been proven to work, but it is several orders of magnitude
-slower than Larceny.)
+suitable implementation of the R7RS is needed. The Makefile
+distributed with the development sources assumes that a sufficiently
+recent nightly build of Larceny is installed on the system, however
+any other Scheme system that fully implements the R7RS should also
+work.  (Chibi Scheme has been proven to work, but it is several orders
+of magnitude slower than Larceny.)
 
 
 Building
