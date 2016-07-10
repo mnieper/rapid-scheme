@@ -52,6 +52,7 @@ unit-tests:
 integration-tests:
 	./rapid-scheme -Ishare examples/hello-world.scm | grep "Hello, world!"
 	./rapid-scheme -Ishare examples/syntax-parameters.scm | grep "10"
+	./rapid-scheme data/syntax-error.scm 2>&1 | grep "identifier ‘unknown’ not bound"
 
 meta-tests:
 	./rapid-scheme -Ishare tests.scm
