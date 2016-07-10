@@ -1,10 +1,18 @@
 Rapid Scheme NEWS
   History of user-visible changes
-  08 July 2016
+  10 July 2016
 
 See the end of this file for copyrights and conditions.
 
 See the README file for instructions for reporting bugs.
+
+Version 0.1.2 (10 July 2016)
+
+* Run a modified version of the algorithm "Fixing letrec (reloaded)"
+  as described by Dybvig and Ghuloum as the second pass in the
+  middle-end. This eliminates multiple-values mutually dependent
+  definitions. Only procedures are bound with letrec, all other values
+  with let-values.
 
 Version 0.1.1 (07 July 2016)
 
