@@ -11,3 +11,5 @@
     #f)
 
 (define-values x (unknown))
+
+(x)

@@ -77,19 +77,20 @@
     (expand-definitions!)))
 
 (define (expand-definitions!)
-  (let ((definitions (list-queue)))
-    (list-queue-for-each
-     (lambda (definition)
-       (and-let* ((expression (definition-expression definition))
-		  (expression (if (syntax? expression)
-				  (expand-expression expression)
-				  (force expression))))
-	 (list-queue-add-back! definitions
-			       (make-variables (definition-formals definition)
-					       expression
-					       (definition-syntax definition)))))
-     (current-definitions))
-    definitions))
+  (list-queue-map!
+   (lambda (definition)
+     (or (and-let* ((expression (definition-expression definition))
+		    (expression (if (syntax? expression)
+				    (expand-expression expression)
+				    (force expression))))
+	   (make-variables (definition-formals definition)
+			   expression
+			   (definition-syntax definition)))
+	 (make-variables (definition-formals definition)
+			 (make-undefined (definition-syntax definition))
+			 (definition-syntax definition))))
+   (current-definitions))
+  (current-definitions))
 
 (define (expand-body syntax* syntax)
   (parameterize
