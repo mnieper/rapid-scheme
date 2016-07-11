@@ -112,7 +112,7 @@
      (list-queue-list (expand-definitions!))
      (if (current-expressions)
 	 (list-queue-list (current-expressions))
-	 (make-undefined #f))
+	 (list (make-undefined #f)))
      #f)))
 
 (define (expand-expression syntax)

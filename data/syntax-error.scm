@@ -18,3 +18,9 @@
  (()
   ('foo (unknown))
   ('bla)))
+
+(define-primitive z 'z)
+
+(case-lambda
+ (()
+  (baz b . x)))
