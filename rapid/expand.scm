@@ -99,9 +99,11 @@
        (current-expressions #f)
        (expand-into-expression-hook
 	(lambda (expression)
-	  (unless (current-expressions)
-	    (current-expressions (list-queue)))	  
-	  (list-queue-add-back! (current-expressions) (force expression)))))
+	  (and-let*
+	      ((expression (force expression))	  
+	       (unless (current-expressions)
+		 (current-expressions (list-queue)))	  
+	       (list-queue-add-back! (current-expressions) expression))))))
     (for-each expand-syntax! syntax*)
     (unless (current-expressions)
       (raise-syntax-error syntax "no expression in body"))

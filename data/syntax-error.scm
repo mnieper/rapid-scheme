@@ -13,3 +13,8 @@
 (define-values x (unknown))
 
 (x)
+
+(case-lambda
+ (()
+  ('foo (unknown))
+  ('bla)))
