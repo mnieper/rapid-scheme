@@ -77,7 +77,11 @@
   (operands procedure-call-operands))
 
 (define (make-procedure-call operator operands syntax)
-  (%make-procedure-call operator operands syntax current-procedure-call-method))
+  (and operator
+       (every (lambda (x) x)
+	      operands)  
+       (%make-procedure-call operator operands syntax
+			     current-procedure-call-method)))
 
 ;; Sequences
 
@@ -90,9 +94,10 @@
 
 (define (make-sequence expressions syntax)
   (let ((expression* (flatten expressions)))
-    (if (= (length expression*) 1)
-	(car expression*)
-	(%make-sequence expression* syntax current-sequence-method))))
+    (and (not (null? expression*))
+	 (if (= (length expression*) 1)
+	     (car expression*)
+	     (%make-sequence expression* syntax current-sequence-method)))))
 
 ;; Assignment
 
@@ -105,7 +110,8 @@
   (expression assignment-expression))
 
 (define (make-assignment location expression syntax)
-  (%make-assignment location expression syntax current-assignment-method))
+  (and expression
+       (%make-assignment location expression syntax current-assignment-method)))
 
 ;; Multiple assignment
 
@@ -118,7 +124,9 @@
   (expression multiple-assignment-expression))
 
 (define (make-multiple-assignment formals expression syntax)
-  (%make-multiple-assignment formals expression syntax current-multiple-assignment-method))
+  (and expression
+       (%make-multiple-assignment formals expression syntax
+				  current-multiple-assignment-method)))
 
 ;; Conditionals
 
@@ -132,8 +140,9 @@
   (alternate conditional-alternate))
 
 (define (make-conditional test consequent alternate syntax)
-  (%make-conditional test consequent alternate syntax
-		     current-conditional-method))
+  (and test consequent alternate
+       (%make-conditional test consequent alternate syntax
+			  current-conditional-method)))
 
 ;; Undefined
 
@@ -254,9 +263,13 @@
 (define (flatten expression*)
   (apply append (map
 		 (lambda (expression)
-		   (if (sequence? expression)
-		       (sequence-expressions expression)
-		       (list expression)))
+		   (cond
+		    ((sequence? expression)
+		     (sequence-expressions expression))
+		    (expression
+		     (list expression))
+		    (else
+		     '())))
 		 expression*)))
 
 ;;; Expression datums

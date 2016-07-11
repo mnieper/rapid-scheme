@@ -61,6 +61,7 @@
   (import (scheme case-lambda)
 	  (rapid base)
 	  (rapid and-let)
+	  (rapid lists)
 	  (rapid identifiers)
 	  (rapid syntax)
 	  (rapid syntactic-environments))
