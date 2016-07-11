@@ -124,9 +124,12 @@
   (expression multiple-assignment-expression))
 
 (define (make-multiple-assignment formals expression syntax)
-  (and expression
-       (%make-multiple-assignment formals expression syntax
-				  current-multiple-assignment-method)))
+  (let ((location (formals-location formals)))
+    (if location
+	(make-assignment location expression syntax)  
+	(and expression
+	     (%make-multiple-assignment formals expression syntax
+					current-multiple-assignment-method)))))
 
 ;; Conditionals
 
