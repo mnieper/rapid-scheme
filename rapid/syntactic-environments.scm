@@ -257,9 +257,9 @@
 	     ((not (eq? (binding-denotation binding) denotation))))
 	  binding)
 	=> (lambda (binding)
-	     (raise-syntax-error identifier-syntax
-				 "meaning of identifier ‘~a’ cannot be changed"
-				 (syntax->datum identifier-syntax))
+	     (raise-syntax-warning identifier-syntax
+				   "meaning of identifier ‘~a’ cannot be changed"
+				   (syntax->datum identifier-syntax))
 	     (raise-syntax-note (binding-syntax binding)
 				"identifier ‘~a’ was bound here"
 				(syntax->datum identifier-syntax))
@@ -292,7 +292,7 @@
      ((and denotation1 denotation2)
       (eq? denotation1 denotation2))
      ((and (not denotation1) (not denotation2))
-      (eq? identifier1 identifier2))
+      (bound-identifier=? identifier1 identifier2))
      (else
       #f))))
 
