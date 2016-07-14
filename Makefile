@@ -57,6 +57,7 @@ integration-tests:
 	./rapid-scheme -Ishare examples/syntax-parameters.scm | grep "10"
 	./rapid-scheme data/syntax-error.scm 2>&1 | grep "identifier ‘unknown’ not bound"
 	./rapid-scheme data/macro1.scm 2>&1 | grep "duplicate literal identifier"
+	./rapid-scheme -I share data/ellipsis.scm 2>&1 | grep "OK OK"
 
 meta-tests:
 	./rapid-scheme -Ishare tests.scm

@@ -311,12 +311,14 @@
 (define-syntax let-syntax-aux
   (syntax-rules ()
     ((let-syntax-aux () ((tmp keyword spec) ...) body)
-     ((letrec-syntax ((tmp spec) ...)
-	(letrec-syntax ((keyword
-			 (syntax-rules ()
-			   ((_ . args) (tmp . args))))
-			...)
-	  . body))))))
+     (letrec-syntax ((tmp spec) ...)
+       (letrec-syntax ((keyword
+			(syntax-rules ()
+			  ((_ . args) (tmp . args))))
+		       ...)
+	 . body)))
+    ((let-syntax-aux ((keyword spec) . rest) (transformed ...) body)
+     (let-syntax-aux rest (transformed ... (tmp keyword spec)) body))))
 
 (define-syntax letrec-syntax
   (syntax-rules ()
