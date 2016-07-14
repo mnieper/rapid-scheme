@@ -164,7 +164,6 @@
 
 ;;; Exception handling
 
-;; FIXME: Apply R7RS erratum 17.
 (define-syntax guard
   (syntax-rules ()
     ((guard (var clause ...) e1 e2 ...)
@@ -180,7 +179,7 @@
 		     (guard-aux
 		      (handler-k
 		       (lambda ()
-			 (raise-continuable condition)))
+			 (raise condition)))
 		      clause ...))))))))
 	  (lambda ()
 	    (call-with-values
