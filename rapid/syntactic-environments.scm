@@ -262,21 +262,21 @@
 		  (not (eq? (binding-denotation binding) denotation)))))
 	  binding)
 	=> (lambda (binding)
-	     (raise-syntax-error identifier-syntax
-				 "meaning of identifier ‘~a’ cannot be changed"
-				 (syntax->datum identifier-syntax))
+	     (raise-syntax-warning
+	      identifier-syntax
+	      "changing of the meaning of the identifier ‘~a’ is a violation of the spec"
+	      (syntax->datum identifier-syntax))
 	     (when (syntactic-binding? binding)
 	       (raise-syntax-note (binding-syntax binding)
 				  "identifier ‘~a’ was bound here"
 				  (syntax->datum identifier-syntax)))
-	     #f))
-       (else
-	(let ((binding
-	       (make-syntactic-binding identifier-syntax denotation immutable?)))
-	  (use-identifier! (unwrap-syntax identifier-syntax) binding)
-	  (current-bindings (imap-replace (current-bindings)
-					  identifier
-					  binding)))))))))
+	     #f)))
+      (let ((binding
+	     (make-syntactic-binding identifier-syntax denotation immutable?)))
+	(use-identifier! (unwrap-syntax identifier-syntax) binding)
+	(current-bindings (imap-replace (current-bindings)
+					identifier
+					binding)))))))
 
 (define (syntactic-environment-insert-binding! syntactic-environment
 					       identifier-syntax
