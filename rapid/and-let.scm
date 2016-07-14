@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-syntax and-let*
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((and-let* () . body)
      (begin #t . body))
     ((and-let* ((var expr)))

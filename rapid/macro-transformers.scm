@@ -41,7 +41,7 @@
 	      (set! renames (imap-replace renames identifier renamed-identifier))
 	      renamed-identifier))))
 
-	(define (compare identifier1 identifier2)
+	(define (compare identifier1 identifier2)	  
 	  (identifier=? environment identifier1 environment identifier2))
 
 	(transformer syntax rename compare)))))

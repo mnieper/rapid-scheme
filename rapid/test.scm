@@ -444,7 +444,7 @@
        (test-comp2body runner compare expected expression)))))
 
 (define-syntax test-error
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((test-error name error-type expression)
      (let ((runner (test-runner-get)))
        (test-result-alist! runner `((test-name . ,name)))

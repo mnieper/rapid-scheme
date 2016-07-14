@@ -54,7 +54,7 @@
 (define (expand-library library)
 
   (define-syntax with-import-sets
-    (syntax-rules ()
+    (syntax-rules ... ()
       ((with-import-sets import-sets body1 body2 ...)
        (with-syntactic-environment (make-syntactic-environment)
 	 (for-each import-import-set! import-sets)

@@ -52,7 +52,7 @@
        type-name parent constructor-spec predicate-spec field-specs ()))))
 
 (define-syntax define-record-type-helper1
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((_ type-name parent constructor-spec predicate-spec () rev-specs)
      (define-record-type-helper2
        type-name parent constructor-spec predicate-spec rev-specs () () ()))
@@ -63,7 +63,7 @@
        field-specs (spec . rev-specs)))))
 
 (define-syntax define-record-type-helper2
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((_ type-name
 	parent constructor-spec predicate-spec
 	() accessors mutators fields)
@@ -90,7 +90,7 @@
        (field-name . fields)))))
 
 (define-syntax define-record-type-helper3
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((_ type-name fields parent #f predicate
 	((accessor field) ...) ((mutator mutable-field) ...))
      (define-record-type-helper3

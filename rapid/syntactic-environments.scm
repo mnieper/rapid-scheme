@@ -41,7 +41,7 @@
      (define-syntactic-environment-helper environment () . definitions))))
 
 (define-syntax define-syntactic-environment-helper
-  (syntax-rules (define-transformer define-auxiliary-syntax)
+  (syntax-rules ... (define-transformer define-auxiliary-syntax)
     ((define-syntactic-environment-helper environment
        commands)
      (begin
@@ -218,8 +218,12 @@
      (else
       (receive (id environment)
 	  (unclose-syntax id)
-	(and id
-	     (loop id environment)))))))
+	(cond
+	 (id
+	  (loop id environment))
+	 (else
+	  (use-identifier! identifier #t)
+	  #f)))))))
 
 (define (lookup-syntactic-binding! identifier-syntax)
   (or (syntactic-environment-ref (current-syntactic-environment)
@@ -254,15 +258,17 @@
 	      (imap-ref/default (current-used-identifiers)
 				(unwrap-syntax identifier-syntax)
 				#f))
-	     ((not (eq? (binding-denotation binding) denotation))))
+	     ((or (eq? binding #t)
+		  (not (eq? (binding-denotation binding) denotation)))))
 	  binding)
 	=> (lambda (binding)
-	     (raise-syntax-warning identifier-syntax
-				   "meaning of identifier ‘~a’ cannot be changed"
-				   (syntax->datum identifier-syntax))
-	     (raise-syntax-note (binding-syntax binding)
-				"identifier ‘~a’ was bound here"
-				(syntax->datum identifier-syntax))
+	     (raise-syntax-error identifier-syntax
+				 "meaning of identifier ‘~a’ cannot be changed"
+				 (syntax->datum identifier-syntax))
+	     (when (syntactic-binding? binding)
+	       (raise-syntax-note (binding-syntax binding)
+				  "identifier ‘~a’ was bound here"
+				  (syntax->datum identifier-syntax)))
 	     #f))
        (else
 	(let ((binding

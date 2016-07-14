@@ -18,7 +18,7 @@
 ;;; Syntax
 
 (define-syntax comparator-if<=>
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((comparator-if<=> object1 object2 less-than equal-to greater-than)
      (comparator-if<=> (make-default-comparator)
 	 object1 object2 less-than equal-to greater-than))

@@ -191,12 +191,7 @@
 	 (syntax-rules-syntax*
 	  (cdr transformer-rest))
 	 (ellipsis* (map unwrap-syntax ellipsis-syntax*))
-	 (free-identifier-comparator
-	  (with-scope
-	    (unless (null? ellipsis*)
-	      (insert-syntactic-binding! (car ellipsis-syntax*)
-					 (make-location #f)))
-	    (make-free-identifier-comparator)))
+	 (free-identifier-comparator (make-free-identifier-comparator))
 	 (free-identifier=?
 	  (comparator-equality-predicate free-identifier-comparator))
 	 (literals
@@ -229,17 +224,17 @@
 	     (else
 	      (loop literals (cdr literal-syntax*))))))
 	 (ellipsis?
-	  (lambda (identifier)
-	    (and (not (literal? identifier))
-		 (if (null? ellipsis*)
-		     (and-let*
-			 ((binding (syntactic-environment-ref
-				    (current-syntactic-environment)
-				    identifier))
-			  (denotation (binding-denotation binding))
-			  ((primitive-transformer? denotation)))
-		       (eq? '... (primitive-transformer-name denotation)))
-		     (free-identifier=? identifier (car ellipsis*))))))
+	  (if (null? ellipsis*)
+	      (lambda (identifier)
+		(and-let* (((not (literal? identifier)))
+			   (binding (syntactic-environment-ref
+				     (current-syntactic-environment)
+				     identifier))
+			   (denotation (binding-denotation binding))
+			   ((primitive-transformer? denotation)))
+		  (eq? '... (primitive-transformer-name denotation))))
+	      (lambda (identifier)
+		(bound-identifier=? identifier (car ellipsis*)))))
 	 (literal?
 	  (lambda (identifier)
 	    (and (imap-ref/default literals identifier #f)
@@ -307,6 +302,7 @@
 				     (make-primitive symbol
 						     literal-syntax)
 				     syntax)))
+  
   ;; begin syntax
   (define-transformer (begin syntax)
     (expand-into-sequence (cdr (unwrap-syntax syntax)) syntax))
@@ -640,11 +636,10 @@
 	    (success (list-queue-list fixed) '())))))))
 
 (define (identifier-syntax? syntax)
-  (and-let*
-      ((datum (unwrap-syntax syntax))
-       ((or (identifier? datum)
-	    (begin (raise-syntax-error syntax "bad identifier")
-		   #f))))))
+  (let*
+      ((datum (unwrap-syntax syntax)))
+    (or (identifier? datum)
+	(raise-syntax-error syntax "bad identifier"))))
 
 (define (flist? syntax)
   (or (not (circular-list? syntax))

@@ -50,7 +50,7 @@
      (syntax-error "invalid use of auxiliary syntax ‘else’"))))
 
 (define-syntax cond
-  (syntax-rules (else =>)
+  (syntax-rules ... (else =>)
     ((cond (else result1 result2 ...))
      (begin result1 result2 ...))
     ((cond (test => result))
@@ -78,14 +78,14 @@
      (syntax-error "bad cond syntax"))))
 
 (define-syntax and
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((and) #t)
     ((and test) test)
     ((and test1 test2 ...)
      (if test1 (and test2 ...) #f))))
 
 (define-syntax or
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((or) #f)
     ((or test) test)
     ((or test1 test2 ...)
@@ -107,7 +107,7 @@
          (begin result1 result2 ... (if #f #f))))))
 
 (define-syntax case
-   (syntax-rules (else =>)
+   (syntax-rules ... (else =>)
      ((case (key ...)
         clauses ...)
       (let ((atom-key (key ...)))
@@ -191,7 +191,7 @@
 		   (apply values args)))))))))))))
 
 (define-syntax guard-aux
-  (syntax-rules (else =>)
+  (syntax-rules ... (else =>)
     ((guard-aux reraise (else result1 result2 ...))
      (begin result1 result2 ...))
     ((guard-aux reraise (test => result))
@@ -239,7 +239,7 @@
      (syntax-error "bad let syntax"))))
 
 (define-syntax let*
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((let* () body1 body2 ...)
      (let () body1 body2 ...))
     ((let* ((name1 val1) (name2 val2) ...) body1 body2 ...)
@@ -277,7 +277,7 @@
      (syntax-error "bad let-values syntax"))))
   
 (define-syntax let-values-aux
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((let-values-aux () ((formals init tmp) ...) body)
      (let ()
        (define-values tmp init)
@@ -290,7 +290,7 @@
      (let-values-aux bindings ((formals init tmp) . tmps) body))))
 
 (define-syntax let*-values
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((let*-values () body1 body2 ...)
      (let () body1 body2 ...))
     ((let*-values ((formals init) . bindings) body1 body2 ...)
@@ -309,7 +309,7 @@
      (syntax-error "bad let-syntax syntax"))))
 
 (define-syntax let-syntax-aux
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((let-syntax-aux () ((tmp keyword spec) ...) body)
      (letrec-syntax ((tmp spec) ...)
        (letrec-syntax ((keyword
@@ -347,7 +347,7 @@
      (syntax-error "bad quasiquotation"))))
 
 (define-syntax quasiquote-aux
-  (syntax-rules (quasiquote unquote unquote-splicing)
+  (syntax-rules ... (quasiquote unquote unquote-splicing)
     ((quasiquote-aux ,form)
      form)   
     ((quasiquote-aux (,@form . rest))
@@ -392,7 +392,7 @@
      (syntax-error "bad parameterize syntax"))))
 
 (define-syntax parameterize-aux
-  (syntax-rules ()
+  (syntax-rules ... ()
     ((parameterize-aux
          ((param value p old new) ...)
          ()

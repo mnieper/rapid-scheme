@@ -1,3 +1,9 @@
+#;(cond-expand
+ (chibi
+  (import (scheme base)))
+ (else
+  (import (rapid primitive)))) 
+
 (import (rapid primitive))
 
 (define-values (+) 'foo)
@@ -7,8 +13,8 @@
     ((macro1 op)
      (begin
        (define-syntax macro2
-	 (syntax-rules (opa opa)
-	   ((macro2 opa) 'foo)))
+	 (syntax-rules (op op)
+	   ((macro2 op) 'foo)))
        (macro2 op)))))
 
 (macro1 +)
