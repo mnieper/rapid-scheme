@@ -59,6 +59,7 @@ integration-tests:
 	./rapid-scheme data/macro1.scm 2>&1 | grep "duplicate literal identifier"
 	./rapid-scheme -I share data/ellipsis.scm 2>&1 | grep "OK OK"
 	./rapid-scheme -I share data/meaning.scm 2>&1 | grep "cannot be changed"
+	./rapid-scheme -I share data/literals.scm 2>&1 | grep "++++"
 
 meta-tests:
 	./rapid-scheme -Ishare tests.scm

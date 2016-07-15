@@ -341,7 +341,9 @@
 	   (denotation-identity denotation2)))
        ((not denotation1))
        (else
-	(identifier<? identifier1 identifier2)))))
+	;; TODO: Make use of identifiers' hashes to speed up comparison.
+	(string<? (symbol->string (identifier->symbol identifier1))
+		  (symbol->string (identifier->symbol identifier2)))))))
   
   (make-comparator identifier?
 		   free-identifier=?
