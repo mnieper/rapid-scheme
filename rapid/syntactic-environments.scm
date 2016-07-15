@@ -206,24 +206,30 @@
 				 (imports (syntactic-environment-bindings
 					   environment))))
 
-(define (syntactic-environment-ref environment identifier)
-  (let loop ((id identifier) (environment environment))
-    (cond
-     ((imap-ref/default (syntactic-environment-bindings environment)
-			id
-			#f)
-      => (lambda (binding)
-	   (use-identifier! identifier binding)
-	   binding))
-     (else
-      (receive (id environment)
-	  (unclose-syntax id)
-	(cond
-	 (id
-	  (loop id environment))
-	 (else
-	  (use-identifier! identifier #t)
-	  #f)))))))
+(define syntactic-environment-ref
+  (case-lambda
+   ((environment identifier)
+    (syntactic-environment-ref environment identifier #f))
+   ((environment identifier isolated?)
+    (let loop ((id identifier) (environment environment))
+      (cond
+       ((imap-ref/default (syntactic-environment-bindings environment)
+			  id
+			  #f)
+	=> (lambda (binding)
+	     (unless isolated?
+	       (use-identifier! identifier binding))
+	     binding))
+       (else
+	(receive (id environment)
+	    (unclose-syntax id)
+	  (cond
+	   (id
+	    (loop id environment))
+	   (else
+	    (unless isolated?
+	      (use-identifier! identifier #t))
+	    #f)))))))))
 
 (define (lookup-syntactic-binding! identifier-syntax)
   (or (syntactic-environment-ref (current-syntactic-environment)
@@ -262,21 +268,21 @@
 		  (not (eq? (binding-denotation binding) denotation)))))
 	  binding)
 	=> (lambda (binding)
-	     (raise-syntax-warning
-	      identifier-syntax
-	      "changing of the meaning of the identifier ‘~a’ is a violation of the spec"
-	      (syntax->datum identifier-syntax))
+	     (raise-syntax-error identifier-syntax
+				 "meaning of identifier ‘~a’ cannot be changed"
+				 (syntax->datum identifier-syntax))
 	     (when (syntactic-binding? binding)
 	       (raise-syntax-note (binding-syntax binding)
 				  "identifier ‘~a’ was bound here"
 				  (syntax->datum identifier-syntax)))
-	     #f)))
-      (let ((binding
-	     (make-syntactic-binding identifier-syntax denotation immutable?)))
-	(use-identifier! (unwrap-syntax identifier-syntax) binding)
-	(current-bindings (imap-replace (current-bindings)
-					identifier
-					binding)))))))
+	     #f))
+       (else
+	(let ((binding
+	       (make-syntactic-binding identifier-syntax denotation immutable?)))
+	  (use-identifier! (unwrap-syntax identifier-syntax) binding)
+	  (current-bindings (imap-replace (current-bindings)
+					  identifier
+					  binding)))))))))
 
 (define (syntactic-environment-insert-binding! syntactic-environment
 					       identifier-syntax
@@ -287,9 +293,9 @@
 (define (identifier=? environment1 identifier1 environment2 identifier2)
   (let*
       ((binding1
-	(syntactic-environment-ref environment1 identifier1))
+	(syntactic-environment-ref environment1 identifier1 #t))
        (binding2
-	(syntactic-environment-ref environment2 identifier2))
+	(syntactic-environment-ref environment2 identifier2 #t))
        (denotation1
 	(and binding1 (binding-denotation binding1)))
        (denotation2
@@ -298,7 +304,8 @@
      ((and denotation1 denotation2)
       (eq? denotation1 denotation2))
      ((and (not denotation1) (not denotation2))
-      (bound-identifier=? identifier1 identifier2))
+      (eq? (identifier->symbol identifier1)
+	   (identifier->symbol identifier2)))
      (else
       #f))))
 
@@ -321,9 +328,9 @@
   (define (free-identifier<? identifier1 identifier2)
     (let*
 	((binding1
-	  (syntactic-environment-ref environment identifier1))
+	  (syntactic-environment-ref environment identifier1 #t))
 	 (binding2
-	  (syntactic-environment-ref environment identifier2))
+	  (syntactic-environment-ref environment identifier2 #t))
 	 (denotation1
 	  (and binding1 (binding-denotation binding1)))
 	 (denotation2

@@ -223,6 +223,8 @@
        (when (or (syntax-fatal-error? condition) (>= (error-message-count) 10))
 	 (exit #f))
        #f)
+      ((syntax-info? condition)
+       #f)
       (else
        (print-internal-error)
        (raise condition))))

@@ -41,9 +41,12 @@
 	      (set! renames (imap-replace renames identifier renamed-identifier))
 	      renamed-identifier))))
 
-	(define (compare identifier1 identifier2)	  
-	  (identifier=? environment identifier1 environment identifier2))
-
+	(define (compare identifier1 identifier2)
+	  (and (identifier=? environment identifier1 environment identifier2)
+	       (begin
+		 (syntactic-environment-ref environment identifier2)
+		 #t)))
+	
 	(transformer syntax rename compare)))))
 
 (define (make-syntax-rules-transformer
@@ -86,8 +89,8 @@
 		    (and-let*
 			((datum (unwrap-syntax syntax))
 			 ((identifier? datum))
-			 ((compare (unwrap-syntax syntax)
-				   (%rename (unwrap-syntax pattern-syntax)))))
+			 ((compare (%rename (unwrap-syntax pattern-syntax))
+				   (unwrap-syntax syntax))))
 		      #()))))
 	 ;; _ identifier
 	 ((underscore? pattern)

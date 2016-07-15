@@ -217,6 +217,9 @@
 		      #t)))
 		   literal-syntax))
 	      => (lambda (literal-syntax)
+		   ;; Mark the binding of this literal as used.
+		   (syntactic-environment-ref (current-syntactic-environment)
+					      (unwrap-syntax literal-syntax))
 		   (loop (imap-replace literals
 				       (unwrap-syntax literal-syntax)
 				       literal-syntax)
@@ -229,31 +232,44 @@
 		(and-let* (((not (literal? identifier)))
 			   (binding (syntactic-environment-ref
 				     (current-syntactic-environment)
-				     identifier))
+				     identifier #t))
 			   (denotation (binding-denotation binding))
-			   ((primitive-transformer? denotation)))
-		  (eq? '... (primitive-transformer-name denotation))))
+			   ((primitive-transformer? denotation))
+			   ((eq? '... (primitive-transformer-name denotation))))
+		  ;; Mark the binding of this identifier as used.
+		  (syntactic-environment-ref (current-syntactic-environment)
+					     identifier)
+		  #t))
 	      (lambda (identifier)
 		(bound-identifier=? identifier (car ellipsis*)))))
 	 (literal?
 	  (lambda (identifier)
 	    (and (imap-ref/default literals identifier #f)
-		 #t)))
+		 (begin
+		   ;; Mark the binding of this identifier as used.
+		   (syntactic-environment-ref (current-syntactic-environment)
+					      identifier)		 
+		   #t))))
 	 (underscore?
 	  (lambda (identifier)
 	    (and-let*
 		((binding (syntactic-environment-ref (current-syntactic-environment)
-							 identifier))
+						     identifier
+						     #f))
 		 (denotation (binding-denotation binding))
-		 ((primitive-transformer? denotation)))
-	      (eq? '_ (primitive-transformer-name denotation))))))
+		 ((primitive-transformer? denotation))
+		 ((eq? '_ (primitive-transformer-name denotation))))
+	      ;; Mark the binding of this identifier as used.
+	      (syntactic-environment-ref (current-syntactic-environment)
+					 identifier)
+	      #t))))	     
       (expand-into-transformer (make-syntax-rules-transformer ellipsis?
 							      literal?
 							      underscore?
 							      syntax-rules-syntax*
 							      syntax)
 			       syntax)))
-
+  
   ;; syntax-error syntax
   (define-transformer (syntax-error syntax)
     (and-let*
