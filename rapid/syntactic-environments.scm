@@ -41,7 +41,7 @@
      (define-syntactic-environment-helper environment () . definitions))))
 
 (define-syntax define-syntactic-environment-helper
-  (syntax-rules ... (define-transformer define-auxiliary-syntax)
+  (syntax-rules (define-transformer define-auxiliary-syntax)
     ((define-syntactic-environment-helper environment
        commands)
      (begin
