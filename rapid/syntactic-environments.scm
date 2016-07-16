@@ -317,8 +317,6 @@
 
 (define (make-free-identifier-comparator)
 
-  (define identifier<? (comparator-ordering-predicate identifier-comparator))
-
   (define environment (current-syntactic-environment))
   
   (define (free-identifier=? identifier1 identifier2)
@@ -339,7 +337,7 @@
        ((and denotation1 denotation2)
 	(< (denotation-identity denotation1)
 	   (denotation-identity denotation2)))
-       ((not denotation1))
+       ((and (not denotation1) denotation2))
        (else
 	;; TODO: Make use of identifiers' hashes to speed up comparison.
 	(string<? (symbol->string (identifier->symbol identifier1))
