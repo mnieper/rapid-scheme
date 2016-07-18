@@ -484,7 +484,10 @@
 						  (identifier->symbol identifier))
 			      (raise-syntax-note (vector-ref (imap-ref arg-table identifier) 0)
 						 "previous occurrence was here"))))
-		  (syntax+index (imap-ref/default field-table identifier #f)))
+		  (syntax+index (or (imap-ref/default field-table identifier #f)
+				    (raise-syntax-error identifier-syntax
+							"no field named ‘~a’"
+							(identifier->symbol identifier)))))
 	       (set! arg-table
 		     (imap-replace arg-table identifier (vector identifier-syntax
 								(vector-ref syntax+index 1))))
