@@ -43,10 +43,7 @@
 (define-primitive bytevector? 'bytevector?)
 (define-primitive caar 'caar)
 (define-primitive cadr 'cadr)
-(define-primitive call-with-current-continuation
-  'call-with-current-continuation)
 (define-primitive call-with-port 'call-with-port)
-(define-primitive call-with-values 'call-with-values)
 (define-primitive call/cc 'call/cc)
 (define-primitive car 'car)
 (define-primitive cdar 'cdar)
@@ -200,7 +197,6 @@
 (define-primitive truncate/ 'truncate/)
 (define-primitive u8-ready? 'u8-ready?)
 (define-primitive utf8->string 'utf8->string)
-(define-primitive values 'values)
 (define-primitive vector 'vector)
 (define-primitive vector->list 'vector->list)
 (define-primitive vector->string 'vector->string)

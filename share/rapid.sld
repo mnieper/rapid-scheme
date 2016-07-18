@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (scheme base)
+(define-library (rapid)
   (export *
 	  +
 	  -
@@ -50,7 +50,7 @@
 	  caar
 	  cadr
 	  (rename call/cc call-with-current-continuation)
-	  call-with-port	  
+	  call-with-port
 	  call-with-values
 	  call/cc
 	  car
@@ -253,5 +253,31 @@
 	  write-char
 	  write-string
 	  write-u8
-	  zero?)
-  (import (rapid)))
+	  zero?
+
+	  exit)
+  (import (rapid primitive)
+	  (rename (rapid runtime)
+		  ;(call/cc %call/cc)
+		  (char-ready? %char-ready?)
+		  (current-error-port %current-error-port)
+		  (current-input-port %current-input-port)
+		  (current-output-port %current-output-port)
+		  ;(error %error)
+		  ;(exit %exit)
+		  (flush-output-port %flush-output-port)
+		  (newline %newline)
+		  (peek-char %peek-char)
+		  (peek-u8 %peek-u8)
+		  (read-bytevector %read-bytevector)
+		  (read-bytevector! %read-bytevector!)
+		  (read-char %read-char)
+		  (read-line %read-line)
+		  (read-string %read-string)
+		  (read-u8 %read-u8)
+		  (u8-ready? %u8-ready?)
+		  (write-bytevector %write-bytevector)
+		  (write-char %write-char)
+		  (write-string %write-string)
+		  (write-u8 %write-u8)))
+  (include "rapid.scm"))

@@ -44,9 +44,7 @@
 	  bytevector?
 	  caar
 	  cadr
-	  call-with-current-continuation
 	  call-with-port
-	  call-with-values
 	  call/cc
 	  car
 	  cdar
@@ -194,7 +192,6 @@
 	  truncate/
 	  u8-ready?
 	  utf8->string
-	  values
 	  vector
 	  vector->list
 	  vector->string

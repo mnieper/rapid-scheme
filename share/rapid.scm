@@ -167,11 +167,11 @@
 (define-syntax guard
   (syntax-rules ()
     ((guard (var clause ...) e1 e2 ...)
-     ((call-with-current-continuation
+     ((call/cc
        (lambda (guard-k)
 	 (with-exception-handler
 	  (lambda (condition)
-	    ((call-with-current-continuation
+	    ((call/cc
 	      (lambda (handler-k)
 		(guard-k
 		 (lambda ()
@@ -274,7 +274,7 @@
      (let-values-aux ((formals init) ...) () (body1 body2 ...)))
     ((let-values . _)
      (syntax-error "bad let-values syntax"))))
-  
+
 (define-syntax let-values-aux
   (syntax-rules ()
     ((let-values-aux () ((formals init tmp) ...) body)
@@ -348,7 +348,7 @@
 (define-syntax quasiquote-aux
   (syntax-rules (quasiquote unquote unquote-splicing)
     ((quasiquote-aux ,form)
-     form)   
+     form)
     ((quasiquote-aux (,@form . rest))
      (append form (quasiquote rest)))
     ((quasiquote-aux `form . depth)
@@ -364,7 +364,20 @@
     ((quasiquote-aux constant . depth)
      'constant)))
 
+;;; Control features
+
+(define (call-with-values producer consumer)
+  (define-values values (producer))
+  (apply consumer values))
+
+(define (values . things)
+  (call/cc
+   (lambda (cont)
+     (apply cont things))))
+
 ;;; Parameter objects
+
+;; TODO: Use continuation marks to implement tail-recursive parameterize.
 
 (define make-parameter
   (case-lambda
@@ -411,9 +424,6 @@
       ((param value p old new) . args)
       rest
       body))))
-
-(define <param-set!> (vector #f))
-(define <param-convert> (vector #f))
 
 ;;; Input and output
 
@@ -515,3 +525,8 @@
 
 (define (features)
   (rapid-features))
+
+;;; Constants
+
+(define <param-set!> (vector #f))
+(define <param-convert> (vector #f))

@@ -17,5 +17,4 @@
 
 (define-library (scheme case-lambda)
   (export case-lambda)
-  (import (rapid primitive))
-  (include "case-lambda.scm"))
+  (import (rapid primitive)))
