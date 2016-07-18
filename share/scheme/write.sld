@@ -20,15 +20,4 @@
 	  write
 	  write-shared
 	  write-simple)
-  (import (rapid primitive)
-	  (rename (only (rapid runtime)
-			display
-			write
-			write-shared
-			write-simple)
-		  (display %display)
-		  (write %write)
-		  (write-shared %write-shared)
-		  (write-simple %write-simple))
-	  (scheme base))
-  (include "write.scm"))
+  (import (rapid)))

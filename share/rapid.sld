@@ -50,6 +50,8 @@
 	  caar
 	  cadr
 	  (rename call/cc call-with-current-continuation)
+	  call-with-input-file
+	  call-with-output-file
 	  call-with-port
 	  call-with-values
 	  call/cc
@@ -81,7 +83,9 @@
 	  define-record-type
 	  define-syntax
 	  define-values
+	  delete-file
 	  denominator
+	  display
 	  do
 	  dynamic-wind
 	  else
@@ -102,6 +106,7 @@
 	  expt
 	  features
 	  file-error?
+	  file-exists?
 	  floor
 	  floor-quotient
 	  floor-remainder
@@ -160,9 +165,13 @@
 	  number?
 	  numerator
 	  odd?
+	  open-binary-input-file
+	  open-binary-output-file
 	  open-input-bytevector
+	  open-input-file
 	  open-input-string
 	  open-output-bytevector
+	  open-output-file
 	  open-output-string
 	  or
 	  output-port-open?
@@ -181,6 +190,7 @@
 	  raise-continuable
 	  rational?
 	  rationalize
+	  read
 	  read-bytevector
 	  read-bytevector!
 	  read-char
@@ -249,8 +259,13 @@
 	  vector?
 	  when
 	  with-exception-handler
+	  with-input-from-file
+	  with-output-to-file
+	  write
 	  write-bytevector
 	  write-char
+	  write-simple
+	  write-shared
 	  write-string
 	  write-u8
 	  zero?
@@ -258,26 +273,52 @@
 	  exit)
   (import (rapid primitive)
 	  (rename (rapid runtime)
-		  ;(call/cc %call/cc)
+		  (binary-port? %binary-port?)
+		  ;;(call/cc %call/cc)
+		  (call-with-port %call-with-port)
+		  (close-port %close-port)
+		  (close-input-port %close-input-port)
+		  (close-output-port %close-output-port)
 		  (char-ready? %char-ready?)
 		  (current-error-port %current-error-port)
 		  (current-input-port %current-input-port)
 		  (current-output-port %current-output-port)
-		  ;(error %error)
-		  ;(exit %exit)
+		  (display %display)
+		  ;;(error %error)
+		  ;;(exit %exit)
 		  (flush-output-port %flush-output-port)
+		  (get-output-bytevector %get-output-bytevector)
+		  (get-output-string %get-output-string)
+		  (input-port? %input-port?)		  
+		  (input-port-open? %input-port-open?)
 		  (newline %newline)
+		  (open-input-bytevector %open-input-bytevector)
+		  (open-output-bytevector %open-output-bytevector)
+		  (open-binary-input-file %open-binary-input-file)
+		  (open-binary-output-file %open-binary-output-file)
+		  (open-input-file %open-input-file)
+		  (open-input-string %open-input-string)
+		  (open-output-file %open-output-file)
+		  (open-output-string %open-output-string)
+		  (output-port? %output-port?)
+		  (output-port-open? %output-port-open?)
 		  (peek-char %peek-char)
 		  (peek-u8 %peek-u8)
+		  (port? %port?)
+		  (read %read)
 		  (read-bytevector %read-bytevector)
 		  (read-bytevector! %read-bytevector!)
 		  (read-char %read-char)
 		  (read-line %read-line)
 		  (read-string %read-string)
 		  (read-u8 %read-u8)
+		  (textual-port? %textual-port?)
 		  (u8-ready? %u8-ready?)
+		  (write %write)
 		  (write-bytevector %write-bytevector)
 		  (write-char %write-char)
+		  (write-simple %write-simple)
+		  (write-shared %write-shared)
 		  (write-string %write-string)
 		  (write-u8 %write-u8)))
   (include "rapid.scm"))

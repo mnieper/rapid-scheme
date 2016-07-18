@@ -60,9 +60,7 @@
 	  bytevector?
 	  caar
 	  cadr
-	  call-with-current-continuation
 	  call-with-port	  
-	  call-with-values
 	  call/cc
 	  car
 	  case
@@ -294,8 +292,6 @@
 	  environment
 	  eval
 
-	  call-with-input-file
-	  call-with-output-file
 	  delete-file
 	  file-exists?
 	  open-binary-input-file

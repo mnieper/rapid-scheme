@@ -242,8 +242,6 @@
 	  cdddar
 	  cddddr
 
-	  call-with-input-file
-	  call-with-output-file
 	  delete-file
 	  file-exists?
 	  open-binary-input-file

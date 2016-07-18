@@ -17,9 +17,4 @@
 
 (define-library (scheme read)
   (export read)
-  (import (rapid primitive)
-          (rename (only (rapid runtime)
-			read)
-		  (read %read))
-	  (scheme base))
-  (include "read.scm"))
+  (import (rapid)))

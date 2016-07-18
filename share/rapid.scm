@@ -425,101 +425,226 @@
       rest
       body))))
 
+;;; Ports
+
+(define-record-type <input-port>
+  (%make-port impl ci?)
+  port?
+  (impl port-impl)
+  (ci? port-ci?))
+
+(define (make-port impl)
+  (%make-port impl #f))
+
+(define (call-with-port port proc)
+  (%call-with-port
+   (port-impl port)
+   (lambda (impl)
+     (proc port))))
+
+(define (input-port? port)
+  (%input-port? (port-impl port)))
+
+(define (output-port? port)
+  (%output-port? (port-impl port)))
+
+(define (textual-port? port)
+  (%textual-port? (port-impl port)))
+
+(define (binary-port? port)
+  (%binary-port? (port-impl port)))
+
+(define (input-port-open? port)
+  (%input-port-open? (port-impl port)))
+
+(define (output-port-open? port)
+  (%output-port-open? (port-impl port)))
+
+(define (close-port port)
+  (%close-port (port-impl port)))
+
+(define (close-input-port port)
+  (%close-input-port (port-impl port)))
+
+(define (close-output-port port)
+  (%close-output-port (port-impl port)))
+
+(define (open-input-string string)
+  (make-port (%open-input-string string)))
+
+(define (open-output-string)
+  (make-port (%open-output-string)))
+
+(define (get-output-string port)
+  (%get-output-string (port-impl port)))
+
+(define (open-input-bytevector bytevector)
+  (make-port (%open-input-string bytevector)))
+
+(define (open-output-bytevector)
+  (make-port (%open-output-bytevector)))
+
+(define (get-output-bytevector port)
+  (%get-output-bytevector (port-impl port)))
+
+(define (with-input-from-file string thunk)
+  (call-with-input-file
+      (lambda (port)
+	(parameterize
+	    ((current-input-port port))
+	  thunk))))
+
+(define (with-output-to-file string thunk)
+  (call-with-output-file
+      (lambda (port)
+	(parameterize
+	    ((current-output-port port))
+	  thunk))))
+
 ;;; Input and output
 
-(define current-input-port (make-parameter (%current-input-port)))
-(define current-output-port (make-parameter (%current-output-port)))
-(define current-error-port (make-parameter (%current-error-port)))
+(define current-input-port (make-parameter (make-port (%current-input-port))))
+(define current-output-port (make-parameter (make-port (%current-output-port))))
+(define current-error-port (make-parameter (make-port (%current-error-port))))
 
 ;;; Input
 
 (define read-char
   (case-lambda
-   (() (%read-char (current-input-port)))
-   ((port) (%read-char port))))
+   (() (%read-char (port-impl (current-input-port))))
+   ((port) (%read-char (port-impl port)))))
 
 (define peek-char
   (case-lambda
-   (() (%peek-char (current-input-port)))
-   ((port) (%peek-char port))))
+   (() (%peek-char (port-impl (current-input-port))))
+   ((port) (%peek-char (port-impl port)))))
 
 (define peek-u8
   (case-lambda
-   (() (%peek-u8 (current-input-port)))
-   ((port) (%peek-u8 port))))
+   (() (%peek-u8 (port-impl (current-input-port))))
+   ((port) (%peek-u8 (port-impl port)))))
 
 (define read-line
   (case-lambda
-   (() (%read-line (current-input-port)))
-   ((port) (%read-line port))))
+   (() (%read-line (port-impl (current-input-port))))
+   ((port) (%read-line (port-impl port)))))
 
 (define char-ready?
   (case-lambda
-   (() (%char-ready? (current-input-port)))
-   ((port) (%char-ready? port))))
+   (() (%char-ready? (port-impl (current-input-port))))
+   ((port) (%char-ready? (port-impl port)))))
 
 (define read-string
   (case-lambda
-   ((k) (%read-string k (current-input-port)))
-   ((k port) (%read-string k port))))
+   ((k) (%read-string k (port-impl (current-input-port))))
+   ((k port) (%read-string k (port-impl port)))))
 
 (define read-u8
   (case-lambda
-   (() (%read-u8 (current-input-port)))
-   ((port) (%read-u8 port))))
+   (() (%read-u8 (port-impl (current-input-port))))
+   ((port) (%read-u8 (port-impl port)))))
 
 (define u8-ready?
   (case-lambda
-   (() (%u8-ready? (current-input-port)))
-   ((port) (%u8-ready? port))))
+   (() (%u8-ready? (port-impl (current-input-port))))
+   ((port) (%u8-ready? (port-impl port)))))
 
 (define read-bytevector
   (case-lambda
-   ((k) (%read-bytevector (current-input-port)))
-   ((k port) (%read-bytevector k port))))
+   ((k) (%read-bytevector (port-impl (current-input-port))))
+   ((k port) (%read-bytevector k (port-impl port)))))
 
 (define read-bytevector!
   (case-lambda
-   ((bytevector) (%read-bytevector! bytevector (current-input-port)))
-   ((bytevector port) (%read-bytevector! bytevector port))
-   ((bytevector port start) (%read-bytevector! bytevector port start))
-   ((bytevector port start end) (%read-bytevector! bytevector port start end))))
+   ((bytevector) (%read-bytevector! bytevector (port-impl (current-input-port))))
+   ((bytevector port) (%read-bytevector! bytevector (port-impl port)))
+   ((bytevector port start) (%read-bytevector! bytevector (port-impl port) start))
+   ((bytevector port start end) (%read-bytevector! bytevector (port-impl port) start end))))
 
 ;;; Output
 
 (define newline
   (case-lambda
-   (() (%newline (current-output-port)))
-   ((port) (%newline port))))
+   (() (%newline (port-impl (current-output-port))))
+   ((port) (%newline (port-impl port)))))
 
 (define write-char
   (case-lambda
-   ((char) (%write-char char (current-output-port)))
-   ((char port) (%write-char char port))))
+   ((char) (%write-char char (port-impl (current-output-port))))
+   ((char port) (%write-char char (port-impl port)))))
 
 (define write-string
   (case-lambda
-   ((string) (%write-string string (current-output-port)))
-   ((string port) (%write-string string port))
-   ((string port start) (%write-string port start))
-   ((string port start end) (%write-string port start end))))
+   ((string) (%write-string string (port-impl (current-output-port))))
+   ((string port) (%write-string string (port-impl port)))
+   ((string port start) (%write-string (port-impl port) start))
+   ((string port start end) (%write-string (port-impl port) start end))))
 
 (define write-u8
   (case-lambda
-   ((byte) (%write-u8 byte (current-output-port)))
-   ((byte port) (%write-u8 byte port))))
+   ((byte) (%write-u8 byte (port-impl (current-output-port))))
+   ((byte port) (%write-u8 byte (port-impl port)))))
 
 (define write-bytevector
   (case-lambda
    ((bytevector) (%write-bytevector bytevector (current-output-port)))
-   ((bytevector port) (%write-bytevector bytevector port))
-   ((bytevector port start) (%write-bytevector port start))
-   ((bytevector port start end) (%write-bytevector port start end))))
+   ((bytevector port) (%write-bytevector bytevector (port-impl port)))
+   ((bytevector port start) (%write-bytevector (port-impl port) start))
+   ((bytevector port start end) (%write-bytevector (port-impl port) start end))))
 
 (define flush-output-port
   (case-lambda
-   (() (%flush-output-port (current-output-port)))
-   ((port) (%flush-output-port port))))
+   (() (%flush-output-port (port-impl (current-output-port))))
+   ((port) (%flush-output-port (port-impl port)))))
+
+;;; File library
+
+(define (call-with-input-file string proc)
+  (call-with-port (open-input-file string) proc))
+
+(define (call-with-output-file string proc)
+  (call-with-port (open-output-file string) proc))
+  
+(define (open-input-file string)
+  (make-port (%open-input-file string)))
+
+(define (open-output-file string)
+  (make-port (%open-output-file string)))
+
+(define (open-binary-input-file string)
+  (make-port (%open-binary-input-file string)))
+
+(define (open-binary-output-file string)
+  (make-port (%open-binary-output-file string)))
+
+;;; Write library
+
+(define display
+  (case-lambda
+   ((obj) (%display obj (port-impl (current-output-port))))
+   ((obj port) (%display obj (port-impl port)))))
+
+(define write
+  (case-lambda
+   ((obj) (%write obj (port-impl (current-output-port))))
+   ((obj port) (%write obj (port-impl port)))))
+
+(define write-shared
+  (case-lambda
+   ((obj) (%write-shared obj (port-impl (current-output-port))))
+   ((obj port) (%write-shared obj (port-impl port)))))
+
+(define write-simple
+  (case-lambda
+   ((obj) (%write-simple obj (port-impl (current-output-port))))
+   ((obj port) (%write-simple obj (port-impl port)))))
+
+;;; Read library
+
+(define read
+  (case-lambda
+   (() (%read (port-impl (current-input-port))))
+   ((port) (%read (port-impl port)))))
 
 ;;; Features
 

@@ -247,8 +247,6 @@
 (define-primitive cdddar 'cdddar)
 (define-primitive cddddr 'cddddr)
 
-(define-primitive call-with-input-file 'call-with-input-file)
-(define-primitive call-with-output-file 'call-with-output-file)
 (define-primitive delete-file 'delete-file)
 (define-primitive file-exists? 'file-exists?)
 (define-primitive open-binary-input-file 'open-binary-input-file)
