@@ -18,6 +18,10 @@
 (define-library (rapid read)
   (export make-source-port
 	  source-port?
+	  source-port-ci?
+	  source-port-set-ci?!
+	  source-port-fold-case!
+	  source-port-no-fold-case!
 	  read-syntax
 	  read-file)
   (import (scheme case-lambda)

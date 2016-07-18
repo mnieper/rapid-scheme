@@ -15,10 +15,16 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (scheme read)
-  (export read)
-  (import (scheme case-lambda)
-          (rapid)
-	  (rapid syntax)
-	  (rapid read))
-  (include "read.scm"))
+(define read
+  (case-lambda
+   (() (read (current-input-port)))
+   ((port)
+    (let*
+	((source-port
+	  (make-source-port port #f (port-ci? port)))
+	 (syntax
+	  (guard (condition (else (raise (make-read-error condition)))) 
+	    (read-syntax source-port #f))))
+      (port-set-ci?! port (source-port-ci? source-port))
+      (syntax->datum syntax)))))
+     

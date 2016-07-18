@@ -150,7 +150,6 @@
 (define-primitive read-bytevector 'read-bytevector)
 (define-primitive read-bytevector! 'read-bytevector!)
 (define-primitive read-char 'read-char)
-(define-primitive read-error? 'read-error?)
 (define-primitive read-line 'read-line)
 (define-primitive read-string 'read-string)
 (define-primitive read-u8 'read-u8)
@@ -314,7 +313,5 @@
 
 (define-primitive eval 'eval)
 (define-primitive environment 'environment)
-
-(define-primitive read 'read)
 
 (define-primitive load 'load)

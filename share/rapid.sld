@@ -148,6 +148,7 @@
 	  make-bytevector
 	  make-list
 	  make-parameter
+	  make-read-error
 	  make-string
 	  make-vector
 	  map
@@ -181,6 +182,8 @@
 	  peek-char
 	  peek-u8
 	  port?
+	  port-ci?
+	  port-set-ci?!
 	  positive?
 	  procedure?
 	  quasiquote
@@ -190,7 +193,6 @@
 	  raise-continuable
 	  rational?
 	  rationalize
-	  read
 	  read-bytevector
 	  read-bytevector!
 	  read-char
@@ -289,7 +291,7 @@
 		  (flush-output-port %flush-output-port)
 		  (get-output-bytevector %get-output-bytevector)
 		  (get-output-string %get-output-string)
-		  (input-port? %input-port?)		  
+		  (input-port? %input-port?)
 		  (input-port-open? %input-port-open?)
 		  (newline %newline)
 		  (open-input-bytevector %open-input-bytevector)
@@ -305,7 +307,6 @@
 		  (peek-char %peek-char)
 		  (peek-u8 %peek-u8)
 		  (port? %port?)
-		  (read %read)
 		  (read-bytevector %read-bytevector)
 		  (read-bytevector! %read-bytevector!)
 		  (read-char %read-char)

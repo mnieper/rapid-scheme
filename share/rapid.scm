@@ -425,13 +425,20 @@
       rest
       body))))
 
+;;; Exceptions
+
+(define-record-type <read-error>
+  (make-read-error reason)
+  read-error?
+  (reason read-error-reason))
+
 ;;; Ports
 
 (define-record-type <input-port>
   (%make-port impl ci?)
   port?
   (impl port-impl)
-  (ci? port-ci?))
+  (ci? port-ci? port-set-ci?!))
 
 (define (make-port impl)
   (%make-port impl #f))
@@ -638,13 +645,6 @@
   (case-lambda
    ((obj) (%write-simple obj (port-impl (current-output-port))))
    ((obj port) (%write-simple obj (port-impl port)))))
-
-;;; Read library
-
-(define read
-  (case-lambda
-   (() (%read (port-impl (current-input-port))))
-   ((port) (%read (port-impl port)))))
 
 ;;; Features
 

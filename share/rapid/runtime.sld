@@ -149,7 +149,6 @@
 	  read-bytevector
 	  read-bytevector!
 	  read-char
-	  read-error?
 	  read-line
 	  read-string
 	  read-u8
@@ -309,8 +308,6 @@
 
 	  environment
 	  eval
-
-	  read
 
 	  load)
   (import (rapid primitive))
