@@ -40,7 +40,7 @@
 	  cddadr
 	  cdddar
 	  cddddr)
-  (import (only (rapid runtime)
+  (import (only (rapid primitives)
 		caadr
 		cadar
 		caddr

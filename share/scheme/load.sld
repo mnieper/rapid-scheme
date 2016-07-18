@@ -17,5 +17,5 @@
 
 (define-library (scheme load)
   (export load)
-  (import (only (rapid runtime)
+  (import (only (rapid primitives)
 		load)))

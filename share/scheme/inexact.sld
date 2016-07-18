@@ -28,7 +28,7 @@
 	  sin
 	  sqrt
 	  tan)
-  (import (only (rapid runtime)
+  (import (only (rapid primitives)
 		acos
 		asin
 		atan

@@ -21,7 +21,7 @@
 	  exit
 	  get-environment-variable
 	  get-environment-variables)
-  (import (only (rapid runtime)
+  (import (only (rapid primitives)
 		command-line
 		emergency-exit
 		exit

@@ -17,5 +17,5 @@
 
 (define-library (scheme repl)
   (export interaction-environment)
-  (import (only (rapid runtime)
+  (import (only (rapid primitives)
 		interaction-environment)))

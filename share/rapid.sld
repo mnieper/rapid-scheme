@@ -274,7 +274,7 @@
 
 	  exit)
   (import (rapid primitive)
-	  (rename (rapid runtime)
+	  (rename (rapid primitives)
 		  (binary-port? %binary-port?)
 		  ;;(call/cc %call/cc)
 		  (call-with-port %call-with-port)

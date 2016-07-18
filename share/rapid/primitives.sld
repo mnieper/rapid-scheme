@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid runtime)
+(define-library (rapid primitives)
   (export *
 	  +
 	  -
@@ -311,4 +311,4 @@
 
 	  load)
   (import (rapid primitive))
-  (include "runtime.scm"))
+  (include "primitives.scm"))

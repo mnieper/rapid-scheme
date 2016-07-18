@@ -19,7 +19,7 @@
   (export current-jiffy
 	  current-second
 	  jiffies-per-second)
-  (import (only (rapid runtime)
+  (import (only (rapid primitives)
 		current-jiffy
 		current-second
 		jiffies-per-second)))

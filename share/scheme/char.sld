@@ -38,7 +38,7 @@
 	  string-downcase
 	  string-foldcase
 	  string-upcase)
-  (import (only (rapid runtime)
+  (import (only (rapid primitives)
 		char-alphabetic?
 		char-ci<=?
 		char-ci<?

@@ -17,6 +17,6 @@
 
 (define-library (scheme eval)
   (export environment eval)
-  (import (only (rapid runtime)
+  (import (only (rapid primitives)
 		environment
 		eval)))

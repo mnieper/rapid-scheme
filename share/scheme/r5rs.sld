@@ -52,7 +52,7 @@
   (import (rename (scheme base)
 		  (exact inexact->exact)
 		  (inexact exact->inexact))
-	  (only (rapid runtime)
+	  (only (rapid primitives)
 		null-environment
 		scheme-report-environment)
 	  (scheme cxr)

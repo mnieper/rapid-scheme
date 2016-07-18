@@ -22,7 +22,7 @@
 	  make-polar
 	  make-rectangular
 	  real-part)
-  (import (only (rapid runtime)
+  (import (only (rapid primitives)
 		angle
 		imag-part
 		magnitude
