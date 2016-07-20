@@ -16,12 +16,12 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid expressions)
-  (export expression? expression-syntax
+  (export expression
+          expression? expression-syntax
 	  expression-aux expression-set-aux!
 	  expression-dispatch
 	  current-reference-method
 	  current-undefined-method
-	  current-primitive-reference-method
 	  current-literal-method
 	  current-procedure-call-method
 	  current-sequence-method
@@ -33,7 +33,6 @@
 	  current-letrec-expression-method
 	  current-let-values-expression-method	
 	  make-reference reference? reference-location
-	  make-primitive-reference primitive-reference? primitive-reference-primitive
 	  make-literal literal? literal-datum
 	  make-procedure-call procedure-call?
 	  procedure-call-operator procedure-call-operands

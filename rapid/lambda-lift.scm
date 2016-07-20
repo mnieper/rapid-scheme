@@ -163,14 +163,14 @@
 	(lambda (expression depth)
 	  (values root-expression
 		  expression)))
-       (current-primitive-reference-method
-	(lambda (expression depth)
-	  (values root-expression
-		  expression)))
        (current-reference-method
 	(lambda (expression depth)
-	  (values (lookup-binding-construct (reference-location expression))
-		  expression)))
+	  (let ((location (reference-location expression)))
+	    (if (primitive? location)
+		(values root-expression
+			expression)
+		(values (lookup-binding-construct (reference-location expression))
+			expression)))))
        (current-procedure-call-method
 	(lambda (expression depth)
 	  (receive (binding-construct expression*)

@@ -18,6 +18,7 @@
 (define-library (rapid primitive-environment)
   (export primitive-environment)
   (import (except (scheme base) features)
+	  (scheme case-lambda)
 	  (scheme lazy)
 	  (scheme write)
 	  (rapid and-let)

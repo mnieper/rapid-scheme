@@ -112,8 +112,10 @@
   location?
   (location-syntax location-syntax))
 
-(define (make-location syntax)
-  (%make-location syntax (generate-identity)))
+(define make-location
+  (case-lambda
+   ((syntax) (%make-location syntax (generate-identity)))
+   ((identity syntax) (%make-location syntax identity))))
 
 (define-record-type (<primitive> <denotation>)
   (%make-primitive value syntax identity)

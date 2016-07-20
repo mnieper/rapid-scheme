@@ -294,11 +294,10 @@
   (parameterize
       ((current-reference-method
 	(lambda (expression)
-	  (add-free-reference! (reference-location expression))
-	  expression))
-       (current-primitive-reference-method
-	(lambda (expression)
-	  expression))
+	  (let ((location (reference-location expression)))
+	    (unless (primitive? location)
+	      (add-free-reference! location))
+	    expression)))
        (current-literal-method
 	(lambda (expression)
 	  expression))

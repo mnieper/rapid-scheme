@@ -236,8 +236,8 @@
 	       => (lambda (denotation)
 		    (cond
 		     ((primitive? denotation)
-		      (expand-into-expression (delay (make-primitive-reference denotation
-									       syntax))))
+		      (expand-into-expression (delay (make-reference denotation
+								     syntax))))
 		     ((transformer? denotation)
 		      (raise-syntax-error syntax
 					  "invalid use of syntax ‘~a’ as value"

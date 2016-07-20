@@ -35,8 +35,7 @@
 		     #f))))
       (expand-into-expression
        (delay
-	 ;; TODO: Rename the literal if the identifier is bound and a closure.
-	 (make-literal (syntax->datum (list-ref form 1)) syntax)))))
+	 (expression `,(syntax->datum (list-ref form 1)) syntax)))))
 
   ;; define-values syntax
   (define-transformer (define-values syntax)
@@ -347,7 +346,8 @@
 					(unwrap-syntax identifier-syntax))))))
       (expand-into-expression
        (delay
-	 (make-assignment denotation (expand-expression (list-ref form 2)) syntax)))))
+	 (expression (set! denotation ,(expand-expression (list-ref form 2)))
+		     syntax)))))
 
   ;; if syntax
   (define-transformer (if syntax)
@@ -361,13 +361,16 @@
       (let ((alternate-syntax (and (= length 4)
 				   (list-ref form 3))))
 	(expand-into-expression
-	 (delay
-	   (make-conditional (expand-expression test-syntax)
-			     (expand-expression consequent-syntax)
-			     (if alternate-syntax
-				 (expand-expression alternate-syntax)
-				 (make-undefined #f))
-			     syntax))))))
+	 (if alternate-syntax
+	     (delay
+	       (expression (if ,(expand-expression test-syntax)
+			       ,(expand-expression consequent-syntax)
+			       ,(expand-expression alternate-syntax))
+			   syntax))
+	     (delay
+	       (expression (if ,(expand-expression test-syntax)
+			       ,(expand-expression consequent-syntax))
+			   syntax)))))))
 
   ;; case-lambda syntax
   (define-transformer (case-lambda syntax)
@@ -375,27 +378,28 @@
 	((form (unwrap-syntax syntax)))
       (expand-into-expression
        (delay
-	 (make-procedure
-	  (let loop ((clause-syntax* (cdr form)))
-	    (if (null? clause-syntax*)
-		'()
-		(or (and-let*
-			((clause-syntax (car clause-syntax*))
-			 (clause (unwrap-syntax clause-syntax))
-			 ((or (and (not (null? clause)) (list? clause))
-			      (raise-syntax-error clause-syntax
-						  "bad case-lambda clause"))))
-		      (with-scope
-			(and-let*
-			    ((formals (expand-formals! (car clause))))
-			  (cons
-			   (make-clause formals
-					(list (expand-body (cdr clause)
-							   clause-syntax))
-					clause-syntax)
-			   (loop (cdr clause-syntax*))))))
-		    (loop (cdr clause-syntax*)))))
-	  syntax)))))
+	 (let
+	     ((clauses
+	       (let loop ((clause-syntax* (cdr form)))
+		 (if (null? clause-syntax*)
+		     '()
+		     (or (and-let*
+			     ((clause-syntax (car clause-syntax*))
+			      (clause (unwrap-syntax clause-syntax))
+			      ((or (and (not (null? clause)) (list? clause))
+				   (raise-syntax-error clause-syntax
+						       "bad case-lambda clause"))))
+			   (with-scope
+			     (and-let*
+				 ((formals (expand-formals! (car clause))))
+			       (cons
+				(make-clause formals
+					     (list (expand-body (cdr clause)
+								clause-syntax))
+					     clause-syntax)
+				(loop (cdr clause-syntax*))))))
+			 (loop (cdr clause-syntax*)))))))	 
+	   (expression (case-lambda ,@clauses) syntax))))))
   
   ;; include syntax
   (define-transformer (include syntax)
@@ -492,84 +496,58 @@
 		     (imap-replace arg-table identifier (vector identifier-syntax
 								(vector-ref syntax+index 1))))
 	       #t))
-	   (cdr constructor))))
+	   (cdr constructor)))
+	 (make-rtd (make-primitive 'make-rtd rtd-syntax))
+	 (make-constructor (make-primitive 'make-constructor (car constructor)))
+	 (make-predicate (make-primitive 'make-predicate predicate-syntax))
+	 (make-accessor (make-primitive 'make-accessor syntax))
+	 (make-mutator (make-primitive 'make-mutator syntax)))
       (receive (rtd-location* _)
 	  (expand-into-definition (list rtd-syntax) '() rtd-syntax
 				  (delay
-				    (make-procedure-call (make-primitive-reference
-							  (make-primitive 'make-rtd
-									  rtd-syntax)
-							  rtd-syntax)
-							 (list (make-literal
-								(length field-syntax*)
-								rtd-syntax))
-							 rtd-syntax))
+				    (expression (make-rtd `,(length field-syntax*))
+						rtd-syntax))
 				  rtd-syntax)
-	(expand-into-definition (list (car constructor)) '() (car constructor)
-				(delay
-				  (make-procedure-call (make-primitive-reference
-							(make-primitive 'make-constructor
-									(car constructor))
-							(car constructor))
-						       (list (make-reference (car rtd-location*)
-									     constructor-syntax)
-							     (make-literal
-							      (list->vector
-							       (map
-								(lambda (identifier-syntax)
-								  (vector-ref
-								   (imap-ref field-table
-									     (unwrap-syntax
-									      identifier-syntax))
-								   1))
-								(cdr constructor)))
-							      constructor-syntax))
-						       constructor-syntax))
-				constructor-syntax)
-	(expand-into-definition (list predicate-syntax) '() predicate-syntax
-				(delay
-				  (make-procedure-call (make-primitive-reference
-							(make-primitive 'make-predicate
-									predicate-syntax)
-							predicate-syntax)
-						       (list (make-reference (car rtd-location*)
-									     predicate-syntax))
-						       predicate-syntax))
-				predicate-syntax)
-	(for-each
-	 (lambda (field-syntax)
-	   (let*
-	       ((field (unwrap-syntax field-syntax))
-		(index (vector-ref (imap-ref field-table (unwrap-syntax (list-ref field 0)))
-				   1)))
-	     (expand-into-definition
-	      (list (list-ref field 1)) '() (list-ref field 1)
-	      (delay
-		(make-procedure-call (make-primitive-reference
-				      (make-primitive 'make-accessor
-						      (list-ref field 1))
-				      (list-ref field 1))
-				     (list (make-reference (car rtd-location*)
-							   (list-ref field 1))
-					   (make-literal index
-							 (list-ref field 1)))
-				     (list-ref field 1)))
-	      (list-ref field 1))
-	     (unless (null? (cddr field))
+	(let ((rtd (car rtd-location*)))
+	  (expand-into-definition (list (car constructor)) '() (car constructor)
+				  (delay
+				    (expression
+				     (make-constructor rtd
+						       `,(list->vector
+							  (map
+							   (lambda (identifier-syntax)
+							     (vector-ref
+							      (imap-ref field-table
+									(unwrap-syntax
+									 identifier-syntax))
+							      1))
+							   (cdr constructor))))
+				     constructor-syntax))
+				  constructor-syntax)
+	  (expand-into-definition (list predicate-syntax) '() predicate-syntax
+				  (delay
+				    (expression
+				     (make-predicate rtd)
+				     predicate-syntax))
+				  predicate-syntax)
+	  (for-each
+	   (lambda (field-syntax)
+	     (let*
+		 ((field (unwrap-syntax field-syntax))
+		  (index (vector-ref (imap-ref field-table (unwrap-syntax (list-ref field 0)))
+				     1)))
 	       (expand-into-definition
-		(list (list-ref field 2)) '() (list-ref field 2)
+		(list (list-ref field 1)) '() (list-ref field 1)
 		(delay
-		  (make-procedure-call (make-primitive-reference
-					(make-primitive 'make-mutator
-							(list-ref field 1))
-					(list-ref field 1))
-				       (list (make-reference (car rtd-location*)
-							     (list-ref field 2))
-					     (make-literal index
-							   (list-ref field 2)))
-				       (list-ref field 2)))
-		(list-ref field 2)))))
-	 field-syntax*))))
+		  (expression (make-accessor rtd `,index) (list-ref field 1)))
+		(list-ref field 1))
+	       (unless (null? (cddr field))
+		 (expand-into-definition
+		  (list (list-ref field 2)) '() (list-ref field 2)
+		  (delay
+		    (expression (make-mutator rtd `,index) (list-ref field 2)))
+		  (list-ref field 2)))))
+	   field-syntax*)))))
 
   (define-transformer (rapid-features syntax)
     (and-let*
@@ -578,7 +556,7 @@
 	      (raise-syntax-error syntax "bad features syntax"))))
       (expand-into-expression
        (delay
-	 (make-literal (features) syntax)))))
+	 (expression `,(features) syntax)))))
 
   (define-transformer (cond-expand syntax)
     (and-let*

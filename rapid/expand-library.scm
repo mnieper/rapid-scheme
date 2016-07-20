@@ -79,31 +79,29 @@
 			syntactic-environment)))
   
   (define (syntactic-environment-intern! library-name-syntax)
-    (call-with-current-continuation
-     (lambda (return)
-       (let*
-	   ((library-name
-	     (map unwrap-syntax (unwrap-syntax library-name-syntax)))
-	    (syntactic-environment
-	     (imap-ref syntactic-environments
-		       library-name
-		       (lambda ()
-			 (syntactic-environment-set! library-name #t)
-			 (let ((syntactic-environment
-				(load-syntactic-environment!
-				 library-name-syntax)))
-			   (syntactic-environment-set! library-name
-						       syntactic-environment)
-			    syntactic-environment)))))
-	 (cond
-	  ((eq? syntactic-environment #t)
-	   (raise-syntax-error library-name-syntax
-			       "library ‘~a’ references itself while loading"
-			       (syntax->datum library-name-syntax))
-	   (syntactic-environment-set! library-name #f)
-	   #f)
-	  (else
-	   syntactic-environment))))))
+    (let*
+	((library-name
+	  (map unwrap-syntax (unwrap-syntax library-name-syntax)))
+	 (syntactic-environment
+	  (imap-ref syntactic-environments
+		    library-name
+		    (lambda ()
+		      (syntactic-environment-set! library-name #t)
+		      (let ((syntactic-environment
+			     (load-syntactic-environment!
+			      library-name-syntax)))
+			(syntactic-environment-set! library-name
+						    syntactic-environment)
+			syntactic-environment)))))
+      (cond
+       ((eq? syntactic-environment #t)
+	(raise-syntax-error library-name-syntax
+			    "library ‘~a’ references itself while loading"
+			    (syntax->datum library-name-syntax))
+	(syntactic-environment-set! library-name #f)
+	#f)
+       (else
+	syntactic-environment))))
 
   (define (import-import-set! import-set)
     (and-let*
@@ -132,7 +130,7 @@
     (let*
 	((expression
 	  (make-letrec*-expression (list-queue-list definitions)
-				   ;; FIXME: (values ...)
+				   ;; TODO: Maybe intern the syntactic environments
 				   (list (make-undefined #f))
 				   #f))
 	 (expression

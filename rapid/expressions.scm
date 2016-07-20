@@ -15,6 +15,98 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Syntax
+
+#;(define-syntax define-auxiliary-syntax
+  (syntax-rules ()
+    ((define-auxiliary-syntax keyword)
+     (define-syntax
+       (syntax-rules ()
+	 ((keyword . _)
+	  (syntax-error "invalid use of auxiliary syntax" keyword)))))))
+
+(define-syntax expression
+  (syntax-rules ()
+    ((expression e)
+     (expression e #f))
+    ((expression e syntax)
+     (let-syntax ((k
+		   (syntax-rules ()
+		     ((k v)
+		      v))))
+       (let ((s syntax))
+	 (expression-helper k e s))))))
+
+(define-syntax expression-helper
+  (syntax-rules (quote unquote quasiquote set! if case-lambda)
+    ((expression-helper k ,e _)
+     (k e))
+    ((expression-helper k 'c syntax)
+     (let ((v (make-literal 'c syntax)))
+       (k v)))
+    ((expression-helper k `q syntax)
+     (let ((v (make-literal `q syntax)))
+       (k v)))    
+    ((expression-helper k (set! var e) syntax)
+     (let-syntax ((k1
+		   (syntax-rules ()
+		     ((k v)
+		      (let ((v1 (make-assignment var v syntax)))
+			(k v1))))))
+       (expression-helper k1 e syntax)))
+    ((expression-helper k (if e e1) syntax)
+     (expression-helper k (if e e1 ,(make-undefined syntax)) syntax))
+    ((expression-helper k (if e e1 e2) syntax)
+     (let-syntax ((k1
+		   (syntax-rules ()
+		     ((k1 v v1 v2)
+		      (let ((v3 (make-conditional v v1 v2 syntax)))
+			(k v3))))))
+       (expression-helper* k1 (e e1 e2) syntax)))
+    ((expression-helper k (case-lambda . c*) syntax)
+     (let-syntax ((k1
+		   (syntax-rules ()
+		     ((k1 l)
+		      (let ((v (make-procedure l syntax)))
+			(k v))))))
+       (expression-clauses k1 c* syntax)))
+    ((expression-helper k (operator operand ...) syntax)
+     (let-syntax ((k1
+		   (syntax-rules ()
+		     ((k1 v . v*)
+		      (let ((v1 (make-procedure-call v (list . v*) syntax)))
+			(k v1))))))
+       (expression-helper* k1 (operator operand ...) syntax)))
+    ((expression-helper k e syntax)
+     (let ((v (make-reference e syntax)))
+       (k v)))))
+
+(define-syntax expression-helper*
+  (syntax-rules ()
+    ((expression-helper* k e* syntax)
+     (expression-helper* k e* () syntax))
+    ((expression-helper* k () v* syntax)
+     (k . v*))
+    ((expression-helper* k (e . e*) (v ...) syntax)
+     (let-syntax ((k1
+		   (syntax-rules ()
+		     ((k1 v1)
+		      (expression-helper* k e* (v ... v1) syntax)))))
+       (expression-helper k1 e syntax)))))
+
+(define-syntax expression-clauses
+  (syntax-rules (unquote-splicing)
+    ((expression-clauses k () syntax)
+     (let ((v (list)))
+       (k v)))
+    ((expression-clauses k (,@e . c*) syntax)
+     (let-syntax ((k1
+		   (syntax-rules ()
+		     ((k1 l)
+		      (k (append e l))))))
+       (expression-clauses k1 c* syntax)))))
+  
+
 ;;; Expressions
 
 (define (default-method expression . args)
@@ -282,11 +374,10 @@
   (cond
    ;; References
    ((reference? expression)
-    (location->symbol (reference-location expression)))
-
-   ;; Primitive reference
-   ((primitive-reference? expression)
-    (primitive-value (primitive-reference-primitive expression)))
+    (let ((location (reference-location expression)))
+      (if (primitive? location)
+	  (primitive-value location)
+	  (location->symbol location))))
 
    ;; Literals
    ((literal? expression)
