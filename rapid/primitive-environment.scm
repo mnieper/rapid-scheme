@@ -329,6 +329,7 @@
 	 ((or (= (length form) 3)
 	      (raise-syntax-error syntax "bad set! syntax")))
 	 (identifier-syntax (list-ref form 1))
+	 ((identifier-syntax? identifier-syntax))
 	 (syntactic-binding (lookup-syntactic-binding! identifier-syntax))
 	 ((or (not (binding-immutable? syntactic-binding))
 	      (begin (raise-syntax-error identifier-syntax
