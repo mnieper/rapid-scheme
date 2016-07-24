@@ -26,5 +26,7 @@
 	  (guard (condition (else (raise (make-read-error condition)))) 
 	    (read-syntax source-port #f))))
       (port-set-ci?! port (source-port-ci? source-port))
-      (syntax->datum syntax)))))
+      (if syntax
+	  (syntax->datum syntax)
+	  (eof-object))))))
      

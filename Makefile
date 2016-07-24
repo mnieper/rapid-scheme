@@ -61,6 +61,7 @@ integration-tests:
 	./rapid-scheme -I share data/meaning.scm 2>&1 | grep "cannot be changed"
 	./rapid-scheme -I share data/literals.scm 2>&1 | grep "++++"
 	./rapid-scheme -I share data/set.scm 2>&1 | grep "bad identifier"
+	./rapid-scheme -I share data/read.scm 2>&1 | grep "(a)"
 
 meta-tests:
 	./rapid-scheme -Ishare tests.scm
