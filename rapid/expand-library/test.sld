@@ -20,7 +20,7 @@
   (import (rapid base)
 	  (rapid test)
 	  (rapid syntax)
-	  (rapid libraries)
+	  (rapid library-definitions)
 	  (rapid expand-library))
   (begin
     (define (run-tests)

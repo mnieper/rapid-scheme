@@ -54,7 +54,7 @@
 	  (rapid identifiers)
 	  (rapid syntax)
 	  (rapid import-sets)
-	  (rapid libraries))
+	  (rapid library-definitions))
   (include "syntactic-environments.scm"))
 	
 ;; Local Variables:

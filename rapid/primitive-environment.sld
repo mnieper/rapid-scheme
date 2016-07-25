@@ -32,7 +32,7 @@
 	  (rapid syntax)
 	  (rapid expressions)
 	  (rapid syntactic-environments)
-	  (rapid libraries)
+	  (rapid library-definitions)
 	  (rapid expand)
 	  (rapid macro-transformers)
 	  (rename (rapid features)

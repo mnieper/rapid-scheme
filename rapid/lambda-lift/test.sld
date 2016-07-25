@@ -23,7 +23,7 @@
 	  (rapid lists)
 	  (rapid test)
 	  (rapid expressions)
-	  (rapid libraries)
+	  (rapid library-definitions)
 	  (rapid expand-library)
 	  (rapid lambda-lift))
   (begin

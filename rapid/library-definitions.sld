@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid libraries)
+(define-library (rapid library-definitions)
   (export read-library
 	  read-program
 	  read-file*
@@ -40,4 +40,4 @@
 	  (rapid import-sets)
 	  (rapid read)
 	  (rapid paths))
-  (include "libraries.scm"))
+  (include "library-definitions.scm"))

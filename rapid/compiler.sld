@@ -24,7 +24,7 @@
 	  (rapid receive)
 	  (rapid identifiers)
 	  (rapid syntax)
-	  (rapid libraries)
+	  (rapid library-definitions)
 	  (rapid expand-library)
 	  (rapid expressions))
   (include "compiler.scm"))

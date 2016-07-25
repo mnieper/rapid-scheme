@@ -25,7 +25,7 @@
 	  (rapid immutable-maps)
 	  (rapid syntax)
 	  (rapid import-sets)
-	  (rapid libraries)
+	  (rapid library-definitions)
 	  (rapid syntactic-environments)
 	  (rapid expand)
 	  (rapid expressions)

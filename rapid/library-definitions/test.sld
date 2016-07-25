@@ -15,20 +15,21 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid libraries test)
+(define-library (rapid library-definitions test)
   (export run-tests)
   (import (scheme base)
 	  (rapid test)
 	  (rapid syntax)
-	  (rapid libraries))
+	  (rapid library-definitions))
   (begin
     (define (run-tests)
-      (test-begin "Libraries")
+      (test-begin "Library definitions")
 
       (test-assert "Read library definition"
 		   (with-syntax-exception-handler
 		    (lambda ()
-		      (read-library (derive-syntax '(rapid libraries test))))))
+		      (read-library
+		       (derive-syntax '(rapid library-definitions test))))))
 
       (test-assert "Read program"
 		   (with-syntax-exception-handler
