@@ -115,18 +115,19 @@
   (define (load-syntactic-environment! library-name-syntax)
     (let ((library-name (map unwrap-syntax
 			     (unwrap-syntax library-name-syntax))))
-      (and-let* ((library (read-library library-name-syntax)))
-	(with-import-sets (library-import-sets library)
+      (and-let* ((library (read-library-definition library-name-syntax)))
+	(with-import-sets (library-definition-import-sets library)
 	  (add-definitions!
-	   (expand-top-level! (library-body library)))
+	   (expand-top-level! (library-definition-body library)))
 	  (let ((environment (current-syntactic-environment)))	
 	    (with-syntactic-environment (make-syntactic-environment)
-	      (export-syntactic-environment! environment (library-exports library))
+	      (export-syntactic-environment! environment
+					     (library-definition-exports library))
 	      (current-syntactic-environment)))))))
 
-  (with-import-sets (library-import-sets library)
+  (with-import-sets (library-definition-import-sets library)
     (add-definitions!
-     (expand-top-level! (library-body library)))
+     (expand-top-level! (library-definition-body library)))
     (let*
 	((expression
 	  (make-letrec*-expression (list-queue-list definitions)

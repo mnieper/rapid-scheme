@@ -18,20 +18,20 @@
 ;;; Libraries
 
 (define-record-type <library-definition>
-  (%make-library exports import-sets body)
-  library?
-  (exports library-exports)
-  (import-sets library-import-sets library-set-import-sets!)
-  (body library-body library-set-body!))
+  (%make-library-definition exports import-sets body)
+  library-definition?
+  (exports library-definition-exports)
+  (import-sets library-definition-import-sets library-definition-set-import-sets!)
+  (body library-definition-body library-definition-set-body!))
 
-(define (make-library)
-  (%make-library (make-exports) (list-queue) (list-queue)))
+(define (make-library-definition)
+  (%make-library-definition (make-exports) (list-queue) (list-queue)))
 
-(define (import-sets->library import-sets)
-  (%make-library '() import-sets '()))
+(define (import-sets->library-definition import-sets)
+  (%make-library-definition '() import-sets '()))
 
 (define (add-export-spec! library syntax)
-  (let ((exports (library-exports library))
+  (let ((exports (library-definition-exports library))
 	(export-spec (unwrap-syntax syntax)))
     (cond
      ((identifier? export-spec)
@@ -50,11 +50,11 @@
       (raise-syntax-error syntax "bad export spec")))))
 
 (define (add-import-set! library syntax)
-  (list-queue-add-back! (library-import-sets library)
+  (list-queue-add-back! (library-definition-import-sets library)
 			(make-import-set syntax)))
 
 (define (add-body-form! library syntax)
-  (list-queue-add-back! (library-body library) syntax))
+  (list-queue-add-back! (library-definition-body library) syntax))
 
 (define (library-declaration! library syntax)
   (let ((declaration (unwrap-syntax syntax)))
@@ -168,11 +168,11 @@
 (define current-library-directories
   (make-parameter '("." "./lib")))
 
-(define (read-library library-name-syntax)
+(define (read-library-definition library-name-syntax)
   (and-let*
       ((library-definition-syntax
-	(read-library-definition library-name-syntax))
-       (library (make-library)))
+	(read-library-definition-syntax library-name-syntax))
+       (library (make-library-definition)))
     (for-each (lambda (syntax)
 		(library-declaration! library syntax))
 	      (cddr (unwrap-syntax library-definition-syntax)))
@@ -180,7 +180,7 @@
 
 (define (read-program filename)
   (and-let*
-      ((library (make-library))
+      ((library (make-library-definition))
        (reader (read-file filename #f #f)))
     (let loop ((import-declaration? #f))
       (let ((syntax (reader)))
@@ -203,14 +203,16 @@
 	  (finalize-library! library)))))))
 
 (define (finalize-library! library)    
-  (library-set-body! library
-		     (list-queue-list (library-body library)))
-  (library-set-import-sets! library
-			    (list-queue-list (library-import-sets library)))
+  (library-definition-set-body!
+   library
+   (list-queue-list (library-definition-body library)))
+  (library-definition-set-import-sets!
+   library
+   (list-queue-list (library-definition-import-sets library)))
   library)
 
 
-(define (read-library-definition library-name-syntax)
+(define (read-library-definition-syntax library-name-syntax)
 
   (define library-name (syntax->datum library-name-syntax))
 

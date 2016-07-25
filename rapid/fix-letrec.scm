@@ -134,7 +134,7 @@
     ;; Initialize current binding construct
     (set-current-free-reference-adder! expression current-free-reference-adder)
     
-    ;; Record defintions and locations for each variables definition
+    ;; Record definitions and locations for each variables definition
     (for-each
      (lambda (variables)
        (init-variables! variables)

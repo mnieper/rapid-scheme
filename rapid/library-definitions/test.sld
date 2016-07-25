@@ -28,7 +28,7 @@
       (test-assert "Read library definition"
 		   (with-syntax-exception-handler
 		    (lambda ()
-		      (read-library
+		      (read-library-definition
 		       (derive-syntax '(rapid library-definitions test))))))
 
       (test-assert "Read program"
