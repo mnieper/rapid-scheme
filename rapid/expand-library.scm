@@ -62,6 +62,10 @@
   
   (define definitions (list-queue))
 
+  (define (add-runtime-definitions! list-queue)
+    (set! definitions
+	  (list-queue-append! list-queue definitions)))
+  
   (define (add-definitions! list-queue)
     (set! definitions
 	  (list-queue-append! definitions list-queue)))
@@ -78,7 +82,7 @@
 			library-name
 			syntactic-environment)))
   
-  (define (syntactic-environment-intern! library-name-syntax)
+  (define (syntactic-environment-intern! library-name-syntax runtime?)
     (let*
 	((library-name
 	  (map unwrap-syntax (unwrap-syntax library-name-syntax)))
@@ -89,7 +93,7 @@
 		      (syntactic-environment-set! library-name #t)
 		      (let ((syntactic-environment
 			     (load-syntactic-environment!
-			      library-name-syntax)))
+			      library-name-syntax runtime?)))
 			(syntactic-environment-set! library-name
 						    syntactic-environment)
 			syntactic-environment)))))
@@ -107,17 +111,18 @@
     (and-let*
 	((syntactic-environment
 	  (syntactic-environment-intern! (import-set-library-name-syntax
-					  import-set))))
+					  import-set)
+					 #f)))
       (import-syntactic-environment! syntactic-environment
 				     (import-set-imports import-set))
       #t))
   
-  (define (load-syntactic-environment! library-name-syntax)
+  (define (load-syntactic-environment! library-name-syntax runtime?)
     (let ((library-name (map unwrap-syntax
 			     (unwrap-syntax library-name-syntax))))
       (and-let* ((library (read-library-definition library-name-syntax)))
 	(with-import-sets (library-definition-import-sets library)
-	  (add-definitions!
+	  ((if runtime? add-runtime-definitions! add-definitions!)
 	   (expand-top-level! (library-definition-body library)))
 	  (let ((environment (current-syntactic-environment)))	
 	    (with-syntactic-environment (make-syntactic-environment)
@@ -125,23 +130,59 @@
 					     (library-definition-exports library))
 	      (current-syntactic-environment)))))))
 
-  (with-import-sets (library-definition-import-sets library)
-    (add-definitions!
-     (expand-top-level! (library-definition-body library)))
-    (let*
-	((expression
-	  (make-letrec*-expression (list-queue-list definitions)
-				   ;; TODO: Maybe intern the syntactic environments
-				   (list (make-undefined #f))
-				   #f))
-	 (expression
-	  (lambda-lift expression))
-	 (expression
-	  (fix-letrec expression)))
-      (values
-       ;; FIXME: Return the locations of the exported variables
-       #f
-       expression))))
+  (let ((runtime-environment
+	 (syntactic-environment-intern! (derive-syntax '(rapid runtime))
+					#t)))
+    
+    (with-import-sets (library-definition-import-sets library)
+      (add-definitions!
+       (expand-top-level! (library-definition-body library)))
+      (let*
+	  ((expression
+	    (make-letrec*-expression (list-queue-list definitions)
+				     ;; TODO: Maybe intern the syntactic environments
+				     (list (make-undefined #f))
+				     #f))
+	   (expression
+	    (if runtime-environment
+		(link-runtime expression runtime-environment)
+		expression))
+	   (expression
+	    (lambda-lift expression))
+	   (expression
+	    (fix-letrec expression)))
+	(values
+	 ;; FIXME: Return the locations of the exported variables
+	 #f
+	 expression)))))
+
+(define (link-runtime expression runtime-environment)
+  (let ((primitives (imap identifier-comparator)))
+    (syntactic-environment-for-each
+     (lambda (identifier binding)
+       (let ((denotation (binding-denotation binding)))
+	 (when (location? denotation)
+	   (set! primitives
+		 (imap-replace primitives
+			       identifier
+			       denotation)))))
+     runtime-environment)    
+    (parameterize
+	 ((current-reference-method
+	   (lambda (expression)
+	     (let ((location (reference-location expression)))
+	       (cond
+		((and (primitive? location)
+		      (imap-ref/default primitives
+					(symbol->identifier (primitive-value
+							     location))
+					#f))
+		 => (lambda (location)
+		      (make-reference location
+				      (expression-syntax expression))))
+		(else
+		 expression))))))
+      (expression-dispatch expression))))
 
 ;; Local Variables:
 ;; eval: (put 'with-import-sets 'scheme-indent-function 1)

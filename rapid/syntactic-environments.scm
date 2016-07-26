@@ -192,6 +192,10 @@
   (%make-syntactic-environment (imap identifier-comparator)
 			       (imap identifier-comparator)))
 
+(define (syntactic-environment-for-each proc syntactic-environment)
+  (imap-for-each proc
+		 (syntactic-environment-bindings syntactic-environment)))
+
 (define (export-syntactic-environment! environment exports)
   (exports-for-each
    (lambda (identifier export-spec)

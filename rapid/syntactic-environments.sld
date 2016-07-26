@@ -30,6 +30,7 @@
 	  define-auxiliary-syntax
 	  make-syntactic-environment
 	  syntactic-environment?
+	  syntactic-environment-for-each
 	  current-syntactic-environment
 	  import-syntactic-environment!
 	  export-syntactic-environment!

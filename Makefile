@@ -50,7 +50,7 @@ unit-tests:
 	$(SCHEME) tests.scm
 
 compiler-tests:
-	./rapid-scheme -Ishare data/r7rs-tests.scm
+	./rapid-scheme -I share data/r7rs-tests.scm
 
 integration-tests:
 	./rapid-scheme -Ishare examples/hello-world.scm | grep "Hello, world!"
@@ -64,7 +64,7 @@ integration-tests:
 	./rapid-scheme -I share data/read.scm 2>&1 | grep "(a)"
 
 meta-tests:
-	./rapid-scheme -Ishare tests.scm
+	./rapid-scheme -I share tests.scm
 
 clean:
 	rm -rf $(SCRIPTS)

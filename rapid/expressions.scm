@@ -17,14 +17,6 @@
 
 ;;; Syntax
 
-#;(define-syntax define-auxiliary-syntax
-  (syntax-rules ()
-    ((define-auxiliary-syntax keyword)
-     (define-syntax
-       (syntax-rules ()
-	 ((keyword . _)
-	  (syntax-error "invalid use of auxiliary syntax" keyword)))))))
-
 (define-syntax expression
   (syntax-rules ()
     ((expression e)
@@ -106,11 +98,7 @@
 		      (k (append e l))))))
        (expression-clauses k1 c* syntax)))))
   
-
 ;;; Expressions
-
-(define (default-method expression . args)
-  (error "unhandled expression type" expression))
 
 (define-record-type <expression>
   #f
@@ -122,9 +110,17 @@
 (define (expression-dispatch expression . args)
   (apply ((current-expression-method expression)) expression args))
 
+(define (expression-dispatch* expression* . args)
+  (map (lambda (expression)
+	 (apply expression-dispatch expression args))
+       expression*))
+
 ;; References
 
-(define current-reference-method (make-parameter default-method))
+(define current-reference-method
+  (make-parameter
+   (lambda (expression . args)
+     expression)))
 
 (define-record-type (<reference> <expression>)
   (%make-reference location syntax method)
@@ -134,21 +130,12 @@
 (define (make-reference location syntax)
   (%make-reference location syntax current-reference-method))
 
-;; Primitive references
-
-(define current-primitive-reference-method (make-parameter default-method))
-
-(define-record-type (<primitive-reference> <expression>)
-  (%make-primitive-reference primitive syntax method)
-  primitive-reference?
-  (primitive primitive-reference-primitive))
-
-(define (make-primitive-reference primitive syntax)
-  (%make-primitive-reference primitive syntax current-primitive-reference-method))
-
 ;; Literals
 
-(define current-literal-method (make-parameter default-method))
+(define current-literal-method
+  (make-parameter
+   (lambda (expression . args)
+     expression)))
 
 (define-record-type (<literal> <expression>)
   (%make-literal datum syntax method)
@@ -158,9 +145,33 @@
 (define (make-literal datum syntax)
   (%make-literal datum syntax current-literal-method))
 
+;; Undefined
+
+(define current-undefined-method
+  (make-parameter
+   (lambda (expression . args)
+     expression)))
+
+(define-record-type (<undefined> <expression>)
+  ;; Current Larceny compiler produces an error on (%make-undefined syntax method). 
+  (%make-undefined method syntax)
+  undefined?)
+
+(define (make-undefined syntax)
+  (%make-undefined current-undefined-method syntax))
+
 ;; Procedure calls
 
-(define current-procedure-call-method (make-parameter default-method))
+(define current-procedure-call-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-procedure-call (apply expression-dispatch
+				 (procedure-call-operator expression)
+				 args)
+			  (apply expression-dispatch*
+				 (procedure-call-operands expression)
+				 args)
+			  (expression-syntax expression)))))
 
 (define-record-type (<procedure-call> <expression>)
   (%make-procedure-call operator operands syntax method)
@@ -177,7 +188,12 @@
 
 ;; Sequences
 
-(define current-sequence-method (make-parameter default-method))
+(define current-sequence-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-sequence (apply expression-dispatch* (sequence-expressions expression)
+			   args)
+		    (expression-syntax expression)))))
 
 (define-record-type (<sequence> <expression>)
   (%make-sequence expressions syntax method)
@@ -193,7 +209,14 @@
 
 ;; Assignment
 
-(define current-assignment-method (make-parameter default-method))
+(define current-assignment-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-assignment (assignment-location expression)
+		      (apply expression-dispatch
+			     (assignment-expression expression)
+			     args)
+		      (expression-syntax expression)))))
 
 (define-record-type (<assignment> <expression>)
   (%make-assignment location expression syntax method)
@@ -207,7 +230,14 @@
 
 ;; Multiple assignment
 
-(define current-multiple-assignment-method (make-parameter default-method))
+(define current-multiple-assignment-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-multiple-assignment (multiple-assignment-formals expression)
+			       (apply expression-dispatch
+				      (assignment-expression expression)
+				      args)
+			       (expression-syntax expression)))))
 
 (define-record-type (<multiple-assignment> <expression>)
   (%make-multiple-assignment formals expression syntax method)
@@ -225,7 +255,19 @@
 
 ;; Conditionals
 
-(define current-conditional-method (make-parameter default-method))
+(define current-conditional-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-conditional (apply expression-dispatch
+			      (conditional-test expression)
+			      args)
+		       (apply expression-dispatch
+			      (conditional-consequent expression)
+			      args)
+		       (apply expression-dispatch
+			      (conditional-alternate expression)
+			      args)
+		       (expression-syntax expression)))))
 
 (define-record-type (<conditional> <expression>)
   (%make-conditional test consequent alternate syntax method)
@@ -239,22 +281,20 @@
        (%make-conditional test consequent alternate syntax
 			  current-conditional-method)))
 
-;; Undefined
-
-(define current-undefined-method (make-parameter default-method))
-
-(define-record-type (<undefined> <expression>)
-  ;; Current Larceny compiler produces an error on (%make-undefined syntax method). 
-  (%make-undefined method syntax)
-  undefined?)
-
-(define (make-undefined syntax)
-  (%make-undefined current-undefined-method syntax))
-
 ;; Procedures
 
-(define current-procedure-method (make-parameter default-method))
-
+(define current-procedure-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-procedure (map (lambda (clause)
+			    (make-clause (clause-formals clause)
+					 (apply expression-dispatch*
+						(clause-body clause)
+						args)
+					 (clause-syntax clause)))
+			  (procedure-clauses expression))
+		     (expression-syntax expression)))))
+			  
 (define-record-type (<procedure> <expression>)
   (%make-procedure clauses syntax method)
   expression-procedure?
@@ -265,7 +305,21 @@
 
 ;; Letrec* expressions
 
-(define current-letrec*-expression-method (make-parameter default-method))
+(define current-letrec*-expression-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-letrec*-expression (map (lambda (variables)
+				     (make-variables (variables-formals variables)
+						     (apply expression-dispatch
+							    (variables-expression
+							     variables)
+							    args)
+						     (variables-syntax variables)))
+				   (letrec*-expression-definitions expression))
+			      (apply expression-dispatch*
+				     (letrec*-expression-body expression)
+				     args)
+			      (expression-syntax expression)))))
 
 (define-record-type (<letrec*-expression> <expression>)
   (%make-letrec*-expression definitions body syntax method)
@@ -280,7 +334,21 @@
 
 ;; Letrec expressions
 
-(define current-letrec-expression-method (make-parameter default-method))
+(define current-letrec-expression-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-letrec-expression (map (lambda (variables)
+				    (make-variables (variables-formals variables)
+						    (apply expression-dispatch
+							   (variables-expression
+							    variables)
+							   args)
+						    (variables-syntax variables)))
+				   (letrec-expression-definitions expression))
+			     (apply expression-dispatch*
+				    (letrec-expression-body expression)
+				    args)
+			     (expression-syntax expression)))))
 
 (define-record-type (<letrec-expression> <expression>)
   (%make-letrec-expression definitions body syntax method)
@@ -296,7 +364,21 @@
 
 ;; Let-values expression
 
-(define current-let-values-expression-method (make-parameter default-method))
+(define current-let-values-expression-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-let-values-expression (let ((variables (let-values-expression-definition
+						   expression)))
+				   (make-variables (variables-formals variables)
+						   (apply expression-dispatch
+							  (variables-expression
+							   variables)
+							  args)
+						   (variables-syntax variables)))
+				 (apply expression-dispatch*
+					(let-values-expression-body expression)
+					args)
+				 (expression-syntax expression)))))
 
 (define-record-type (<let-values-expression> <expression>)
   (%make-let-values-expression definition body syntax method)
@@ -307,7 +389,6 @@
 (define (make-let-values-expression definition body syntax)
   (%make-let-values-expression definition (flatten body) syntax
 			       current-let-values-expression-method))
-
 
 ;; Extra types
 

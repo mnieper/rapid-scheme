@@ -309,6 +309,11 @@
 	  environment
 	  eval
 
-	  load)
+	  load
+
+	  make-type
+	  make-instance
+	  instance?
+	  instance-ref)
   (import (rapid primitive))
   (include "primitives.scm"))

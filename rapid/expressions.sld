@@ -19,7 +19,7 @@
   (export expression
           expression? expression-syntax
 	  expression-aux expression-set-aux!
-	  expression-dispatch
+	  expression-dispatch expression-dispatch*
 	  current-reference-method
 	  current-undefined-method
 	  current-literal-method

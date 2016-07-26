@@ -313,3 +313,8 @@
 (define-primitive environment 'environment)
 
 (define-primitive load 'load)
+
+(define-primitive make-type 'make-type)
+(define-primitive make-instance 'make-instance)
+(define-primitive instance? 'instance?)
+(define-primitive instance-ref 'instance-ref)
