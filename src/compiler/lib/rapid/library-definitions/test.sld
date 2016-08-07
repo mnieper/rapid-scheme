@@ -15,7 +15,30 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define rapid-features
-  (make-parameter 
-   '(r7rs exact-closed exact-complex ieee-float full-unicode ratios posix
-	  rapid-scheme rapid-scheme-0.1.4)))
+(define-library (rapid library-definitions test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
+	  (rapid syntax)
+	  (rapid library-definitions))
+  (begin
+    (define (run-tests)
+      (test-begin "Library definitions")
+
+      ;; FIXME: Adjust paths.
+      (test-skip 2)
+
+      (test-assert "Read library definition"
+		   (with-syntax-exception-handler
+		    (lambda ()
+		      (read-library-definition
+		       (derive-syntax '(rapid library-definitions test))))))
+
+      (test-assert "Read program"
+		   (with-syntax-exception-handler
+		    (lambda ()
+		      (read-program "tests.scm"))))
+      
+      ;; FIXME: Write more tests, testing loaded libraries for exported features.
+      
+      (test-end))))

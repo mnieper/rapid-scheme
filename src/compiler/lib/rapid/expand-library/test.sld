@@ -15,14 +15,27 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define (version-etc command-name)
-  (write-string (format "~a (Rapid Scheme) 0.1.4~%" command-name))
-  (write-string
-   "Copyright © 2016 Marc Nieper-Wißkirchen\n\
-    License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\
-    This is free software: you are free to change and redistribute it.\n\
-    There is NO WARRANTY, to the extent permitted by law.\n"))
+(define-library (rapid expand-library test)
+  (export run-tests)
+  (import (rapid base)
+	  (rapid test)
+	  (rapid syntax)
+	  (rapid library-definitions)
+	  (rapid expand-library))
+  (begin
+    (define (run-tests)
+      (test-begin "Environments")
 
-(define (emit-bug-reporting-address)
-  (write-string
-   "Email bug reports to: marc@nieper-wisskirchen.de.\n"))
+      ;; FIXME: Adjust paths.
+      (test-skip 1)
+      
+      (test-assert "expand-library"
+		   (parameterize
+		       ((current-library-directories
+			 (cons "./share" (current-library-directories))))
+		     (with-syntax-exception-handler
+		      (lambda ()
+			(expand-library (read-program "tests.scm"))
+			(zero? (error-message-count))))))
+      
+      (test-end))))

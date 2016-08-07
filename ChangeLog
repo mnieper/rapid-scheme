@@ -1,0 +1,430 @@
+2016-07-26  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Automatically load a runtime library, which implements some primitives.
+
+2016-07-25  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Rename library records to library-definition records
+
+	Rename (rapid libraries) to (rapid library-definitions)
+
+2016-07-24  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Remove pointless primitive definitions
+
+	Handle end-of-file in (scheme read)
+
+2016-07-23  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Check syntax of set! form
+
+2016-07-20  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Add DSL for specifying expressions
+
+2016-07-19  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Correct date
+
+	Update NEWS for v0.1.3
+
+2016-07-18  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Rename library that declares all used primitives to (rapid primitives)
+
+	Bump internal version number
+
+2016-07-18  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Print an error message if constructor references non-existing fields
+
+	Use Rapid's read procedure instead of the native one
+
+	Wrap port objects
+
+	Refactor base library
+
+2016-07-16  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Fix comparison of unbound identifiers
+
+2016-07-15  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Fix ordering of identifiers that is compatible with free-identifier=?
+
+	Removed unnecessary explicit ellipses
+
+	Enforce section 5.4 less strictly. Fixes #4
+	Definitions of identifiers are allowed even if the meaning of the
+	identifier has to be known in order to determine whether the
+	identifier is a syntax-rules ellipsis, literal, or underscore, as
+	long as the identifier neither denotes an ellipsis, literal, or
+	underscore.
+
+2016-07-14  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Make redefinitions of identifiers that are prohibited by section 5.4 a warning instead of an error
+	See issue #4.
+
+	Apply erratum #17 of the R7RS
+
+	Simplify lookup of explicit ellipsis; interpret section 5.4 of the R7RS stricly
+	See also: https://groups.google.com/d/topic/comp.lang.scheme/_kSw5cyQa60/discussion
+
+	Provide (scheme base) with a working let-syntax macro. Fixes #3
+
+2016-07-13  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Fix bug in free-identifier=? of unbound symbols
+
+2016-07-11  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Handle empty procedure bodies gracefully
+
+	Use simple assignments whenever possible
+
+	Fix internal errors that occured due to invalid expressions expanded into procedure bodies
+
+	Fix internal errors that occured due to missing bindings for locations
+
+	Fix internal errors that occurred due to non-valid expressions
+
+2016-07-10  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Add infrastructure of R7RS tests
+
+	Bump version number to v0.1.3
+
+	Update NEWS for next release
+
+	Handle errors in defining expression of definitions gracefully. Fixes #2
+
+2016-07-09  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Add contribution guide
+
+	Refactored primitives into runtime library
+
+	Fix syntax of GitLab runner configuation
+
+	Updated GitLab runner to use pre-compiled version of Larceny
+
+	Removed debugging code. Updated references to Larceny builds.
+
+	Relocated hello world example
+
+	Let user override the Larceny binary
+
+	Remove superfluous code
+
+	Add fix-letrec pass
+
+2016-07-08  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Update NEWS
+
+2016-07-07  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Update .gitignore
+
+	Add information on output of compiler passes
+
+	Add very brief overview on current compiler structure
+
+	Added missing binary
+
+	Added generic method to expressions
+
+2016-07-06  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Fixed wrong import of parameterize
+
+2016-07-06  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Added simple unit test for the lambda lifting pass
+
+	Added lambda-lifting pass
+
+	Added patch version.
+
+	Added NEWS file
+
+2016-07-05  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Implemented syntax parameters
+
+	Fixed check in evaluator for programs with syntax errors
+
+	Fixed a mal-formed and-let* and prepared for syntax parameters
+
+	Update README
+
+2016-07-05  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Prepared for first release (0.1)
+
+	Removed old debugging code
+
+	Fixed bug: use ‘(srfi 39)’ instead of ‘(scheme base)’
+
+2016-07-05  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Fixed bug in standard library
+
+2016-07-04  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Fixed SRFI 131 implementation
+
+2016-07-04  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Fixed a number of bugs
+
+	Added scheme evaluator binary.
+
+2016-07-04  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Made compiler functional
+
+2016-07-02  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Added procedure to output expression as a Scheme program
+
+2016-07-01  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Added cond-expand primitive and finished implementing R7RS-small frontend
+
+	Added features procedure of R7RS
+
+	Corrected use of Larceny's scheme-script
+
+	Added the remaining missing update to run Larceny in the build process
+
+2016-07-01  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Made larceny the default compiler
+
+	Fixed many bugs
+
+2016-07-01  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Changed image to custom image that contains Larceny
+
+2016-06-28  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Added top-level define as set!
+
+2016-06-27  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Added case-lambda primitive
+
+	Added include primitives
+
+2016-06-27  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Corrected two bugs in the macro expander
+
+2016-06-27  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Corrected bug in if expander
+
+	Added syntax-error primitive
+
+2016-06-27  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Added more primitives
+
+2016-06-25  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Worked on the expander
+
+2016-06-24  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Finished implementation of syntax-rules
+
+2016-06-24  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Completed syntax rules except for output of list templates and bugs
+
+	Added template compilers except for the template list compiler
+
+2016-06-22  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Added first integration test
+
+2016-06-21  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Finished pattern list compiler modulo bugs
+
+	Added matching procedure for pattern list compiler
+
+2016-06-20  Marc Nieper-Wisskirchen  <marc@nieper-wisskirchen.de>
+
+	Scaffolded pattern list compiler
+
+	Updated compiler program to the current state of the expander
+
+2016-06-20  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Added compiler program
+
+2016-06-19  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Finished pattern compilers except for the pattern list compiler
+
+	Added function that can be used to analyze pattern lists in syntax-rules macros
+
+2016-06-18  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Simplified the basis of the syntax-rules transformer
+
+	Continued work on the syntax-rules expander
+
+	Implemented syntax-rules frontend
+
+	Scaffolded macro transformer facility
+
+2016-06-17  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Scaffolded library for macro expansion
+
+	Added primitive ‘define-values’
+
+	Renamed record fields formerly named ‘syntax’ because of a bug in Larceny's compiler
+
+	Fixed an error detected by a Larceny run
+
+	Implemented the quote special form
+
+2016-06-16  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Implemented the first primitive form
+
+	Implemented a new algorithm to track identifiers whose meaning cannot be changed
+
+2016-06-15  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Slightly refactored the library expander
+
+	Corrected output of end column number so that it is correctly parsed by Emacs
+
+	Added context information to syntax error messages
+
+	Made sure that errors concerning library imports and exports are printed in order of occurance in source files
+
+2016-06-14  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Renamed library ‘(rapid environments)’ to ‘(rapid expand-library)’
+
+	Added first iteration of primitive environment
+
+	Scaffolded the expansion of import sets a bit more
+
+	Refactored imports and exports for use with syntactic environments
+
+2016-06-13  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Fixed a few bugs that were detected by running the tests with Larceny
+
+	Fixed bugs in yet unused codes
+
+	Added default library stubs
+
+2016-06-12  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Fixed various bugs in library reading code
+
+	Add initial AUTHORS file
+
+	Scaffold the environment library
+
+2016-06-11  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Implement a library table
+
+	Fully implement import sets for libraries
+
+	Implement imap-map
+
+	Use export-mappings in export modifiers
+
+	Abstract export mappings
+
+	Rename ‘syntax-datum’ to ‘unwrap-syntax’ to avoid confusion with ‘syntax->datum’
+
+	Make use of identifiers in reader and library expansion code
+
+2016-06-10  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Implement an identifier type on which syntactic closures (without free variables) can be built
+
+2016-06-09  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Make use of receive when simpler than let-values
+
+	Provide receive syntax from SRFI 8
+
+	Reducing testing time
+
+2016-06-08  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Implement immutable maps with red black trees for O(log n) access
+
+2016-06-07  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Remove log file from source
+
+	Add framework for import modifiers
+
+	Add library that abstracts import sets
+
+	Cond-expand library feature requirements
+
+2016-06-06  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Add feature library
+
+	Implement library exports
+
+	Provide list queues
+
+	Correct source locations for (byte)vectors and lists
+
+	Locate library definitions
+
+2016-06-05  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Add library to handle reading libraries from the file system
+
+	More reader tests and bug fixes
+
+	Read datum labels
+
+2016-06-04  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Read quote, etc.
+
+	Read bytevectors
+
+	Read vectors
+
+	Read peculiar identifiers
+
+	Read simple identifiers
+
+	Read characters
+
+	Read booleans
+
+	Read identifiers enclosed in vertical lines
+
+2016-06-03  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	First reader tests
+
+	Add new file
+
+2016-06-02  Marc Nieper-Wißkirchen  <marc@nieper-wisskirchen.de>
+
+	Add continuous integration
+
+	Initial commit

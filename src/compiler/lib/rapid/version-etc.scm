@@ -15,7 +15,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid features)
-  (export rapid-features)
-  (import (scheme base))
-  (include "features.scm"))
+(define (version-etc command-name)
+  (write-string (format "~a (~a) ~a~%"
+			command-name *package* *version*))
+  (write-string
+   "Copyright © 2016 Marc Nieper-Wißkirchen\n\
+    License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\
+    This is free software: you are free to change and redistribute it.\n\
+    There is NO WARRANTY, to the extent permitted by law.\n"))
+
+(define (emit-bug-reporting-address port)
+  (write-string (format "Email bug reports to: ~a~%" *bugreport*)
+   port))

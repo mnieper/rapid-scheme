@@ -27,16 +27,18 @@
 	(rapid library-definitions)
 	(rapid compiler))
 
-(define (help)
+(define (help port)
   (write-string
    (format "Usage: ~a [OPTION] file\n  \
               -d, --debug   print more information about progress\n  \
               -I, --include prepends a library search directory\n  \
               -h, --help    display this help and exit\n  \
               -v, --version output version information and exit\n"
-	   (car (command-line))))
-  (newline)
-  (emit-bug-reporting-address))
+	   (car (command-line)))
+   port)
+  (newline port)
+  (emit-bug-reporting-address port)
+  (flush-output-port port))
 
 (let-values
     (((input)
@@ -48,11 +50,12 @@
 			    input))
 		  (option '(#\h "help") #f #f
 			  (lambda (option name arg input)
-			    (help)
+			    (help (current-output-port))
 			    (exit)))
 		  (option '(#\v "version") #f #f
 			  (lambda (option name arg input)
 			    (version-etc "rapid-compiler")
+			    (flush-output-port)
 			    (exit)))
 		  (option '(#\I "include") #t #t
 			  (lambda (option name arg input)
@@ -61,7 +64,7 @@
 			    input)))
 		 (lambda (option name arg input)
 		   (rapid-error 0 "invalid-option ‘~a’" name)
-		   (help)
+		   (help (current-error-port))
 		   (exit 1))
 		 (lambda (operand input)
 		   operand)
@@ -69,7 +72,7 @@
  
   (unless input
     (rapid-error 0 "no input file given")
-    (help)
+    (help (current-error-port))
     (exit 1))
 
   (and-let*

@@ -11,11 +11,18 @@ The development sources are available through git at GitLab:
   https://gitlab.com/nieper/rapid-scheme
 
 
-Tools
------
+Autotools
+---------
+
+This distribution uses quite recent versions of the Autotools.  Older
+versions may work; please report success to the author.
+
+
+Host Scheme system
+------------------
 
 As Rapid Scheme is written in Scheme code as described by R7RS, a
-suitable implementation of the R7RS is needed. The Makefile
+suitable implementation of the R7RS is needed. The configure scripts
 distributed with the development sources assumes that a sufficiently
 recent nightly build of Larceny is installed on the system, however
 any other Scheme system that fully implements the R7RS should also
@@ -26,12 +33,14 @@ of magnitude slower than Larceny.)
 Building
 --------
 
-After installing Larceny (or any other implementation of the R7RS after suitably
-patching the provided Makefile), you can run
+After installing Larceny (or any other implementation of the R7RS
+after suitably patching the provided configuration files), you can run
 
-  make
+  ./bootstrap
 
-to build the two executables ./rapid-scheme and ./rapid-compile.
+to do a fresh build.  After that first time, running make should
+suffice to build the two executables src/runtime/rapid-scheme and
+src/compiler/rapid-compile.
 
 
 Run tests
@@ -47,18 +56,21 @@ to execute the provided tests.
 Compiling Scheme programs
 -------------------------
 
-You can run the program ./rapid-compile to expand Scheme programs as described by the
-R7RS. You need to add the -I share option so that the standard library of the R7RS
-can be found. The expanded program is written to stdout, and is self-contained apart from
-a minimal runtime exported by (rapid primitive).
+You can run the program src/compiler/rapid-compile to expand Scheme
+programs as described by the R7RS.  You need to add the `-I
+src/runtime/lib option' so that the standard library of the R7RS can
+be found.  The expanded program is written to stdout, and is
+self-contained apart from a minimal runtime exported by (rapid
+primitive).
 
 
 Execute Scheme programs
 -----------------------
 
-You can run the program ./rapid-scheme to expand and evaluate Scheme programs as described
-by the R7RS. You need to add the -I share option so that the standard library of the R7RS
-can be found.
+You can run the program src/runtime/rapid-scheme to expand and
+evaluate Scheme programs as described by the R7RS.  You need to add
+the `-I src/runtime/lib' option so that the standard library of the
+R7RS can be found.
 
 
 Compiler Front-end

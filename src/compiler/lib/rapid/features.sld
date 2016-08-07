@@ -15,8 +15,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid version-etc)
-  (export version-etc emit-bug-reporting-address)
-  (import (scheme base)
-	  (rapid format))
-  (include "version-etc.scm"))
+(define-library (rapid features)
+  (export rapid-features
+	  *package* *version* *bugreport*)
+  (import (scheme base))
+  (include "features.scm"))
