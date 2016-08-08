@@ -46,19 +46,53 @@
     ((set!-values-aux var new-formals (tmp ...) expression)
      (set!-values-aux () (new-formals . var) (tmp ... (var new)) expression))))
 
-;; Disjoint types
+;; Procedural records
 
-(define-record-type <type>
-  (make-type payload)
-  type?
-  (payload type-payload type-set-payload!))
+(define-record-type <rtd>
+  (%make-rtd size make-record record? record-fields)
+  rtd?
+  (size rtd-size)
+  (make-record rtd-make-record)
+  (record? rtd-record?)
+  (record-fields rtd-record-fields))
 
-(define-record-type <instance>
-  (make-instance type payload)
-  %instance?
-  (type instance-type)
-  (payload instance-ref))
+(define (make-rtd size)
+  (define-record-type <record>
+    (make-record fields)
+    record?
+    (fields record-fields))
+  (%make-rtd size make-record record? record-fields))
 
-(define (instance? type obj)
-  (and (%instance? obj)
-       (eq? type (instance-type obj))))
+(define (make-constructor rtd indices)
+  (let*
+      ((make-record
+        (rtd-make-record rtd))
+       (size
+        (rtd-size rtd)))
+    (lambda args
+      (let ((arg-vector (list->vector args)))
+        (unless (= (vector-length arg-vector) (vector-length indices))
+          (error "unexpected number of arguments in record constructor"
+		 (vector-length args)))
+        (let ((fields (make-vector size (if #f #f))))
+          (vector-for-each
+           (lambda (arg index)
+             (vector-set! fields index arg))
+           arg-vector indices)
+          (make-record fields))))))
+
+ (define (make-predicate rtd)
+  (let ((pred (rtd-record? rtd)))
+    (lambda (obj)
+      (pred obj))))
+
+(define (make-accessor rtd index) 
+  (let ((record-fields (rtd-record-fields rtd)))
+    (lambda (record)
+      (vector-ref (record-fields record) index))))
+
+(define (make-mutator rtd index)
+  (let*
+      ((record-fields (rtd-record-fields rtd)))
+    (lambda (record value)
+      (vector-set! (record-fields record) index value))))

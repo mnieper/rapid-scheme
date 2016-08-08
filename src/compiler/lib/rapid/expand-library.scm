@@ -130,59 +130,23 @@
 					     (library-definition-exports library))
 	      (current-syntactic-environment)))))))
 
-  (let ((runtime-environment
-	 (syntactic-environment-intern! (derive-syntax '(rapid runtime))
-					#t)))
-    
-    (with-import-sets (library-definition-import-sets library)
-      (add-definitions!
-       (expand-top-level! (library-definition-body library)))
-      (let*
-	  ((expression
-	    (make-letrec*-expression (list-queue-list definitions)
-				     ;; TODO: Maybe intern the syntactic environments
-				     (list (make-undefined #f))
-				     #f))
-	   (expression
-	    (if runtime-environment
-		(link-runtime expression runtime-environment)
-		expression))
-	   (expression
-	    (lambda-lift expression))
-	   (expression
-	    (fix-letrec expression)))
-	(values
-	 ;; FIXME: Return the locations of the exported variables
-	 #f
-	 expression)))))
-
-(define (link-runtime expression runtime-environment)
-  (let ((primitives (imap identifier-comparator)))
-    (syntactic-environment-for-each
-     (lambda (identifier binding)
-       (let ((denotation (binding-denotation binding)))
-	 (when (location? denotation)
-	   (set! primitives
-		 (imap-replace primitives
-			       identifier
-			       denotation)))))
-     runtime-environment)    
-    (parameterize
-	 ((current-reference-method
-	   (lambda (expression)
-	     (let ((location (reference-location expression)))
-	       (cond
-		((and (primitive? location)
-		      (imap-ref/default primitives
-					(symbol->identifier (primitive-value
-							     location))
-					#f))
-		 => (lambda (location)
-		      (make-reference location
-				      (expression-syntax expression))))
-		(else
-		 expression))))))
-      (expression-dispatch expression))))
+  (with-import-sets (library-definition-import-sets library)
+    (add-definitions!
+     (expand-top-level! (library-definition-body library)))
+    (let*
+	((expression
+	  (make-letrec*-expression (list-queue-list definitions)
+				   ;; TODO: Maybe intern the syntactic environments
+				   (list (make-undefined #f))
+				   #f))
+	 (expression
+	  (lambda-lift expression))
+	 (expression
+	  (fix-letrec expression)))
+      (values
+       ;; FIXME: Return the locations of the exported variables
+       #f
+       expression))))
 
 ;; Local Variables:
 ;; eval: (put 'with-import-sets 'scheme-indent-function 1)

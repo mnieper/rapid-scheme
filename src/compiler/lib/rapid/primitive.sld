@@ -26,10 +26,11 @@
 	  letrec
 	  let-values
 
-	  make-type
-	  make-instance
-	  instance?
-	  instance-ref
+	  make-rtd
+	  make-constructor
+	  make-predicate
+	  make-accessor
+	  make-mutator
 	  
 	  *
 	  +

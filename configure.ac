@@ -17,7 +17,7 @@ dnl along with this program.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
 AC_PREREQ([2.69])
-AC_INIT([Rapid Scheme], [0.2.0], [marc@rapid-scheme.org], [],
+AC_INIT([Rapid Scheme], [0.2.1], [marc@rapid-scheme.org], [],
   [https://www.rapid-scheme.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([1.14.1])
