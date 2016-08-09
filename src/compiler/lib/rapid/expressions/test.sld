@@ -28,14 +28,16 @@
 
       (test-equal "Quote expressions"
 		  '(if #t
-		       (set! g0 (list 'foo '(1 . 2)))
+		       (set! g0 (list 'bar 'foo '(1 . 2)))
 		       (if #f #f))
 		  (let ((g0 (make-location 0 #f))
-			(list (make-primitive 'list #f)))
+			(%list (make-primitive 'list #f)))
 		    (expression->datum
 		     (expression
 		      (if '#t
-			  (set! g0 (list ,(make-literal 'foo #f) '(1 . 2))))))))
+			  (set! g0 (%list
+				    ,@(list (make-literal 'bar #f))
+				    ,(make-literal 'foo #f) '(1 . 2))))))))
 
       (test-equal "Quoting procedures"
 		  '(case-lambda

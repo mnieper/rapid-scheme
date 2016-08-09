@@ -26,7 +26,9 @@
 		   (syntax-rules ()
 		     ((k v)
 		      v))))
-       (let ((s syntax))
+       (let ((s (if (expression? syntax)
+		    (expression-syntax syntax)
+		    syntax)))
 	 (expression-helper k e s))))))
 
 (define-syntax expression-helper
@@ -66,9 +68,9 @@
      (let-syntax ((k1
 		   (syntax-rules ()
 		     ((k1 v . v*)
-		      (let ((v1 (make-procedure-call v (list . v*) syntax)))
+		      (let ((v1 (make-procedure-call `v `v* syntax)))
 			(k v1))))))
-       (expression-helper* k1 (operator operand ...) syntax)))
+       (expression-template k1 (operator operand ...) syntax)))
     ((expression-helper k e syntax)
      (let ((v (make-reference e syntax)))
        (k v)))))
@@ -84,6 +86,21 @@
 		   (syntax-rules ()
 		     ((k1 v1)
 		      (expression-helper* k e* (v ... v1) syntax)))))
+       (expression-helper k1 e syntax)))))
+
+(define-syntax expression-template
+  (syntax-rules (unquote-splicing)
+    ((expression-template k e* syntax)
+     (expression-template k e* () syntax))
+    ((expression-template k () v* syntax)
+     (k . v*))
+    ((expression-template k (,@e . e*) (v ...) syntax)
+     (expression-template k e* (v ... ,@e) syntax))
+    ((expression-template k (e . e*) (v ...) syntax)
+     (let-syntax ((k1
+		   (syntax-rules ()
+		     ((k1 v1)
+		      (expression-template k e* (v ... ,v1) syntax)))))
        (expression-helper k1 e syntax)))))
 
 (define-syntax expression-clauses

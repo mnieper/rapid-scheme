@@ -22,9 +22,7 @@
 
 ;; TODO: Do not put #f at syntax positions
 
-;; REMOVE SYNTAX STACK (add again later)
-
-(define (cps-transform expression)
+(define (cps-transform exp)
   (parameterize
       ((current-reference-method
 	transform-atomic-expression)
@@ -34,26 +32,25 @@
 	transform-atomic-expression)
        (current-procedure-call-method
 	(lambda (expression k flags marks)
-	  (let ((operator (procedure-call-operator expression)))
-	    ;; also: TODO: handle (apply primitive ...)
-	    (cond
-	     ((primitive operator)
-	      => (lambda (primitive)
-		   (case primitive
-		     ((call/cc)
-		      (transform-call/cc expression k flags marks))
-		     ((wcm)
-		      (transform-wcm expression k flags marks))
-		     ((ccm)
-		      (transform-ccm expression k flags marks))
-		     ((apply)
-		      (transform-apply expression k flags marks))
-		     ((error)
-		      (transform-error expression k flags marks))
-		     (else
-		      (transform-primitive-call expression k flags marks)))))
-	     (else
-	      (transform-procedure-call expression k flags marks))))))
+	  ;; also: TODO: handle (apply primitive ...)
+	  (cond
+	   ((primitive (procedure-call-operator expression))
+	    => (lambda (primitive)
+		 (case primitive
+		   ((call/cc)
+		    (transform-call/cc expression k flags marks))
+		   ((wcm)
+		    (transform-wcm expression k flags marks))
+		   ((ccm)
+		    (transform-ccm expression k flags marks))
+		   ((apply)
+		    (transform-apply expression k flags marks))
+		   ((error)
+		    (transform-error expression k flags marks))
+		   (else
+		    (transform-primitive-call expression k flags marks)))))
+	   (else
+	    (transform-procedure-call expression k flags marks)))))
        (current-procedure-method
 	transform-procedure)
        (current-assignment-method
@@ -68,29 +65,28 @@
 	transform-sequence)
        (current-conditional-method
 	transform-conditional))
-    (transform expression
+    (transform exp
 	       (lambda (a) a)
 	       #f
 	       (lambda ()
-		 (make-literal '() (expression-syntax expression))))))
+		 (expression '() exp)))))
 
-(define (transform expression k flags marks)
-  (expression-dispatch expression k flags marks))
+(define (transform expression k flag marks)
+  (expression-dispatch expression k flag marks))
 
-(define (transform-atomic-expression expression k flags marks)
+(define (transform-atomic-expression expression k flag marks)
   ((continuation-procedure k) expression))
 
-(define (transform-procedure-call expression k flag marks)
-  (define syntax (expression-syntax expression))
-  (transform* (cons (procedure-call-operator expression)
-		    (procedure-call-operands expression))
+(define (transform-procedure-call exp k flag marks)
+  (transform* (cons (procedure-call-operator exp)
+		    (procedure-call-operands exp))
 	      (lambda (t*)
-		(make-procedure-call (car t*)
-				     (append (list (continuation-expression k)
-						   (flag-expression flag)
-						   (marks))
-					     (cdr t*))
-				     syntax))
+		(expression (,(car t*)
+			     ,(continuation-expression k)
+			     ,(flag-expression flag)
+			     ,(marks)
+			     ,@(cdr t*))
+			    exp))
 	      #f marks))
 
 (define (transform-primitive-call expression k flag marks)

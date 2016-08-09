@@ -23,12 +23,13 @@ lib/rapid/and-let/test.sld lib/rapid/args-fold.scm			\
 lib/rapid/args-fold.sld lib/rapid/args-fold/test.sld			\
 lib/rapid/base.sld lib/rapid/boxes.scm lib/rapid/boxes.sld		\
 lib/rapid/boxes/test.sld lib/rapid/comparators.scm			\
-lib/rapid/cps-transform.sld lib/rapid/cps-transform/test.sld		\
-lib/rapid/comparators.sld lib/rapid/comparators/test.sld		\
-lib/rapid/compiler.scm lib/rapid/compiler.sld lib/rapid/error.scm	\
-lib/rapid/error/test.sld lib/rapid/expand-library.scm			\
-lib/rapid/expand-library.sld lib/rapid/expand-library/test.sld		\
-lib/rapid/expand.scm lib/rapid/expand.sld lib/rapid/expand/test.sld	\
+lib/rapid/cps-transform.sld lib/rapid/cps-transform.scm			\
+lib/rapid/cps-transform/test.sld lib/rapid/comparators.sld		\
+lib/rapid/comparators/test.sld lib/rapid/compiler.scm			\
+lib/rapid/compiler.sld lib/rapid/error.scm lib/rapid/error/test.sld	\
+lib/rapid/expand-library.scm lib/rapid/expand-library.sld		\
+lib/rapid/expand-library/test.sld lib/rapid/expand.scm			\
+lib/rapid/expand.sld lib/rapid/expand/test.sld				\
 lib/rapid/expressions.scm lib/rapid/expressions.sld			\
 lib/rapid/expressions/test.sld lib/rapid/features.scm			\
 lib/rapid/features.sld lib/rapid/features/test.sld			\
@@ -70,11 +71,12 @@ lib/rapid/vectors.sld lib/rapid/vectors/test.sld			\
 lib/rapid/version-etc.scm lib/rapid/version-etc.sld
 
 scheme: Makefile compile-stale.scm $(LIBRARY_FILES)
-	cd lib; larceny -path . -r7rs -program "../compile-stale.scm"
+#	cd lib; larceny -path . -r7rs -program "../compile-stale.scm"
 	echo "#! /bin/sh" > $@
 	echo "PROGRAM=\"\$$1\"" >> $@
 	echo "shift" >> $@
-	echo "larceny -path $(abs_top_srcdir)/src/compiler/lib -r7rs -program \"\$${PROGRAM}\" -- \"\$$@\"" >> $@
+#	echo "larceny -path $(abs_top_srcdir)/src/compiler/lib -r7rs -program \"\$${PROGRAM}\" -- \"\$$@\"" >> $@
+	echo "chibi-scheme -h 1G -I $(abs_top_srcdir)/src/compiler/lib \"\$${PROGRAM}\" \"\$$@\"" >> $@
 	chmod +x $@
 
 compile-stale.scm: Makefile
