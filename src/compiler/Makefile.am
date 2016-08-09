@@ -23,6 +23,7 @@ lib/rapid/and-let/test.sld lib/rapid/args-fold.scm			\
 lib/rapid/args-fold.sld lib/rapid/args-fold/test.sld			\
 lib/rapid/base.sld lib/rapid/boxes.scm lib/rapid/boxes.sld		\
 lib/rapid/boxes/test.sld lib/rapid/comparators.scm			\
+lib/rapid/cps-transform.sld lib/rapid/cps-transform/test.sld		\
 lib/rapid/comparators.sld lib/rapid/comparators/test.sld		\
 lib/rapid/compiler.scm lib/rapid/compiler.sld lib/rapid/error.scm	\
 lib/rapid/error/test.sld lib/rapid/expand-library.scm			\

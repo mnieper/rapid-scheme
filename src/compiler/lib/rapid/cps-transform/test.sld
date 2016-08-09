@@ -15,22 +15,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid expand-library)
-  (export expand-library)
-  (import (rapid base)
-	  (rapid and-let)
-	  (rapid comparators)
-	  (rapid identifiers)
-	  (rapid list-queues)
-	  (rapid immutable-maps)
-	  (rapid syntax)
-	  (rapid import-sets)
-	  (rapid library-definitions)
+(define-library (rapid cps-transform test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
 	  (rapid syntactic-environments)
-	  (rapid expand)
 	  (rapid expressions)
-	  (rapid primitive-environment)
-	  (rapid lambda-lift)
-	  (rapid fix-letrec)
 	  (rapid cps-transform))
-  (include "expand-library.scm"))
+  (begin
+    (define (run-tests)
+      (test-begin "CPS Transform")
+
+      ;; FIXME: Write test cases.
+
+      (test-end))))

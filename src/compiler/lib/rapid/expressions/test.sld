@@ -43,8 +43,10 @@
 		  (expression->datum
 		   (expression
 		    (case-lambda
-		     ,@(list (make-clause (make-formals (list (make-location 0 #f)) #f)
+		     ,@(list (make-clause (make-formals
+					   (list (make-location 0 #f))
+					   #f)
 					  (list (expression '42))
 					  #f))))))
-		   
+      
       (test-end))))
