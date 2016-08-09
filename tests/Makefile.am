@@ -20,7 +20,6 @@ check_SCRIPTS = compiler-test.sh runtime-test.sh
 
 TESTS = runtime/r7rs-tests.scm tests.scm $(check_SCRIPTS)
 TEST_EXTENSIONS = .scm
-TEST_LOG_COMPILER = check.sh
 SCM_LOG_COMPILER = $(SCHEME)
 
 compiler-test.sh: Makefile
