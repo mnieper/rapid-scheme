@@ -17,7 +17,7 @@
 # <http://www.gnu.org/licenses/>.
 
 RAPID_SCHEME = ../../src/runtime/rapid-scheme
-RAPID_SCHEME_FLAGS = -I../../src/runtime/lib -I../../src/compiler/lib
+RAPID_FLAGS = -I../../src/runtime/lib -I../../src/compiler/lib
 
 check_SCRIPTS = check.sh
 
@@ -30,12 +30,12 @@ set.tst read.tst ../tests.scm
 
 TEST_EXTENSIONS =  .tst .scm
 SCM_LOG_COMPILER = $(RAPID_SCHEME)
-AM_SCM_LOG_FLAGS = $(RAPID_SCHEME_FLAGS)
+AM_SCM_LOG_FLAGS = $(RAPID_FLAGS)
 TST_LOG_COMPILER = ./check.sh
 
 check.sh: Makefile
 	echo "#! /bin/sh" > $@
-	echo "$(RAPID_SCHEME) $(RAPID_SCHEME_FLAGS) \"\$$1\" 2>&1 | grep -q \"\`cat \$$(basename \"\$$1\" .tst).ok\`\"" > $@
+	echo "$(RAPID_SCHEME) $(RAPID_FLAGS) \"\$$1\" 2>&1 | grep -q \"\`cat \$$(basename \"\$$1\" .tst).ok\`\"" > $@
 	chmod a+x $@
 
 CLEANFILES = $(check_SCRIPTS)

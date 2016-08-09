@@ -16,11 +16,16 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-check_SCRIPTS = compiler-test.sh runtime-test.sh
+check_SCRIPTS = compiler-test.sh runtime-test.sh check.sh
 
-TESTS = runtime/r7rs-tests.scm tests.scm $(check_SCRIPTS)
-TEST_EXTENSIONS = .scm
+RAPID_COMPILER = ../src/compiler/rapid-compiler
+RAPID_FLAGS = -I../src/runtime/lib -I../src/compiler/lib
+
+TESTS = runtime/r7rs-tests.scm tests.scm compiler-test.sh	\
+runtime-test.sh hello-world.tst
+TEST_EXTENSIONS = .scm .tst
 SCM_LOG_COMPILER = $(SCHEME)
+TST_LOG_COMPILER = ./check.sh
 
 compiler-test.sh: Makefile
 	echo "#! /bin/sh" > $@
@@ -30,6 +35,27 @@ compiler-test.sh: Makefile
 runtime-test.sh: Makefile
 	echo "#! /bin/sh" > $@
 	echo "../src/runtime/rapid-scheme --help | grep -q \"display this help and exit\"" >> $@
+	chmod a+x $@
+
+check.sh: Makefile
+	echo "#! /bin/sh" > $@
+	echo "test=\$$(basename \"\$$1\" .tst)" >> $@
+	echo "$(RAPID_COMPILER) $(RAPID_FLAGS) \"\$$1\" > \$$test.bin" >> $@
+	echo "if test \$$? != 0; then" >> $@
+	echo "  exit 99" >> $@
+	echo "fi" >> $@
+	echo "$(SCHEME) \$$test.bin | tr -d \\\\r > \$$test.out" >> $@
+	echo "if test \$$? != 0; then" >> $@
+	echo "  rm \$$test.bin" >> $@
+	echo "  exit 99" >> $@
+	echo "fi" >> $@
+	echo "cmp -s \$$srcdir/\$$test.ok \$$test.out" >> $@
+	echo "if test \$$? != 0; then" >> $@
+	echo "  diff \$$srcdir/\$$test.ok \$$test.out" >> $@
+	echo "  rm \$$test.bin \$$test.out" >> $@
+	echo "  exit 100" >> $@
+	echo "fi" >> $@
+	echo "rm \$$test.bin \$$test.out" >> $@
 	chmod a+x $@
 
 CLEANFILES = $(check_SCRIPTS)
