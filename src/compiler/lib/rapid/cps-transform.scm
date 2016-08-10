@@ -17,7 +17,8 @@
 
 ;; XXX: Check: Does this output non-letrec'ed case-lambda's?
 
-;; FIXME: Avoid to put #f at syntax positions
+;; TODO: Syntax-check primitive procedures
+;; FIXME: Avoid putting #f at syntax positions
 ;; FIXME: handle (apply primitive ...)
 
 (define (cps-transform exp)
@@ -42,8 +43,6 @@
 		    (transform-ccm expression k flags marks))
 		   ((apply)
 		    (transform-apply expression k flags marks))
-		   ((error)
-		    (transform-error expression k flags marks))
 		   (else
 		    (transform-primitive-call expression k flags marks)))))
 	   (else
@@ -110,49 +109,55 @@
    (marks)))
 
 (define (transform-wcm expression k flag marks)
-  (define operands (procedure-call-operands expression))
-  (define mark (car operands))
-  (define result (cadr operands))
-  (transform mark
-	     (lambda (m)
-	       (wcm m
-		    (lambda (k flag marks)
-		      (transform result k flag marks))
-		    k flag marks))
-	     #f marks))
+  (let*
+      ((operands (procedure-call-operands expression))
+       (mark (car operands))
+       (result (cadr operands)))
+    (transform mark
+	       (lambda (m)
+		 (wcm m
+		      (lambda (k flag marks)
+			(transform result k flag marks))
+		      k flag marks))
+	       #f marks)))
 
-(define (transform-apply expression k flag marks)
-  ;; FIXME: operator may be primitive
-  (define operands (procedure-call-operands expression))
-  (transform* operands
-	      (lambda (a*)
-		(make-procedure-call
-		 (procedure-call-operator expression)
-		 (append
-		  (list (car a*) (continuation-expression k) (flag-expression flag) (marks))
-		  (cdr a*))
-		 (expression-syntax expression)))
-	      #f marks))
+(define (transform-apply exp k flag marks)
+  (let ((operands (procedure-call-operands exp)))
+    (cond
+     ((primitive (car operands))
+      (transform* (cdr operands)
+		  (lambda (a*)
+		    ((continuation-procedure k)
+		     (expression
+		      (,(procedure-call-operator exp)
+		       ,(car operands)
+		       ,@a*)
+		      exp)))
+		  #f marks))
+     (else      
+      (transform* operands
+		  (lambda (a*)
+		    (expression
+		     (,(procedure-call-operator exp)
+		      ,(car a*)
+		      ,(continuation-expression k)
+		      ,(flag-expression flag)
+		      ,(marks)
+		      ,@(cdr a*))
+		     exp))
+		  #f marks)))))
 
-(define (transform-error expression k flag marks)
-  (transform* (procedure-call-operands expression)
-	      (lambda (t*)
-		((continuation-procedure k)
-		 (make-procedure-call (procedure-call-operator expression)
-				      (append (list (flag-expression flag) (marks))
-					      t*)
-				      (expression-syntax expression))))
-	      #f marks))
-
-(define (transform-assignment expression k flag marks)
-  (transform (assignment-expression expression)
+(define (transform-assignment exp k flag marks)
+  (transform (assignment-expression exp)
 	     (lambda (t)
 	       ((continuation-procedure k)
-		(make-assignment (assignment-location expression)
-				 t
-				 (expression-syntax expression))))
+		(expression
+		 (set! (assignment-location exp)
+		       ,t)
+		 exp)))
 	     #f marks))
 
+;; XXX: We are here.
 (define (transform-multiple-assignment expression k flag marks)
   (define formals (multiple-assignment-formals expression))
   (define new-formals
