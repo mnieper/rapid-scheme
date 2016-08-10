@@ -15,12 +15,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;;; TODO: Check whether number of values in continuation and set-values!
-;;; is always the correct one.
-
 ;; XXX: Check: Does this output non-letrec'ed case-lambda's?
 
-;; TODO: Do not put #f at syntax positions
+;; FIXME: Avoid to put #f at syntax positions
+;; FIXME: handle (apply primitive ...)
 
 (define (cps-transform exp)
   (parameterize
@@ -32,7 +30,6 @@
 	transform-atomic-expression)
        (current-procedure-call-method
 	(lambda (expression k flags marks)
-	  ;; also: TODO: handle (apply primitive ...)
 	  (cond
 	   ((primitive (procedure-call-operator expression))
 	    => (lambda (primitive)
@@ -74,8 +71,8 @@
 (define (transform expression k flag marks)
   (expression-dispatch expression k flag marks))
 
-(define (transform-atomic-expression expression k flag marks)
-  ((continuation-procedure k) expression))
+(define (transform-atomic-expression exp k flag marks)
+  ((continuation-procedure k) exp))
 
 (define (transform-procedure-call exp k flag marks)
   (transform* (cons (procedure-call-operator exp)
@@ -89,24 +86,23 @@
 			    exp))
 	      #f marks))
 
-(define (transform-primitive-call expression k flag marks)
-  (transform* (procedure-call-operands expression)
+(define (transform-primitive-call exp k flag marks)
+  (transform* (procedure-call-operands exp)
 	      (lambda (t*)
 		((continuation-procedure k)
-		 (make-procedure-call (procedure-call-operator expression)
-				      t*
-				      (expression-syntax expression))))
+		 (expression (,(procedure-call-operator exp)
+			      ,@t*)
+			     exp)))
 	      #f marks))
 
 (define (wcm mark result k flag marks)
   (let ((m* (make-location #f)))
-    (make-procedure-call
-     (generate-procedure
-      (list m*)
-      '()
-      (list (result k #t (lambda () (make-reference m* #f)))))
-     (list
-      (flag-marks flag mark marks))
+    (expression
+     (,(generate-procedure/body
+	(list m*)
+	'()
+	(list (result k #t (lambda () (make-reference m* #f)))))
+      ,(flag-marks flag mark marks))
      #f)))
 
 (define (transform-ccm expression k flag marks)
@@ -165,7 +161,7 @@
      (map (lambda (argument) (make-location #f)) (formals-rest formals))
      #f))
   (transform (multiple-assignment-expression expression)
-	     (%generate-procedure
+	     (generate-procedure/clause
 	      (make-clause
 	       new-formals
 	       (append
@@ -194,7 +190,7 @@
 	     (lambda (a)
 	       (let ((c (make-location #f)))
 		 (make-procedure-call
-		  (generate-procedure
+		  (generate-procedure/body
 		   (list c)
 		   '()
 		   (list
@@ -206,7 +202,7 @@
 						     (%f (make-location #f))
 						     (%m* (make-location #f))
 						     (x* (make-location #f)))
-						 (generate-procedure
+						 (generate-procedure/body
 						  (list %c %f %m*) (list x*)
 						  (list
 						   (make-procedure-call
@@ -252,7 +248,7 @@
 (define (transform-conditional expression k flag marks)
   (let ((c (make-location #f)))
     (make-procedure-call
-     (generate-procedure
+     (generate-procedure/body
       (list c)
       '()
       (list
@@ -292,7 +288,7 @@
 (define (transform-let-values-expression expression k flag marks)
   (define variables (let-values-expression-definition expression))
   (transform (variables-expression variables)
-	     (%generate-procedure
+	     (generate-procedure/clause
 	      (make-clause
 	       (variables-formals variables)
 	       (transform-body (let-values-expression-body expression) k flag marks)
@@ -333,11 +329,11 @@
 (define (transform* e* k flag marks)
   (do-transform* transform e* k flag marks))
 
-(define (generate-procedure fixed-parameters rest-parameter body)
-  (%generate-procedure
+(define (generate-procedure/body fixed-parameters rest-parameter body)
+  (generate-procedure/clause
    (make-clause (make-formals fixed-parameters rest-parameter #f) body #f)))
 
-(define (%generate-procedure clause)
+(define (generate-procedure/clause clause)
   (let ((f (make-location #f)))
     (make-letrec-expression
      (list
@@ -356,7 +352,7 @@
   (if (procedure? k)
       (let ((c (make-location #f)))
 	(let-values ((body (k (make-reference c #f))))
-	  (generate-procedure (list c) '() body)))
+	  (generate-procedure/body (list c) '() body)))
       k))
 
 (define (flag-expression flag)
@@ -382,7 +378,7 @@
       (let* ((m (make-location #f)))
 	(define (reference) (make-reference m #f))
 	(make-procedure-call
-	 (generate-procedure
+	 (generate-procedure/body
 	  (list m)
 	  '()
 	  (list

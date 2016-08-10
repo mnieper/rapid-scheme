@@ -71,6 +71,8 @@ lib/rapid/vectors.sld lib/rapid/vectors/test.sld			\
 lib/rapid/version-etc.scm lib/rapid/version-etc.sld
 
 scheme: Makefile compile-stale.scm $(LIBRARY_FILES)
+# XXX: Using Chibi until
+#	https://github.com/larcenists/larceny/issues/782 is resolved.
 #	cd lib; larceny -path . -r7rs -program "../compile-stale.scm"
 	echo "#! /bin/sh" > $@
 	echo "PROGRAM=\"\$$1\"" >> $@

@@ -22,7 +22,8 @@ RAPID_COMPILER = ../src/compiler/rapid-compiler
 RAPID_FLAGS = -I../src/runtime/lib -I../src/compiler/lib
 
 TESTS = runtime/r7rs-tests.scm tests.scm compiler-test.sh	\
-runtime-test.sh hello-world.tst procedure.tst
+runtime-test.sh hello-world.tst procedure.tst			\
+call-with-current-continuation.tst continuation-marks.tst
 TEST_EXTENSIONS = .scm .tst
 SCM_LOG_COMPILER = $(SCHEME)
 TST_LOG_COMPILER = ./check.sh
