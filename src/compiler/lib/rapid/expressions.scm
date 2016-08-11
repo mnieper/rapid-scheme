@@ -17,6 +17,11 @@
 
 ;;; Syntax
 
+(define-syntax with-syntax
+  (syntax-rules ()
+    ((with-syntax syntax . body)
+     (parameterize ((current-syntax (convert/syntax syntax))) . body))))
+
 (define-syntax expression
   (syntax-rules ()
     ((expression e)
@@ -124,8 +129,20 @@
   (method current-expression-method)
   (aux expression-aux expression-set-aux!))
 
-(define (expression-dispatch expression . args)
-  (apply ((current-expression-method expression)) expression args))
+(define (convert/syntax value)
+  (cond
+   ((syntax? value)
+    value)
+   ((expression? value)
+    (expression-syntax value))
+   ((not value)
+    (current-syntax))
+   (else
+    (error "invalid syntax value" value))))
+
+(define (expression-dispatch exp . args)
+  (with-syntax exp
+    (apply ((current-expression-method exp)) exp args)))
 
 (define (expression-dispatch* expression* . args)
   (map (lambda (expression)
@@ -145,7 +162,7 @@
   (location reference-location))
 
 (define (make-reference location syntax)
-  (%make-reference location syntax current-reference-method))
+  (%make-reference location (convert/syntax syntax) current-reference-method))
 
 ;; Literals
 
@@ -160,7 +177,7 @@
   (datum literal-datum))
 
 (define (make-literal datum syntax)
-  (%make-literal datum syntax current-literal-method))
+  (%make-literal datum (convert/syntax syntax) current-literal-method))
 
 ;; Undefined
 
@@ -175,7 +192,7 @@
   undefined?)
 
 (define (make-undefined syntax)
-  (%make-undefined current-undefined-method syntax))
+  (%make-undefined current-undefined-method (convert/syntax syntax)))
 
 ;; Procedure calls
 
@@ -199,8 +216,8 @@
 (define (make-procedure-call operator operands syntax)
   (and operator
        (every (lambda (x) x)
-	      operands)  
-       (%make-procedure-call operator operands syntax
+	      operands)
+       (%make-procedure-call operator operands (convert/syntax syntax)
 			     current-procedure-call-method)))
 
 ;; Sequences
@@ -222,7 +239,9 @@
     (and (not (null? expression*))
 	 (if (= (length expression*) 1)
 	     (car expression*)
-	     (%make-sequence expression* syntax current-sequence-method)))))
+	     (%make-sequence expression*
+			     (convert/syntax syntax)
+			     current-sequence-method)))))
 
 ;; Assignment
 
@@ -243,7 +262,10 @@
 
 (define (make-assignment location expression syntax)
   (and expression
-       (%make-assignment location expression syntax current-assignment-method)))
+       (%make-assignment location
+			 expression
+			 (convert/syntax syntax)
+			 current-assignment-method)))
 
 ;; Multiple assignment
 
@@ -265,9 +287,9 @@
 (define (make-multiple-assignment formals expression syntax)
   (let ((location (formals-location formals)))
     (if location
-	(make-assignment location expression syntax)  
+	(make-assignment location expression (convert/syntax syntax))  
 	(and expression
-	     (%make-multiple-assignment formals expression syntax
+	     (%make-multiple-assignment formals expression (convert/syntax syntax)
 					current-multiple-assignment-method)))))
 
 ;; Conditionals
@@ -295,7 +317,7 @@
 
 (define (make-conditional test consequent alternate syntax)
   (and test consequent alternate
-       (%make-conditional test consequent alternate syntax
+       (%make-conditional test consequent alternate (convert/syntax syntax)
 			  current-conditional-method)))
 
 ;; Procedures
@@ -318,7 +340,7 @@
   (clauses procedure-clauses))
 
 (define (make-procedure clauses syntax)
-  (%make-procedure clauses syntax current-procedure-method))
+  (%make-procedure clauses (convert/syntax syntax) current-procedure-method))
 
 ;; Letrec* expressions
 
@@ -346,7 +368,7 @@
 
 (define (make-letrec*-expression definitions body syntax)
   ;; XXX: The body may be flattened.
-  (%make-letrec*-expression definitions body syntax
+  (%make-letrec*-expression definitions body (convert/syntax syntax)
 			    current-letrec*-expression-method))
 
 ;; Letrec expressions
@@ -375,8 +397,10 @@
 
 (define (make-letrec-expression definitions body syntax)
   (if (null? definitions)
-      (make-sequence body syntax)   
-      (%make-letrec-expression definitions (flatten body) syntax
+      (make-sequence body (convert/syntax syntax))   
+      (%make-letrec-expression definitions
+			       (flatten body)
+			       (convert/syntax syntax)
 			       current-letrec-expression-method)))
 
 ;; Let-values expression
@@ -404,7 +428,7 @@
   (body let-values-expression-body))
 
 (define (make-let-values-expression definition body syntax)
-  (%make-let-values-expression definition (flatten body) syntax
+  (%make-let-values-expression definition (flatten body) (convert/syntax syntax)
 			       current-let-values-expression-method))
 
 ;; Extra types
@@ -418,7 +442,7 @@
   (aux variables-aux variables-set-aux!))
 
 (define (make-variables formals expression syntax)
-  (%make-variables formals expression syntax #f))
+  (%make-variables formals expression (convert/syntax syntax) #f))
 
 ;; Formals
 
@@ -440,16 +464,19 @@
 (define make-formals
   (case-lambda
    ((fixed syntax)
-    (%make-formals fixed '() syntax))
+    (%make-formals fixed '() (convert/syntax syntax)))
    ((fixed rest* syntax)
-    (%make-formals fixed rest* syntax))))
+    (%make-formals fixed rest* (convert/syntax syntax)))))
 
 (define-record-type <clause>
-  (make-clause formals body syntax)
+  (%make-clause formals body syntax)
   clause?
   (formals clause-formals)
   (body clause-body)
   (syntax clause-syntax))
+
+(define (make-clause formals body syntax)
+  (%make-clause formals body (convert/syntax syntax)))
 
 ;;; Utility functions
 

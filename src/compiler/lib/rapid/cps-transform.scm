@@ -157,148 +157,159 @@
 		 exp)))
 	     #f marks))
 
-;; XXX: We are here.
-(define (transform-multiple-assignment expression k flag marks)
-  (define formals (multiple-assignment-formals expression))
-  (define new-formals
-    (make-formals
-     (map (lambda (argument) (make-location #f)) (formals-fixed formals))
-     (map (lambda (argument) (make-location #f)) (formals-rest formals))
-     #f))
-  (transform (multiple-assignment-expression expression)
-	     (generate-procedure/clause
-	      (make-clause
-	       new-formals
-	       (append
-		(map
-		 (lambda (argument new-argument)
-		   (make-assignment argument (make-reference new-argument #f) #f))
-		 (formals-fixed formals)
-		 (formals-fixed new-formals))
-		(if (not (null? (formals-rest formals)))
-		    (list
-		     (make-assignment (car (formals-rest formals))
-				      (make-reference
-				       (car (formals-rest new-formals))
-				       #f)
-				      #f))
-		    '())
-		(list
-		 (make-procedure-call (continuation-expression k)
-				      (list (make-undefined #f))
-				      #f)))
-	       #f))
-	     #f marks))
+(define (transform-multiple-assignment exp k flag marks)
+  (let*
+      ((formals (multiple-assignment-formals exp))
+       (new-formals
+	(make-formals
+	 (map (lambda (argument) (make-location #f)) (formals-fixed formals))
+	 (map (lambda (argument) (make-location #f)) (formals-rest formals))
+	 #f)))
+    (transform (multiple-assignment-expression exp)
+	       (generate-procedure/clause
+		(make-clause
+		 new-formals
+		 (append
+		  (map
+		   (lambda (argument new-argument)
+		     (expression
+		      (set! argument
+			    ,(make-reference new-argument #f))
+		      #f))
+		   (formals-fixed formals)
+		   (formals-fixed new-formals))
+		  (if (not (null? (formals-rest formals)))
+		      (list
+		       (expression
+			(set! (car formals-rest formals)
+			      ,(make-reference
+				(car (formals-rest new-formals))
+				#f))
+			#f))
+		      '())
+		  (list
+		   (expression
+		    (,(continuation-expression k)
+		     ,(list (make-undefined #f)))
+		    #f)))))
+	       #f marks)))
 
-(define (transform-call/cc expression k flag marks)
-  (transform (car (procedure-call-operands expression))
+(define (transform-call/cc exp k flag marks)
+  (transform (car (procedure-call-operands exp))
 	     (lambda (a)
 	       (let ((c (make-location #f)))
-		 (make-procedure-call
-		  (generate-procedure/body
-		   (list c)
-		   '()
-		   (list
-		    (make-procedure-call a
-					 (list (make-reference c #f)
-					       (flag-expression flag)
-					       (marks)
-					       (let ((%c (make-location #f))
-						     (%f (make-location #f))
-						     (%m* (make-location #f))
-						     (x* (make-location #f)))
-						 (generate-procedure/body
-						  (list %c %f %m*) (list x*)
-						  (list
-						   (make-procedure-call
-						    (make-reference
-						     (make-primitive 'apply #f)
-						     #f)
-						    (list
-						     (make-reference c #f)
-						     (make-reference x* #f))
-						    #f)))))
-					 (expression-syntax expression))))
-		  (list (continuation-expression k))
-		  #f)))
+		 (expression
+		  (,(generate-procedure/body
+		     (list c)
+		     '()
+		     (list
+		      (expression
+		       (,a
+			c
+			,(flag-expression flag)
+			,(marks)
+			,(let ((%c (make-location #f))
+			       (%f (make-location #f))
+			       (%m* (make-location #f))
+			       (x* (make-location #f)))
+			   (generate-procedure/body
+			    (list %c %f %m*) (list x*)
+			    (list
+			     (make-procedure-call
+			      (make-reference
+			       (make-primitive 'apply #f)
+			       #f)
+			      (list
+			       (make-reference c #f)
+			       (make-reference x* #f))
+			      #f))))))))
+		   ,(continuation-expression k)))))
 	     #f marks))
 
-(define (transform-procedure expression k flag marks)
+(define (transform-procedure exp k flag marks)
   (do-transform* transform-procedure-clause
-		 (procedure-clauses expression)
+		 (procedure-clauses exp)
 		 (lambda (c*)
 		   ((continuation-procedure k)
-		    (make-procedure c* (expression-syntax expression))))
+		    (make-procedure c* #f)))
 		 flag marks))
 
 (define (transform-procedure-clause clause k flag marks)
-  (define formals (clause-formals clause))
-  (let ((c (make-location #f)) (f (make-location #f)) (m* (make-location #f)))
-    ((continuation-procedure k)
-     (make-clause (make-formals
-		   (append (list c f m*) (formals-fixed formals))
-		   (formals-rest formals)
-		   (formals-syntax formals))
-		  (transform-body (clause-body clause)
-				  (make-reference c #f)
-				  (make-reference f #f) ; FIXME (What ???)
-				  (lambda () (make-reference m* #f)))
-		  (clause-syntax clause)))))
+  (with-syntax (clause-syntax clause)
+    (let*
+	((formals (clause-formals clause))
+	 (c (make-location #f))
+	 (f (make-location #f))
+	 (m* (make-location #f)))
+      ((continuation-procedure k)
+       (make-clause (make-formals
+		     (append (list c f m*) (formals-fixed formals))
+		     (formals-rest formals)
+		     (formals-syntax formals))
+		    (transform-body (clause-body clause)
+				    (make-reference c #f)
+				    (make-reference f #f) ; FIXME (What ???)
+				    (lambda () (make-reference m* #f)))
+		    #f)))))
 
-(define (transform-sequence expression k flag marks)
+(define (transform-sequence exp k flag marks)
   (make-sequence
-   (transform-body (sequence-expressions expression) k flag marks)
-   (expression-syntax expression)))
+   (transform-body (sequence-expressions exp) k flag marks)
+   #f))
 
-(define (transform-conditional expression k flag marks)
+(define (transform-conditional exp k flag marks)
   (let ((c (make-location #f)))
     (make-procedure-call
      (generate-procedure/body
       (list c)
       '()
       (list
-       (transform (conditional-test expression)
+       (transform (conditional-test exp)
 		  (lambda (a)
 		    (make-conditional a
-				      (transform (conditional-consequent expression)
+				      (transform (conditional-consequent exp)
 						 (make-reference c #f)
 						 flag marks)
-				      (transform (conditional-alternate expression)
+				      (transform (conditional-alternate exp)
 						 (make-reference c #f)
 						 flag marks)
-				      (expression-syntax expression)))
+				      #f))
 		  #f marks)))
      (list (continuation-expression k))
      #f)))
 
-(define (transform-letrec-expression expression k flag marks)
+(define (transform-letrec-expression exp k flag marks)
   (do-transform* transform-letrec-definition
-		 (letrec-expression-definitions expression)
+		 (letrec-expression-definitions exp)
 		 (lambda (b*)
 		   (make-letrec-expression
 		    b*
-		    (transform-body (letrec-expression-body expression) k flag marks)
-		    (expression-syntax expression)))
+		    (transform-body (letrec-expression-body exp) k flag marks)
+		    #f))
 		 #f marks))
 
 (define (transform-letrec-definition variables k flag marks)
-  (transform-procedure (variables-expression variables)
-		       (lambda (t)
-			 ((continuation-procedure k)
-			  (make-variables (variables-formals variables)
-					  t
-					  (variables-syntax variables))))
-		       flag marks))
+  (with-syntax (variables-syntax variables)
+    (transform-procedure (variables-expression variables)
+			 (lambda (t)
+			   ((continuation-procedure k)
+			    (make-variables (variables-formals variables)
+					    t
+					    #f)))
+			 flag marks)))
 
-(define (transform-let-values-expression expression k flag marks)
-  (define variables (let-values-expression-definition expression))
-  (transform (variables-expression variables)
-	     (generate-procedure/clause
-	      (make-clause
-	       (variables-formals variables)
-	       (transform-body (let-values-expression-body expression) k flag marks)
-	       (expression-syntax expression)))
-	     #f marks))
+(define (transform-let-values-expression exp k flag marks)
+  (let ((variables (let-values-expression-definition exp)))
+    (transform (variables-expression variables)
+	       (generate-procedure/clause
+		(make-clause
+		 (variables-formals variables)
+		 (transform-body (let-values-expression-body exp)
+				 k
+				 flag
+				 marks)
+		 #f))
+	       #f marks)))
 
 (define (transform-body body k flag marks)
   (let-values

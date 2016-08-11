@@ -16,7 +16,8 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid syntactic-environments)
-  (export make-location location? location-syntax
+  (export current-syntax
+          make-location location? location-syntax
 	  make-transformer transformer? transformer-proc transformer-syntax
 	  transformer-set-proc! transformer-set-syntax!
 	  make-parameterized-transformer parameterized-transformer?

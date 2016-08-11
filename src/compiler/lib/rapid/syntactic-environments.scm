@@ -99,6 +99,8 @@
 
 ;;; Denotations
 
+(define current-syntax (make-parameter #f))
+
 ;; Variable bindings
 
 (define-record-type <denotation>
@@ -114,8 +116,8 @@
 
 (define make-location
   (case-lambda
-   ((syntax) (%make-location syntax (generate-identity)))
-   ((identity syntax) (%make-location syntax identity))))
+   ((syntax) (%make-location (or syntax (current-syntax)) (generate-identity)))
+   ((identity syntax) (%make-location (or syntax (current-syntax)) identity))))
 
 (define-record-type (<primitive> <denotation>)
   (%make-primitive value syntax identity)
@@ -124,7 +126,7 @@
   (syntax primitive-syntax))
 
 (define (make-primitive value syntax)
-  (%make-primitive value syntax (generate-identity)))
+  (%make-primitive value (or syntax (current-syntax)) (generate-identity)))
 
 (define-record-type (<transformer> <denotation>)
   (%make-transformer proc syntax identity)
@@ -133,14 +135,16 @@
   (syntax transformer-syntax transformer-set-syntax!))
 
 (define (make-transformer proc syntax)
-  (%make-transformer proc syntax (generate-identity)))
+  (%make-transformer proc (or syntax (current-syntax)) (generate-identity)))
 
 (define-record-type (<parameterized-transformer> <transformer>)
   (%make-parameterized-transformer proc syntax identity)
   parameterized-transformer?)
 
 (define (make-parameterized-transformer proc syntax)
-  (%make-parameterized-transformer proc syntax (generate-identity)))
+  (%make-parameterized-transformer proc
+				   (or syntax (current-syntax))
+				   (generate-identity)))
 
 
 ;; XXX

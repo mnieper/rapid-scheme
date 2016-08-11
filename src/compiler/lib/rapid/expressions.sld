@@ -20,6 +20,7 @@
           expression? expression-syntax
 	  expression-aux expression-set-aux!
 	  expression-dispatch expression-dispatch*
+	  with-syntax
 	  current-reference-method
 	  current-undefined-method
 	  current-literal-method
@@ -65,3 +66,7 @@
 	  (rapid syntax)
 	  (rapid syntactic-environments))
   (include "expressions.scm"))  
+
+;; Local Variables:
+;; eval: (put 'with-syntax 'scheme-indent-function 1)
+;; End:
