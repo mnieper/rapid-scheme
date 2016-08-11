@@ -52,9 +52,13 @@ lib/rapid/library-definitions/test.sld lib/rapid/list-queues.scm	\
 lib/rapid/list-queues.sld lib/rapid/list-queues/test.sld		\
 lib/rapid/lists.scm lib/rapid/lists.sld lib/rapid/lists/test.sld	\
 lib/rapid/macro-transformers.scm lib/rapid/macro-transformers.sld	\
-lib/rapid/macro-transformers/test.sld lib/rapid/parameter-objects.scm	\
-lib/rapid/parameter-objects.sld lib/rapid/parameter-objects/test.sld	\
-lib/rapid/paths.scm lib/rapid/paths.sld lib/rapid/paths/test.sld	\
+lib/rapid/macro-transformers/test.sld					\
+lib/rapid/mutable-variable-eliminate.scm				\
+lib/rapid/mutable-variable-eliminate.sld				\
+lib/rapid/mutable-variable-eliminate/test.sld				\
+lib/rapid/parameter-objects.scm lib/rapid/parameter-objects.sld		\
+lib/rapid/parameter-objects/test.sld lib/rapid/paths.scm		\
+lib/rapid/paths.sld lib/rapid/paths/test.sld				\
 lib/rapid/primitive-environment.scm					\
 lib/rapid/primitive-environment.sld					\
 lib/rapid/primitive-environment/test.sld lib/rapid/primitive.scm	\

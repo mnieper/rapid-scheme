@@ -181,7 +181,7 @@
 		  (if (not (null? (formals-rest formals)))
 		      (list
 		       (expression
-			(set! (car formals-rest formals)
+			(set! (car (formals-rest formals))
 			      ,(make-reference
 				(car (formals-rest new-formals))
 				#f))

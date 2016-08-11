@@ -56,7 +56,9 @@
 	 (run-tests run-rapid-expand-library-tests))
  (rename (rapid lambda-lift test) (run-tests run-rapid-lambda-lift-tests))
  (rename (rapid fix-letrec test) (run-tests run-rapid-fix-letrec-tests))
- (rename (rapid cps-transform test) (run-tests run-rapid-cps-transform-tests)))
+ (rename (rapid cps-transform test) (run-tests run-rapid-cps-transform-tests))
+ (rename (rapid mutable-variable-eliminate test)
+	 (run-tests run-rapid-mutable-variable-eliminate-tests)))
 
 (test-begin "Rapid Scheme")
 
@@ -91,6 +93,7 @@
 (run-rapid-lambda-lift-tests)
 (run-rapid-fix-letrec-tests)
 (run-rapid-cps-transform-tests)
+(run-rapid-mutable-variable-eliminate-tests)
 (run-rapid-expand-library-tests)
 
 (test-end "Rapid Scheme")

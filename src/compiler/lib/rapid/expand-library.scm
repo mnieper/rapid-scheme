@@ -144,7 +144,9 @@
 	 (expression
 	  (fix-letrec expression))
 	 (expression
-	  (cps-transform expression)))
+	  (cps-transform expression))
+	 (expression
+	  (mutable-variable-eliminate expression)))
       (values
        ;; FIXME: Return the locations of the exported variables
        #f
