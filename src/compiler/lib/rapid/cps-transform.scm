@@ -18,8 +18,6 @@
 ;; XXX: Check: Does this output non-letrec'ed case-lambda's?
 
 ;; TODO: Syntax-check primitive procedures
-;; FIXME: Avoid putting #f at syntax positions
-;; FIXME: handle (apply primitive ...)
 
 (define (cps-transform exp)
   (parameterize
