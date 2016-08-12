@@ -187,7 +187,7 @@
 		      '())
 		  (list
 		   (expression
-		    (,(continuation-expression c)
+		    (,(continuation-expression k)
 		     ,(list (make-undefined #f)))
 		    #f)))))
 	       #f marks)))

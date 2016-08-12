@@ -146,7 +146,9 @@
 	 (expression
 	  (cps-transform expression))
 	 (expression
-	  (mutable-variable-eliminate expression)))
+	  (mutable-variable-eliminate expression))
+	 (expression
+	  (introduce-let expression)))
       (values
        ;; FIXME: Return the locations of the exported variables
        #f
