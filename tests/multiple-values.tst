@@ -15,9 +15,30 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define (mutable-variable-eliminate exp)
-  (parameterize ()
-    (eliminate exp)))
+(import (rapid primitive))
 
-(define (eliminate exp)
-  (expression-dispatch exp))
+(define-primitive display 'display)
+(define-primitive newline 'newline)
+(define-primitive apply 'apply)
+(define-primitive list 'list)
+(define-primitive call/cc 'call/cc)
+
+(define-values (values)
+  (case-lambda
+   (a  
+    (call/cc
+     (case-lambda
+      ((cont)
+       (apply cont a)))))))
+
+(define-values (x y)
+  (begin
+    (values 1 2 (display "ok\n"))
+    (values 'a 'b)))
+
+(display (list x y))
+(newline)
+
+;; Local Variables:
+;; mode: scheme
+;; End:

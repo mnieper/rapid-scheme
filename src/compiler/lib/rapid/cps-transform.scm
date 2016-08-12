@@ -16,7 +16,6 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;; XXX: Check: Does this output non-letrec'ed case-lambda's?
-
 ;; TODO: Syntax-check primitive procedures
 
 (define (cps-transform exp)
@@ -69,7 +68,9 @@
   (expression-dispatch expression k flag marks))
 
 (define (transform-atomic-expression exp k flag marks)
-  ((continuation-procedure k) exp))
+  (if (ignore-value? k)
+      ((ignore-value-procedure k) #f)
+      ((continuation-procedure k) exp)))
 
 (define (transform-procedure-call exp k flag marks)
   (transform* (cons (procedure-call-operator exp)
@@ -151,8 +152,7 @@
 	       ((continuation-procedure k)
 		(expression
 		 (set! (assignment-location exp)
-		       ,t)
-		 exp)))
+		       ,t))))
 	     #f marks))
 
 (define (transform-multiple-assignment exp k flag marks)
@@ -192,6 +192,7 @@
 		    #f)))))
 	       #f marks)))
 
+;; XXX: Can we simplify the following?
 (define (transform-call/cc exp k flag marks)
   (transform (car (procedure-call-operands exp))
 	     (lambda (a)
@@ -317,11 +318,12 @@
 	    (transform e
 		       (if (null? e*)
 			   k
-			   (lambda (a)
-			     (let-values ((a* (loop e*)))
-			       (if (atomic? a)
-				   (apply values a*)
-				   (apply values a a*)))))
+			   (make-ignore-value
+			    (lambda (a)
+			      (let-values ((a* (loop e*)))
+				(if a
+				    (apply values a a*)
+				    (apply values a*))))))
 		       (if (null? e*)
 			   flag
 			   #f)
@@ -343,9 +345,9 @@
 (define (transform* e* k flag marks)
   (do-transform* transform e* k flag marks))
 
-(define (generate-procedure/body fixed-parameters rest-parameter body)
+(define (generate-procedure/body fixed-parameters rest-parameter* body)
   (generate-procedure/clause
-   (make-clause (make-formals fixed-parameters rest-parameter #f) body #f)))
+   (make-clause (make-formals fixed-parameters rest-parameter* #f) body #f)))
 
 (define (generate-procedure/clause clause)
   (let ((f (make-location #f)))
@@ -358,16 +360,27 @@
      #f)))
 
 (define (continuation-procedure k)
-  (if (procedure? k)
-      k
-      (lambda e* (make-procedure-call k e* #f))))
+  (cond
+   ((procedure? k)
+    k)
+   ((ignore-value? k)
+    (ignore-value-procedure k))
+   (else
+    (lambda (e)
+      (expression (,k ,e))))))
 
 (define (continuation-expression k)
-  (if (procedure? k)
-      (let ((c (make-location #f)))
-	(let-values ((body (k (make-reference c #f))))
-	  (generate-procedure/body (list c) '() body)))
-      k))
+  (cond
+   ((procedure? k)
+    (let ((c (make-location #f)))
+      (let-values ((body (k (make-reference c #f))))
+	(generate-procedure/body (list c) '() body))))
+   ((ignore-value? k)
+    (let ((c (make-location #f)))
+      (let-values ((body ((ignore-value-procedure k) #f)))
+	(generate-procedure/body '() (list c) body))))
+   (else
+    k)))
 
 (define (flag-expression flag)
   (if (expression? flag)
@@ -402,13 +415,18 @@
       (let ((mark (lambda () mark)))
 	(if flag (consequent mark) (alternate mark)))))
 
-(define (atomic? expression)
-  (or (reference? expression)
-      (literal? expression)
-      (undefined? expression)))
-
 (define (primitive expression)
   (and-let* (((reference? expression))
 	     (location (reference-location expression))
 	     ((primitive? location)))
     (primitive-value location)))
+
+;; TODO: Add other types of continuations here.
+(define-record-type <continuation>
+  #f
+  continuation?)
+
+(define-record-type (<ignore-value> <continuation>)
+  (make-ignore-value procedure)
+  ignore-value?
+  (procedure ignore-value-procedure))
