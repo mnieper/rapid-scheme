@@ -21,10 +21,7 @@
 	  begin
 	  quote
 	  set!
-	  set!-values
-	  letrec*-values
 	  letrec
-	  let-values
 
 	  make-rtd
 	  make-constructor
@@ -61,7 +58,6 @@
 	  caar
 	  cadr
 	  call-with-port	  
-	  call/cc
 	  car
 	  case
 	  cdar
@@ -87,7 +83,6 @@
 	  current-input-port
 	  current-output-port
 	  denominator
-	  do
 	  dynamic-wind
 	  eof-object
 	  eof-object?
