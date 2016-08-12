@@ -20,14 +20,17 @@
 	  if
 	  begin
 	  quote
-	  set!
 	  letrec
-
+	  
 	  make-rtd
 	  make-constructor
 	  make-predicate
 	  make-accessor
 	  make-mutator
+	  
+	  make-cell
+	  cell-ref
+	  cell-set!
 	  
 	  *
 	  +

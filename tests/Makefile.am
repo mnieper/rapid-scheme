@@ -24,7 +24,8 @@ RAPID_FLAGS = -I../src/runtime/lib -I../src/compiler/lib
 TESTS = runtime/r7rs-tests.scm tests.scm compiler-test.sh	\
 runtime-test.sh hello-world.tst procedure.tst apply.tst		\
 call-with-current-continuation.tst continuation-marks.tst	\
-multiple-values.tst assignment.tst define-record-type.tst
+multiple-values.tst assignment.tst procedure-assignment.tst	\
+define-record-type.tst
 TEST_EXTENSIONS = .scm .tst
 SCM_LOG_COMPILER = $(SCHEME)
 TST_LOG_COMPILER = ./check.sh
@@ -54,7 +55,7 @@ check.sh: Makefile
 	echo "cmp -s \$$srcdir/\$$test.ok \$$test.out" >> $@
 	echo "if test \$$? != 0; then" >> $@
 	echo "  diff \$$srcdir/\$$test.ok \$$test.out" >> $@
-	echo "  #rm \$$test.bin \$$test.out" >> $@
+	echo "  rm \$$test.bin \$$test.out" >> $@
 	echo "  exit 1" >> $@
 	echo "fi" >> $@
 	echo "rm \$$test.bin \$$test.out" >> $@

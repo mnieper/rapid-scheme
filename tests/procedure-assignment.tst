@@ -15,11 +15,21 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid mutable-variable-eliminate)
-  (export mutable-variable-eliminate)
-  (import (scheme case-lambda)
-	  (rapid base)
-	  (rapid syntactic-environments)
-	  (rapid expressions))
-  (include "mutable-variable-eliminate.scm"))
+(import (rapid primitive))
 
+(define-primitive display 'display)
+(define-primitive newline 'newline)
+
+(define-values (f)
+  (case-lambda
+   (()
+    'error)))
+
+(set! f 'ok)
+
+(display f)
+(newline)
+	
+;; Local Variables:
+;; mode: scheme
+;; End:

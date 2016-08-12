@@ -15,6 +15,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;; Mutable cells
+
+(define (make-cell obj)
+  (vector obj))
+
+(define (cell-ref cell)
+  (vector-ref cell 0))
+
+(define (cell-set! cell value)
+  (vector-set! cell 0 value))
+
 ;; Procedural records
 
 (define-record-type <rtd>
