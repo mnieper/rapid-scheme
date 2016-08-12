@@ -17,7 +17,8 @@
 
 (define-library (rapid cps-transform)
   (export cps-transform)
-  (import (rapid base)
+  (import (scheme case-lambda)
+	  (rapid base)
 	  (rapid and-let)
 	  (rapid syntactic-environments)
 	  (rapid expressions))

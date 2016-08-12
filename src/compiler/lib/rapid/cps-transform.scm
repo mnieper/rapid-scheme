@@ -187,42 +187,37 @@
 		      '())
 		  (list
 		   (expression
-		    (,(continuation-expression k)
+		    (,(continuation-expression c)
 		     ,(list (make-undefined #f)))
 		    #f)))))
 	       #f marks)))
 
-;; XXX: Can we simplify the following?
 (define (transform-call/cc exp k flag marks)
   (transform (car (procedure-call-operands exp))
 	     (lambda (a)
-	       (let ((c (make-location #f)))
-		 (expression
-		  (,(generate-procedure/body
-		     (list c)
-		     '()
-		     (list
-		      (expression
-		       (,a
-			c
-			,(flag-expression flag)
-			,(marks)
-			,(let ((%c (make-location #f))
-			       (%f (make-location #f))
-			       (%m* (make-location #f))
-			       (x* (make-location #f)))
-			   (generate-procedure/body
-			    (list %c %f %m*) (list x*)
-			    (list
-			     (make-procedure-call
-			      (make-reference
-			       (make-primitive 'apply #f)
-			       #f)
-			      (list
-			       (make-reference c #f)
-			       (make-reference x* #f))
-			      #f))))))))
-		   ,(continuation-expression k)))))
+	       (continuation-location
+		k
+		(lambda (c)
+		  (expression
+		   (,a
+		    c
+		    ,(flag-expression flag)
+		    ,(marks)
+		    ,(let ((%c (make-location #f))
+			   (%f (make-location #f))
+			   (%m* (make-location #f))
+			   (x* (make-location #f)))
+		       (generate-procedure/body
+			(list %c %f %m*) (list x*)
+			(list
+			 (make-procedure-call
+			  (make-reference
+			   (make-primitive 'apply #f)
+			   #f)
+			  (list
+			   (make-reference c #f)
+			   (make-reference x* #f))
+			  #f)))))))))
 	     #f marks))
 
 (define (transform-procedure exp k flag marks)
@@ -257,25 +252,20 @@
    #f))
 
 (define (transform-conditional exp k flag marks)
-  (let ((c (make-location #f)))
-    (make-procedure-call
-     (generate-procedure/body
-      (list c)
-      '()
-      (list
-       (transform (conditional-test exp)
-		  (lambda (a)
-		    (make-conditional a
-				      (transform (conditional-consequent exp)
-						 (make-reference c #f)
-						 flag marks)
-				      (transform (conditional-alternate exp)
-						 (make-reference c #f)
-						 flag marks)
-				      #f))
-		  #f marks)))
-     (list (continuation-expression k))
-     #f)))
+  (continuation-location
+   k
+   (lambda (c)
+     (transform (conditional-test exp)
+		(lambda (a)
+		  (make-conditional a
+				    (transform (conditional-consequent exp)
+					       (make-reference c #f)
+					       flag marks)
+				    (transform (conditional-alternate exp)
+					       (make-reference c #f)
+					       flag marks)
+				    #f))
+		#f marks))))
 
 (define (transform-letrec-expression exp k flag marks)
   (do-transform* transform-letrec-definition
@@ -345,19 +335,29 @@
 (define (transform* e* k flag marks)
   (do-transform* transform e* k flag marks))
 
-(define (generate-procedure/body fixed-parameters rest-parameter* body)
-  (generate-procedure/clause
-   (make-clause (make-formals fixed-parameters rest-parameter* #f) body #f)))
+(define generate-procedure/body
+  (case-lambda
+   ((fixed-parameters rest-parameter* body)
+    (generate-procedure/body fixed-parameters rest-parameter* body
+			     (lambda (c) (make-reference c #f))))
+   ((fixed-parameters rest-parameter* body c)
+    (generate-procedure/clause
+     (make-clause (make-formals fixed-parameters rest-parameter* #f) body #f)
+     c))))
 
-(define (generate-procedure/clause clause)
-  (let ((f (make-location #f)))
-    (make-letrec-expression
-     (list
-      (make-variables (make-formals (list f) #f)
-		      (make-procedure (list clause) #f)
-		      #f))
-     (list (make-reference f #f))
-     #f)))
+(define generate-procedure/clause
+  (case-lambda
+   ((clause)
+    (generate-procedure/clause clause (lambda (c) (make-reference c #f))))
+   ((clause c)
+    (let ((f (make-location #f)))
+      (make-letrec-expression
+       (list
+	(make-variables (make-formals (list f) #f)
+			(make-procedure (list clause) #f)
+			#f))
+       (list (c f))
+       #f)))))
 
 (define (continuation-procedure k)
   (cond
@@ -372,15 +372,33 @@
 (define (continuation-expression k)
   (cond
    ((procedure? k)
-    (let ((c (make-location #f)))
-      (let-values ((body (k (make-reference c #f))))
-	(generate-procedure/body (list c) '() body))))
+    (let ((v (make-location #f)))
+      (let-values ((body (k (make-reference v #f))))
+	(generate-procedure/body (list v) '() body))))
    ((ignore-value? k)
-    (let ((c (make-location #f)))
+    (let ((v (make-location #f)))
       (let-values ((body ((ignore-value-procedure k) #f)))
-	(generate-procedure/body '() (list c) body))))
+	(generate-procedure/body '() (list v) body))))
    (else
     k)))
+
+(define (continuation-location k c)
+  (cond
+   ((procedure? k)
+    (let ((v (make-location #f)))
+      (let-values ((body (k (make-reference v #f))))
+	(generate-procedure/body (list v) '() body c))))
+   ((ignore-value? k)
+    (let ((v (make-location #f)))
+      (let-values ((body ((ignore-value-procedure k) #f)))
+	(generate-procedure/body '() (list v) body c))))
+   (else
+    (let ((v (make-location #f)))
+      (expression
+       (,(generate-procedure/body (list v) '()
+				  (list
+				   (c v)))
+	,k))))))
 
 (define (flag-expression flag)
   (if (expression? flag)
