@@ -56,8 +56,13 @@
 		  2
 		  (imap-ref/default (imap comparator 'a 1) 'b 2))
       
-
- 
+      (test-equal "Find least element"
+		  'c
+		  (imap-find (imap integers 1 'a 4 'd 2 'b 3 'c)
+			     (lambda (key value)
+			       (<= 3 key)) 
+			     (lambda () #f)))
+      
       (test-assert "Immutable maps contain their added elements"
 		   (imap-contains? (imap-replace (imap integers) 42 'x)
 				   42))

@@ -25,6 +25,7 @@
 	  imap-replace
 	  imap-delete
 	  imap-search
+	  imap-find
 	  imap-map
 	  imap-map-values
 	  imap-fold
