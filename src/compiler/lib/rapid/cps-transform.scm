@@ -15,7 +15,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;; XXX: Check: Does this output non-letrec'ed case-lambda's?
 ;; TODO: Syntax-check primitive procedures
 
 (define (cps-transform exp)
@@ -225,6 +224,7 @@
 		 (procedure-clauses exp)
 		 (lambda (c*)
 		   ((continuation-procedure k)
+		    ;; XXX: Check whether this introduces a non-labeled procedure.
 		    (make-procedure c* #f)))
 		 flag marks))
 

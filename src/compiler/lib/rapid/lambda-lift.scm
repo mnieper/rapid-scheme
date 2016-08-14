@@ -49,7 +49,8 @@
 	  binding-construct2))
      ((binding-construct . binding-construct*)
       (binding-construct-deepest binding-construct
-				 (apply binding-construct-deepest binding-construct*)))))
+				 (apply binding-construct-deepest
+					binding-construct*)))))
 
   (define (binding-construct-highest binding-construct1 binding-construct2)
     (if (<= (binding-construct-depth binding-construct1)
@@ -60,6 +61,8 @@
   (define (lift expression depth)
     (expression-dispatch expression depth))
 
+  ;; FIXME: A procedure is not lifted if it contains bound variables of high
+  ;; depth.
   (define lift-procedure
     (case-lambda
      ((expression depth)
