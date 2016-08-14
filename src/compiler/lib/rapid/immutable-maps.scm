@@ -237,6 +237,18 @@
 	    (acc (loop acc b)))
 	 acc)))))
 
+;;; Find least element
+
+(define (find comparator tree pred)
+  (let find ((tree tree))
+    (tree-match tree
+      ((black)
+       #f)
+      ((node _ a x b)
+       (if (pred (item-key x) (item-value x))
+	   (or (find a) x)
+	   (find b))))))
+
 ;;; Update procedures for trees
 
 (define (search comparator tree obj failure success)
@@ -411,6 +423,12 @@
 		   (lambda (key update remove)
 		     (remove #f)))
     map))
+
+(define (imap-find map pred failure)
+  (let ((item (find (imap-comparator map) (imap-tree map) pred)))
+    (if item
+	(item-value item)
+	(failure))))
 
 (define (imap-map proc map)
   (let*
