@@ -109,7 +109,8 @@
     (define current-free-reference-adder (make-parameter #f))
 
     (define (lambda-definition? variables)
-      (expression-procedure? (transformed-init variables)))
+      (and (formals-location (variables-formals variables))
+	   (expression-procedure? (transformed-init variables))))
 
     (define (make-definitions variables thunk)
       (let loop ((locations (formals-locations (variables-formals variables))))

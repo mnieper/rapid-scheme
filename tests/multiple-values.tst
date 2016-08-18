@@ -22,6 +22,7 @@
 (define-primitive apply 'apply)
 (define-primitive list 'list)
 (define-primitive call/cc 'call/cc)
+(define-primitive car 'car)
 
 (define-values (values)
   (case-lambda
@@ -37,6 +38,13 @@
     (values 'a 'b)))
 
 (display (list x y))
+(newline)
+
+(define-values x
+  (case-lambda
+   (() 'ok)))
+
+(display ((car x)))
 (newline)
 
 ;; Local Variables:

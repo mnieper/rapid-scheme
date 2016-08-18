@@ -224,7 +224,6 @@
 		 (procedure-clauses exp)
 		 (lambda (c*)
 		   ((continuation-procedure k)
-		    ;; XXX: Check whether this introduces a non-labeled procedure.
 		    (make-procedure c* #f)))
 		 flag marks))
 
@@ -350,7 +349,7 @@
    ((clause)
     (generate-procedure/clause clause (lambda (c) (make-reference c #f))))
    ((clause c)
-    (let ((f (make-location #f)))
+     (let ((f (make-location #f)))
       (make-letrec-expression
        (list
 	(make-variables (make-formals (list f) #f)

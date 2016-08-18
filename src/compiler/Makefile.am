@@ -22,14 +22,15 @@ LIBRARY_FILES = lib/rapid/and-let.scm lib/rapid/and-let.sld		\
 lib/rapid/and-let/test.sld lib/rapid/args-fold.scm			\
 lib/rapid/args-fold.sld lib/rapid/args-fold/test.sld			\
 lib/rapid/base.sld lib/rapid/boxes.scm lib/rapid/boxes.sld		\
-lib/rapid/boxes/test.sld lib/rapid/comparators.scm			\
-lib/rapid/cps-transform.sld lib/rapid/cps-transform.scm			\
-lib/rapid/cps-transform/test.sld lib/rapid/comparators.sld		\
-lib/rapid/comparators/test.sld lib/rapid/compiler.scm			\
-lib/rapid/compiler.sld lib/rapid/error.scm lib/rapid/error/test.sld	\
-lib/rapid/expand-library.scm lib/rapid/expand-library.sld		\
-lib/rapid/expand-library/test.sld lib/rapid/expand.scm			\
-lib/rapid/expand.sld lib/rapid/expand/test.sld				\
+lib/rapid/bind-procedures.scm lib/rapid/bind-procedures.sld		\
+lib/rapid/bind-procedures/test.sld lib/rapid/boxes/test.sld		\
+lib/rapid/comparators.scm lib/rapid/cps-transform.sld			\
+lib/rapid/cps-transform.scm lib/rapid/cps-transform/test.sld		\
+lib/rapid/comparators.sld lib/rapid/comparators/test.sld		\
+lib/rapid/compiler.scm lib/rapid/compiler.sld lib/rapid/error.scm	\
+lib/rapid/error/test.sld lib/rapid/expand-library.scm			\
+lib/rapid/expand-library.sld lib/rapid/expand-library/test.sld		\
+lib/rapid/expand.scm lib/rapid/expand.sld lib/rapid/expand/test.sld	\
 lib/rapid/expressions.scm lib/rapid/expressions.sld			\
 lib/rapid/expressions/test.sld lib/rapid/features.scm			\
 lib/rapid/features.sld lib/rapid/features/test.sld			\
@@ -46,9 +47,8 @@ lib/rapid/introduce-let/test.sld lib/rapid/immutable-maps.sld		\
 lib/rapid/immutable-maps/test.sld lib/rapid/immutable-sets.scm		\
 lib/rapid/immutable-sets.sld lib/rapid/immutable-sets/test.sld		\
 lib/rapid/import-sets.scm lib/rapid/import-sets.sld			\
-lib/rapid/import-sets/test.sld lib/rapid/lambda-lift.scm		\
-lib/rapid/lambda-lift.sld lib/rapid/lambda-lift/test.sld		\
-lib/rapid/library-definitions.scm lib/rapid/library-definitions.sld	\
+lib/rapid/import-sets/test.sld lib/rapid/library-definitions.scm	\
+lib/rapid/library-definitions.sld					\
 lib/rapid/library-definitions/test.sld lib/rapid/list-queues.scm	\
 lib/rapid/list-queues.sld lib/rapid/list-queues/test.sld		\
 lib/rapid/lists.scm lib/rapid/lists.sld lib/rapid/lists/test.sld	\

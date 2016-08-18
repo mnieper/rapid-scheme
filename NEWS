@@ -15,6 +15,14 @@ Version 0.2.1
 * Eliminate mutable variables after the CPS-transform.  This
   eliminates set! and introduces cell primitives.
 
+* Bind all procedures to variables and access them only through the
+  bound identifier.  This happens after the pass that eliminates
+  mutable variables.
+
+* Remove the lambda-lift pass, which never did a complete lambda
+  lifting, and which will be unneccessary anyway once closure
+  conversion is implemented.
+
 Version 0.2.0 (07 August 2016)
 
 * Switch to the GNU Build system.

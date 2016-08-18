@@ -15,11 +15,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid lambda-lift)
-  (export lambda-lift)
+(define-library (rapid bind-procedures test)
+  (export run-tests)
   (import (rapid base)
-	  (scheme case-lambda)
-	  (rapid receive)
-	  (rapid syntactic-environments)
-	  (rapid expressions))
-  (include "lambda-lift.scm"))
+	  (rapid test)
+	  (rapid bind-procedures))
+  (begin
+    (define (run-tests)
+      (test-begin "Bind procedures")
+      
+      ;; FIXME: Write some tests.
+      
+      (test-end))))

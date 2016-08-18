@@ -140,15 +140,15 @@
 				   (list (make-undefined #f))
 				   #f))
 	 (expression
-	  (lambda-lift expression))
-	 (expression
 	  (fix-letrec expression))
 	 (expression
 	  (cps-transform expression))
 	 (expression
 	  (mutable-variable-eliminate expression))
 	 (expression
-	  (introduce-let expression)))
+	  (introduce-let expression))
+	 (expression
+	  (bind-procedures expression)))
       (values
        ;; FIXME: Return the locations of the exported variables
        #f
