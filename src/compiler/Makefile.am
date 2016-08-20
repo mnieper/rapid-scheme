@@ -24,13 +24,15 @@ lib/rapid/args-fold.sld lib/rapid/args-fold/test.sld			\
 lib/rapid/base.sld lib/rapid/boxes.scm lib/rapid/boxes.sld		\
 lib/rapid/bind-procedures.scm lib/rapid/bind-procedures.sld		\
 lib/rapid/bind-procedures/test.sld lib/rapid/boxes/test.sld		\
-lib/rapid/comparators.scm lib/rapid/cps-transform.sld			\
-lib/rapid/cps-transform.scm lib/rapid/cps-transform/test.sld		\
-lib/rapid/comparators.sld lib/rapid/comparators/test.sld		\
-lib/rapid/compiler.scm lib/rapid/compiler.sld lib/rapid/error.scm	\
-lib/rapid/error/test.sld lib/rapid/expand-library.scm			\
-lib/rapid/expand-library.sld lib/rapid/expand-library/test.sld		\
-lib/rapid/expand.scm lib/rapid/expand.sld lib/rapid/expand/test.sld	\
+lib/rapid/closure-convert.scm lib/rapid/closure-convert.sld		\
+lib/rapid/closure-convert/test.sld lib/rapid/comparators.scm		\
+lib/rapid/cps-transform.sld lib/rapid/cps-transform.scm			\
+lib/rapid/cps-transform/test.sld lib/rapid/comparators.sld		\
+lib/rapid/comparators/test.sld lib/rapid/compiler.scm			\
+lib/rapid/compiler.sld lib/rapid/error.scm lib/rapid/error/test.sld	\
+lib/rapid/expand-library.scm lib/rapid/expand-library.sld		\
+lib/rapid/expand-library/test.sld lib/rapid/expand.scm			\
+lib/rapid/expand.sld lib/rapid/expand/test.sld				\
 lib/rapid/expressions.scm lib/rapid/expressions.sld			\
 lib/rapid/expressions/test.sld lib/rapid/features.scm			\
 lib/rapid/features.sld lib/rapid/features/test.sld			\

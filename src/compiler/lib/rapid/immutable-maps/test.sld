@@ -18,6 +18,7 @@
 (define-library (rapid immutable-maps test)
   (export run-tests)
   (import (scheme base)
+	  (rapid receive)
 	  (rapid test)
 	  (rapid comparators)
 	  (rapid immutable-maps))
@@ -104,6 +105,31 @@
 			     (and (not (imap-contains? map (car random-list)))
 				  (loop (cdr random-list) map)))))))
 
+      (test-equal "imap-entries"
+		  #((1 2 3 4 5) (a b c d e))
+		  (receive (keys values)
+		      (imap-entries
+		       (imap integers 1 'a 3 'c 4 'd 2 'b 5 'e))
+		    (vector keys values)))
+
+      (test-equal "imap-delete-keys"
+		  '(1 3 5)
+		  (receive (keys values)
+		      (imap-entries
+		       (imap-delete-keys
+			(imap integers 1 1 2 2 3 3 4 4 5 5)
+			'(4 2 2)))
+		    values))
+      
+      (test-equal "imap-union"
+		  '(5 4 3 2 1)
+		  (imap-fold (lambda (key value acc)
+			       (cons value acc))
+			     '()
+			     (imap-union
+			      (imap integers 1 1 3 3 4 4)
+			      (imap integers 1 'a 2 2 5 5))))
+      
       (test-equal "imap-map"
 		  '(#f #t #t #t #t #f)
 		  (let*

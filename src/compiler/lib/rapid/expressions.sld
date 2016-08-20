@@ -57,6 +57,7 @@
 	  make-formals formals? formals-fixed formals-rest formals-syntax
 	  formals-locations formals-location
 	  make-clause clause? clause-formals clause-body clause-syntax
+	  clause-aux clause-set-aux!
 	  expression->datum)
   (import (scheme case-lambda)
 	  (rapid base)

@@ -424,6 +424,13 @@
 		     (remove #f)))
     map))
 
+(define (imap-delete-keys map keys)
+  (let loop ((keys keys) (map map))
+    (if (null? keys)
+	map
+	(loop (cdr keys)
+	      (imap-delete map (car keys))))))
+
 (define (imap-find map pred failure)
   (let ((item (find (imap-comparator map) (imap-tree map) pred)))
     (if item
@@ -435,13 +442,23 @@
       ((comparator
 	(imap-comparator map))
        (tree
-	(%fold(lambda (key value tree)
-		(replace comparator tree (proc key) value))
-	      (black) (imap-tree map))))
+	(%fold (lambda (key value tree)
+		 (replace comparator tree (proc key) value))
+	       (black) (imap-tree map))))
     (%imap comparator tree)))
 
 (define (imap-map-values proc map)
   (%imap (imap-comparator map) (map-values proc (imap-tree map))))
+
+(define (imap-entries map)
+  (let loop ((tree (imap-tree map)) (keys '()) (vals '()))
+    (tree-match tree
+      ((black)
+       (values keys vals))
+      ((node _ a x b)
+       (receive (keys vals)
+	   (loop b keys vals)
+	 (loop a (cons (item-key x) keys) (cons (item-value x) vals)))))))
 
 (define (imap-fold proc nil map)
   (%fold proc nil (imap-tree map)))
@@ -452,6 +469,19 @@
 	   acc)
 	 (if #f #f) (imap-tree map)))
 
+(define (imap-union . map*)
+  (let loop ((map* map*))
+    (let ((map (car map*)))
+      (if (null? (cdr map*))
+	  map
+	  (receive (keys values)
+	      (imap-entries map)
+	    (let loop ((keys keys) (values values) (map (loop (cdr map*))))
+	      (if (null? keys)
+		  map
+		  (loop (cdr keys) (cdr values)
+			(imap-replace map (car keys) (car values))))))))))
+	  
 ;; Local Variables:
 ;; eval: (put 'tree-match 'scheme-indent-function 1)
 ;; eval: (put 'comparator-if<=> 'scheme-indent-function 3)

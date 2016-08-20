@@ -473,7 +473,8 @@
   clause?
   (formals clause-formals)
   (body clause-body)
-  (syntax clause-syntax))
+  (syntax clause-syntax)
+  (aux clause-aux clause-set-aux!))
 
 (define (make-clause formals body syntax)
   (%make-clause formals body (convert/syntax syntax)))

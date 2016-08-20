@@ -148,7 +148,9 @@
 	 (expression
 	  (introduce-let expression))
 	 (expression
-	  (bind-procedures expression)))
+	  (bind-procedures expression))
+	 (expression
+	  (closure-convert expression)))
       (values
        ;; FIXME: Return the locations of the exported variables
        #f

@@ -60,7 +60,8 @@
  (rename (rapid cps-transform test) (run-tests run-rapid-cps-transform-tests))
  (rename (rapid mutable-variable-eliminate test)
 	 (run-tests run-rapid-mutable-variable-eliminate-tests))
- (rename (rapid introduce-let test) (run-tests run-rapid-introduce-let-tests)))
+ (rename (rapid introduce-let test) (run-tests run-rapid-introduce-let-tests))
+ (rename (rapid closure-convert test) (run-tests run-rapid-closure-convert-tests)))
 
 (test-begin "Rapid Scheme")
 
@@ -97,6 +98,7 @@
 (run-rapid-cps-transform-tests)
 (run-rapid-mutable-variable-eliminate-tests)
 (run-rapid-introduce-let-tests)
+(run-rapid-closure-convert-tests)
 (run-rapid-expand-library-tests)
 
 (test-end "Rapid Scheme")

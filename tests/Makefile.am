@@ -45,6 +45,7 @@ check.sh: Makefile
 	echo "test=\$$(basename \"\$$1\" .tst)" >> $@
 	echo "$(RAPID_COMPILER) $(RAPID_FLAGS) \"\$$1\" > \$$test.bin" >> $@
 	echo "if test \$$? != 0; then" >> $@
+	echo "  rm -f \$$test.bin" >> $@
 	echo "  exit 99" >> $@
 	echo "fi" >> $@
 	echo "$(SCHEME) \$$test.bin | tr -d \\\\r > \$$test.out" >> $@

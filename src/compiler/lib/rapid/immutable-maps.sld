@@ -24,12 +24,15 @@
 	  imap-ref/default
 	  imap-replace
 	  imap-delete
+	  imap-delete-keys
 	  imap-search
 	  imap-find
 	  imap-map
 	  imap-map-values
 	  imap-fold
 	  imap-for-each
+	  imap-entries
+	  imap-union
 	  imap-key-not-found?)
   (import (scheme base)
 	  (scheme case-lambda)
