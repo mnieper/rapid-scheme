@@ -150,6 +150,8 @@
 	 (expression
 	  (bind-procedures expression))
 	 (expression
+	  (lambda-lift expression))
+	 (expression
 	  (closure-convert expression)))
       (values
        ;; FIXME: Return the locations of the exported variables

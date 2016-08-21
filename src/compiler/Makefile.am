@@ -50,7 +50,8 @@ lib/rapid/immutable-maps/test.sld lib/rapid/immutable-sets.scm		\
 lib/rapid/immutable-sets.sld lib/rapid/immutable-sets/test.sld		\
 lib/rapid/import-sets.scm lib/rapid/import-sets.sld			\
 lib/rapid/import-sets/test.sld lib/rapid/library-definitions.scm	\
-lib/rapid/library-definitions.sld					\
+lib/rapid/lambda-lift.scm lib/rapid/lambda-lift.sld			\
+lib/rapid/lambda-lift/test.sld lib/rapid/library-definitions.sld	\
 lib/rapid/library-definitions/test.sld lib/rapid/list-queues.scm	\
 lib/rapid/list-queues.sld lib/rapid/list-queues/test.sld		\
 lib/rapid/lists.scm lib/rapid/lists.sld lib/rapid/lists/test.sld	\

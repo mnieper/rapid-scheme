@@ -15,26 +15,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid expand-library)
-  (export expand-library)
+(define-library (rapid lambda-lift test)
+  (export run-tests)
   (import (rapid base)
-	  (rapid and-let)
-	  (rapid comparators)
-	  (rapid identifiers)
-	  (rapid list-queues)
-	  (rapid immutable-maps)
-	  (rapid syntax)
-	  (rapid import-sets)
-	  (rapid library-definitions)
-	  (rapid syntactic-environments)
-	  (rapid expand)
-	  (rapid expressions)
-	  (rapid primitive-environment)
-	  (rapid fix-letrec)
-	  (rapid cps-transform)
-	  (rapid mutable-variable-eliminate)
-	  (rapid introduce-let)
-	  (rapid bind-procedures)
-	  (rapid lambda-lift)
-	  (rapid closure-convert))
-  (include "expand-library.scm"))
+          (rapid test)
+	  (rapid lambda-lift))
+  (begin
+    (define (run-tests)
+      (test-begin "Lambda lift")
+
+      ;; FIXME: Write some tests.
+
+      (test-end))))

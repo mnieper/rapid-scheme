@@ -19,9 +19,12 @@ Version 0.2.1
   bound identifier.  This happens after the pass that eliminates
   mutable variables.
 
-* Remove the lambda-lift pass, which never did a complete lambda
-  lifting, and which will be unneccessary anyway once closure
+* Remove the original lambda-lift pass, which never did a complete
+  lambda lifting, and which will be unneccessary anyway once closure
   conversion is implemented.
+
+* Add a new lambda-lift pass before the closure conversion pass that
+  lifts lambdas up to the precendent binding construct.
 
 Version 0.2.0 (07 August 2016)
 

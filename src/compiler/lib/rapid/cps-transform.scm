@@ -17,6 +17,9 @@
 
 ;; TODO: Syntax-check primitive procedures
 
+;; XXX: The continuations don't work well with parameters so the
+;; syntax set by with-syntax may be wrong.  Better use call/cc.
+
 (define (cps-transform exp)
   (parameterize
       ((current-reference-method
