@@ -17,8 +17,6 @@
 
 (define (closure-convert exp)
 
-  ;; TODO: Lift letrec expressions. => extra pass with procedural cont's.
-  
   ;; Uncover free variables
   (parameterize
       ((current-reference-method
@@ -77,6 +75,7 @@
 					  (conditional-alternate exp))))))
     (uncover-free-variables! exp))
 
+  ;; Uncover known calls
   (parameterize
       ((current-reference-method
 	(lambda (exp)
@@ -90,6 +89,7 @@
 	(lambda (exp)
 	  #f))
        (current-procedure-call-method
+	;; TODO: Handle apply.
 	(lambda (exp)
 	  (let ((operator (procedure-call-operator exp)))
 	    (uncover-known-calls! operator)
@@ -98,11 +98,10 @@
 	     ((and-let*
 		  (((reference? operator))
 		   (location (reference-location operator))
-		   ((not (primitive? location)))
-		   ((var-procedure location)))
-		location)
-	      => (lambda (location)
-		   (procedure-call-set-label! exp location)))
+		   ((not (primitive? location))))
+		(var-label location))
+	      => (lambda (label)
+		   (procedure-call-set-label! exp label)))
 	     (else
 	      (procedure-call-set-label! exp #f))))))
        (current-procedure-method
@@ -115,21 +114,26 @@
 		(var-set-procedure! variable #f))
 	      (formals-locations (clause-formals clause)))
 	     (for-each uncover-known-calls! (clause-body clause))
-	     (procedure-set-well-known-flag! exp (procedure-label exp)))
 	   (procedure-clauses exp))))
        (current-letrec-expression-method
 	(lambda (exp)
 	  (for-each
 	   (lambda (definition)
 	     (let* ((procedure (variables-expression definition))
-		    (variable (formals-location (variables-formals definition))))
+		    (variable (formals-location (variables-formals definition)))
+		    (label (make-location variable #f)))
 	       (init-var! variable)
 	       (var-set-well-known-flag! variable #t)
-	       (var-set-procedure! variable procedure)
-	       (procedure-set-label! procedure variable)		
+	       (var-set-label! variable label)
+	       (procedure-set-label! procedure label)
 	       (uncover-known-calls! procedure)))
 	   (letrec-expression-definitions exp))	  
-	  (for-each uncover-known-calls! (letrec-expression-body exp))))
+	  (for-each uncover-known-calls! (letrec-expression-body exp))
+	  (for-each
+	   (lambda (definition)
+	     (let ((variable (formals-location (variables-formals definition)))
+		   (procedure (variables-expression definition)))
+	       (procedure-set-well-known-flag! exp (var-well-known-flag variable)))))))
        (current-sequence-method
 	(lambda (exp)
 	  (for-each uncover-known-calls! (sequence-expressions exp))))
@@ -139,8 +143,112 @@
 	  (uncover-known-calls! (conditional-consequent exp))
 	  (uncover-known-calls! (conditional-alternate exp)))))
     (uncover-known-calls! exp))
+
+  ;; Closure conversion
+  (convert exp))
+
+;; The actual closure conversion
+(define (convert exp)
+
+  ;; Constants
+  (define (make-constant-set)
+    '())
+  (define constants (make-constant-set))
+  (define (add-constant! var lit)
+    (set! constants (cons (cons var lit) constants)))
+  (define (map-constants proc)
+    (map (lambda (constant) (proc (car constant) (cdr constant))) constants))
+  (define (constant-definitions)
+    (map-constants
+     (lambda (var lit)
+       (make-variables
+	(make-formals (list var) '() var)
+	lit
+	var))))
+
+  ;; Procedures
   
-  exp)
+  ;; Environment
+  (define (make-environment)
+    (imap var-comparator))
+  (define env (make-environment))
+  (define (make-var-const const)
+    (lambda (syntax)
+      (make-reference const syntax)))
+  (define (make-var-arg arg)
+    (lambda (syntax)
+      (make-reference arg syntax)))
+  (define (var->exp var)
+    ((imap-ref env var) var))
+  (define (map-var-const! var const)
+    (set! env (imap-replace env var (make-var-const const))))
+  (define (var->closure var)
+    (and-let*
+	((thunk (imap-ref env var)))
+      (thunk var)))
+  (define (map-var-arg! var arg)
+    (set! env (imap-replace env var (make-var-arg arg))))
+  
+  (define (convert exp)
+    (expression-dispatch exp))
+
+  (define (convert* exp)
+    (expression-dispatch* exp))
+
+  (parameterize
+      ((current-reference-method
+	(lambda (exp)
+	  (var->exp exp)))
+       (current-literal-method
+	(lambda (exp)
+	  (let ((var (make-location #f)))
+	    (add-constant! var exp)
+	    (map-var-const! var var)
+	    (make-reference var #f))))
+       (current-procedure-call-method
+	;; TODO: Handle apply.
+	(lambda (exp)
+	  (let*
+	      ((label (procedure-call-label exp))
+	       (operator (procedure-call-operand exp))
+	       (operands (convert* (procedure-call-operands exp)))
+	       (closure (var->closure operator)))
+	    (if label
+		(if closure
+		    (make-procedure-call label
+					 (cons closure operands)
+					 #f)
+		    (make-procedure-call label
+					 operands
+					 #f))
+		(make-procedure-call (convert operator) operands)))))
+       (current-procedure-method
+	(lambda (exp)
+	  ;; TODO: Add procedure to label table;
+	  ;; FIXME
+	  (for-each
+	   (lambda (clause)
+	     (for-each
+	      (lambda (var)
+		(map-var-arg! var var))
+	      (formals-locations (clause-formals clause))))
+	   (procedure-clauses exp))
+	  ;; TODO: Add closure parameters for not-well-known procedures
+	  exp
+	  ))
+       (current-letrec-expression-method
+	(lambda (exp)
+	  ;; FIXME
+	  exp
+	  ))
+       )
+    (let*
+	((exp (convert exp)))
+      (make-letrec-expression
+       (constant-definitions)
+       (procedure-definitions)
+       (list exp)
+       exp))))
 
 (define (uncover-free-variables! exp)  
   (expression-dispatch exp))
@@ -154,9 +262,9 @@
 (define make-free-var-set
   (case-lambda
    (()
-    (imap free-var-comparator))
+    (imap var-comparator))
    ((identifier)
-    (imap free-var-comparator identifier #t))))
+    (imap var-comparator identifier #t))))
 
 (define (free-var-union free-var-set*)
   (apply imap-union free-var-set*))
@@ -197,14 +305,14 @@
 (define (var-well-known-flag location)
   (vector-ref (denotation-aux location) 0))
 
-(define (var-procedure location)
+(define (var-label location)
   (vector-ref (denotation-aux location) 1))
 
 (define (var-set-well-known-flag! location flag)
   (vector-set! (denotation-aux location) 0 flag))
 
-(define (var-set-procedure! location procedure)
-  (vector-set! (denotation-aux location) 1 procedure))
+(define (var-set-label! location label)
+  (vector-set! (denotation-aux location) 1 label))
 
 (define (clause-set-free-vars! clause free-vars)
   (clause-set-aux! clause free-vars))
@@ -214,7 +322,7 @@
 
 ;;; Constants
 
-(define free-var-comparator
+(define var-comparator
   (make-comparator location?
 		   eq?
 		   (lambda (location1 location2)
