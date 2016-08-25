@@ -111,9 +111,9 @@
 	     (for-each
 	      (lambda (variable)
 		(init-var! variable)
-		(var-set-procedure! variable #f))
+		(var-set-label! variable #f))
 	      (formals-locations (clause-formals clause)))
-	     (for-each uncover-known-calls! (clause-body clause))
+	     (for-each uncover-known-calls! (clause-body clause)))
 	   (procedure-clauses exp))))
        (current-letrec-expression-method
 	(lambda (exp)
@@ -133,7 +133,9 @@
 	   (lambda (definition)
 	     (let ((variable (formals-location (variables-formals definition)))
 		   (procedure (variables-expression definition)))
-	       (procedure-set-well-known-flag! exp (var-well-known-flag variable)))))))
+	       (procedure-set-well-known-flag! procedure
+					       (var-well-known-flag variable))))
+	   (letrec-expression-definitions exp))))
        (current-sequence-method
 	(lambda (exp)
 	  (for-each uncover-known-calls! (sequence-expressions exp))))
@@ -143,7 +145,7 @@
 	  (uncover-known-calls! (conditional-consequent exp))
 	  (uncover-known-calls! (conditional-alternate exp)))))
     (uncover-known-calls! exp))
-
+  
   ;; Closure conversion
   (convert exp))
 
@@ -162,32 +164,70 @@
     (map-constants
      (lambda (var lit)
        (make-variables
-	(make-formals (list var) '() var)
+	(make-formals (list var) '() (location-syntax var))
 	lit
-	var))))
+	(location-syntax var)))))
 
   ;; Procedures
+  (define (make-procedure-set)
+    '())
+  (define procedures (make-procedure-set))
+  (define (add-procedure! label procedure)
+    (set! procedures (cons (cons label procedure) procedures)))
+  (define (map-procedures proc)
+    (map (lambda (procedure) (proc (car procedure) (cdr procedure))) procedures))
+  (define (procedure-definitions)
+    (map-procedures
+     (lambda (label procedure)
+       (make-variables
+	(make-formals (list label) '() (location-syntax label))
+	procedure
+	(location-syntax label)))))
   
   ;; Environment
   (define (make-environment)
     (imap var-comparator))
   (define env (make-environment))
+  (define (save-env) env)
+  (define (restore-env! old-env)
+    (set! env old-env))
+  (define (closure-var? var)
+    (let ((value (imap-ref/default env var #f)))
+      (and var (eq? 'variable (car value)))))
+  (define (make-var-alias var alias)
+    (cons 'alias
+	  (lambda (syntax)
+	    (make-reference alias syntax))))
   (define (make-var-const const)
-    (lambda (syntax)
-      (make-reference const syntax)))
+    (cons 'constant
+	  (lambda (syntax)
+	    (make-reference const syntax))))
   (define (make-var-arg arg)
-    (lambda (syntax)
-      (make-reference arg syntax)))
+    (cons 'variable
+	  (lambda (syntax)
+	    (make-reference arg syntax))))
+  (define current-closure-arg (make-parameter #f))
+  (define (make-var-closure index)
+    (cons 'variable
+	  (lambda (syntax)
+	    (make-procedure-call (make-reference (make-primitive 'closure-ref syntax)
+						 syntax)
+				 (make-reference (current-closure-arg) syntax)
+				 (make-literal index syntax)
+				 syntax))))
   (define (var->exp var)
-    ((imap-ref env var) var))
+    ((cdr (imap-ref env var)) (location-syntax var)))
   (define (map-var-const! var const)
     (set! env (imap-replace env var (make-var-const const))))
   (define (var->closure var)
     (and-let*
-	((thunk (imap-ref env var)))
-      (thunk var)))
+	((value (imap-ref/default env var #f))
+	 (thunk (cdr value)))
+      (thunk (location-syntax var))))
   (define (map-var-arg! var arg)
     (set! env (imap-replace env var (make-var-arg arg))))
+  (define (map-var-closure! var index)
+    (set! env (imap-replace env var (make-var-closure index))))
   
   (define (convert exp)
     (expression-dispatch exp))
@@ -198,7 +238,10 @@
   (parameterize
       ((current-reference-method
 	(lambda (exp)
-	  (var->exp exp)))
+	  (let ((location (reference-location exp)))
+	    (if (primitive? location)
+		exp
+		(var->exp location)))))
        (current-literal-method
 	(lambda (exp)
 	  (let ((var (make-location #f)))
@@ -210,18 +253,18 @@
 	(lambda (exp)
 	  (let*
 	      ((label (procedure-call-label exp))
-	       (operator (procedure-call-operand exp))
-	       (operands (convert* (procedure-call-operands exp)))
-	       (closure (var->closure operator)))
+	       (operator (procedure-call-operator exp))
+	       (operands (convert* (procedure-call-operands exp))))
 	    (if label
-		(if closure
-		    (make-procedure-call label
-					 (cons closure operands)
-					 #f)
-		    (make-procedure-call label
-					 operands
-					 #f))
-		(make-procedure-call (convert operator) operands)))))
+		(let ((closure (var->closure (reference-location operator))))
+		  (if closure
+		      (make-procedure-call label
+					   (cons closure operands)
+					   #f)
+		      (make-procedure-call label
+					   operands
+					   #f)))
+		(make-procedure-call (convert operator) operands #f)))))
        (current-procedure-method
 	(lambda (exp)
 	  ;; TODO: Add procedure to label table;
@@ -232,21 +275,61 @@
 	      (lambda (var)
 		(map-var-arg! var var))
 	      (formals-locations (clause-formals clause))))
-	   (procedure-clauses exp))
+	   (procedure-clauses exp))	
 	  ;; TODO: Add closure parameters for not-well-known procedures
 	  exp
 	  ))
        (current-letrec-expression-method
 	(lambda (exp)
-	  ;; FIXME
-	  exp
-	  ))
-       )
+	  (let*
+	      ((old-env (save-env))
+	       (definitions
+		(letrec-expression-definitions exp))
+	       (variables
+		(map (lambda (definition)
+		       (formals-location (variables-formals definition)))
+		     definitions))
+	       (procedures
+		(map variables-expression definitions))
+	       (well-known
+		(every procedure-well-known-flag procedures))
+	       (free-vars
+		(free-var-union (map procedure-free-vars procedures)))
+	       (free-vars
+		(free-var-delete* free-vars variables))
+	       (closure-vars
+		(imap-fold
+		 (lambda (var _ closure-vars)
+		   (cond
+		    ((closure-var? var)
+		     (cons var closure-vars))
+		    (else
+		     closure-vars)))
+		 '() free-vars)))
+	    (for-each
+	     (lambda (var)
+	       (if well-known
+		   (if (= 1 (length closure-vars))
+		       (map-var-alias! var (car closure-vars))
+		       (unless (null? closure-vars)
+			 (map-var-arg! var)))
+					; NOT WELL_KNOWN
+		   ))
+	     variables)
+	    
+	    ;; TODO: Map! variables bound by this letrec-expression.
+	    ;; This should haben before the environment is saved above!
+	    ;; FIXME/TODO
+	    (restore-env! env) ; Has to happen before the body is evaluated!
+	    exp
+	    ))))
     (let*
 	((exp (convert exp)))
       (make-letrec-expression
-       (constant-definitions)
-       (procedure-definitions)
+       ;; TODO: Use list-queues
+       (append (constant-definitions) ; XXX: Not all literals are lifted.
+	                              ; Which should we lift?
+	       (procedure-definitions))
        (list exp)
        exp))))
 

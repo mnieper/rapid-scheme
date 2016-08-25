@@ -21,6 +21,7 @@
           (rapid base)
 	  (rapid and-let)
 	  (rapid receive)
+	  (rapid lists)
 	  (rapid comparators)
 	  (rapid immutable-maps)
 	  (rapid identifiers)
