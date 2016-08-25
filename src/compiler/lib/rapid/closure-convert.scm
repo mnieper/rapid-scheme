@@ -293,11 +293,13 @@
 		(free-var-union (map procedure-free-vars procedures)))
 	       (free-vars
 		(free-var-delete* free-vars variables))
+	       (closure-var-list-queue (list-queue))
 	       (closure-var-count+closure-vars
 		(imap-fold
 		 (lambda (var _ cnt+vars)
 		   (if (var-local? var)
 		       (let ((i (vector-ref cnt+vars 0)))
+			 (list-queue-add-back! closure-var-list-queue var)
 			 (vector (+ 1 i)
 				 (imap-replace (vector-ref cnt+vars 1)
 					       var i)))
@@ -305,6 +307,7 @@
 		 (vector 0 (make-closure-var-set)) free-vars))
 	       (closure-var-count (vector-ref closure-var-count+closure-vars 0))
 	       (closure-vars (vector-ref closure-var-count+closure-vars 1))
+	       (closure-var-list (list-queue-list closure-var-list-queue))
 	       (closure-type
 		(if well-known
 		    (case closure-var-count
@@ -319,12 +322,16 @@
 	      ((alias)
 	       (for-each
 		(lambda (variable)
-		  (var-set-alias! variable (CLOSURE 0)))
-		variables))
-	      ((global)
+		  (var-set-alias! variable (car closure-var-list))))
+	       variables)
+	      ((global) ; ONLY THE CODE POINTER
 	       (for-each
 		(lambda (variable)
-		  (var-set-global! variable)) ;; SHOULD BE ALIAS
+		  (let ((label (make-location #f)))
+		    (add-constant! label ...)
+		    (var-set-global! label)
+		    (var-set-alias! variable label)
+		    ))
 		variables))
 	      ((closure)
 	       ???))
