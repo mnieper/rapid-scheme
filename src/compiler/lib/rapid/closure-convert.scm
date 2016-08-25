@@ -154,12 +154,12 @@
 
   ;; Constants
   (define (make-constant-set)
-    '())
+    (list-queue))
   (define constants (make-constant-set))
   (define (add-constant! var lit)
-    (set! constants (cons (cons var lit) constants)))
+    (list-queue-add-back! constants (cons var lit)))
   (define (map-constants proc)
-    (map (lambda (constant) (proc (car constant) (cdr constant))) constants))
+    (list-queue-map (lambda (constant) (proc (car constant) (cdr constant))) constants))
   (define (constant-definitions)
     (map-constants
      (lambda (var lit)
@@ -170,12 +170,12 @@
 
   ;; Procedures
   (define (make-procedure-set)
-    '())
+    (list-queue))
   (define procedures (make-procedure-set))
   (define (add-procedure! label procedure)
-    (set! procedures (cons (cons label procedure) procedures)))
+    (list-queue-add-back! procedures (cons label procedure)))
   (define (map-procedures proc)
-    (map (lambda (procedure) (proc (car procedure) (cdr procedure))) procedures))
+    (list-queue-map (lambda (procedure) (proc (car procedure) (cdr procedure))) procedures))
   (define (procedure-definitions)
     (map-procedures
      (lambda (label procedure)
@@ -184,7 +184,7 @@
 	procedure
 	(location-syntax label)))))
   
-  ;; Environment
+  ;; Environment // REMOVE ME
   (define (make-environment)
     (imap var-comparator))
   (define env (make-environment))
@@ -241,12 +241,12 @@
 	  (let ((location (reference-location exp)))
 	    (if (primitive? location)
 		exp
-		(var->exp location)))))
+		(var->ref location)))))
        (current-literal-method
 	(lambda (exp)
 	  (let ((var (make-location #f)))
 	    (add-constant! var exp)
-	    (map-var-const! var var)
+	    (var-set-global! var)
 	    (make-reference var #f))))
        (current-procedure-call-method
 	;; TODO: Handle apply.
@@ -256,16 +256,13 @@
 	       (operator (procedure-call-operator exp))
 	       (operands (convert* (procedure-call-operands exp))))
 	    (if label
-		(let ((closure (var->closure (reference-location operator))))
-		  (if closure
-		      (make-procedure-call label
-					   (cons closure operands)
-					   #f)
-		      (make-procedure-call label
-					   operands
-					   #f)))
-		(make-procedure-call (convert operator) operands #f)))))
-       (current-procedure-method
+		(let ((code-pointer (reference-location operator)))
+		  (if (eliminated? code-pointer)
+		      (make-procedure-call label operands #f)
+		      (make-procedure-call label (cons (convert operator) operands) #f)))
+		(make-procedure-call (make-reference (make-primitive 'call #f) #f)
+				     (cons (convert operator) operands) #f)))))
+       #;(current-procedure-method
 	(lambda (exp)
 	  ;; TODO: Add procedure to label table;
 	  ;; FIXME
@@ -282,9 +279,8 @@
        (current-letrec-expression-method
 	(lambda (exp)
 	  (let*
-	      ((old-env (save-env))
-	       (definitions
-		(letrec-expression-definitions exp))
+	      ((definitions
+		 (letrec-expression-definitions exp))
 	       (variables
 		(map (lambda (definition)
 		       (formals-location (variables-formals definition)))
@@ -297,39 +293,96 @@
 		(free-var-union (map procedure-free-vars procedures)))
 	       (free-vars
 		(free-var-delete* free-vars variables))
-	       (closure-vars
+	       (closure-var-count+closure-vars
 		(imap-fold
-		 (lambda (var _ closure-vars)
-		   (cond
-		    ((closure-var? var)
-		     (cons var closure-vars))
-		    (else
-		     closure-vars)))
-		 '() free-vars)))
-	    (for-each
-	     (lambda (var)
-	       (if well-known
-		   (if (= 1 (length closure-vars))
-		       (map-var-alias! var (car closure-vars))
-		       (unless (null? closure-vars)
-			 (map-var-arg! var)))
-					; NOT WELL_KNOWN
-		   ))
-	     variables)
+		 (lambda (var _ cnt+vars)
+		   (if (var-local? var)
+		       (let ((i (vector-ref cnt+vars 0)))
+			 (vector (+ 1 i)
+				 (imap-replace (vector-ref cnt+vars 1)
+					       var i)))
+		       cnt+vars))
+		 (vector 0 (make-closure-var-set)) free-vars))
+	       (closure-var-count (vector-ref closure-var-count+closure-vars 0))
+	       (closure-vars (vector-ref closure-var-count+closure-vars 1))
+	       (closure-type
+		(if well-known
+		    (case closure-var-count
+		      ((0) 'eliminated)
+		      ((1) 'alias)
+		      (else 'vector))
+		    (case closure-var-count
+		      ((0) 'global)
+		      (else 'closure)))))
+
+	    (case closure-type
+	      ((alias)
+	       (for-each
+		(lambda (variable)
+		  (var-set-alias! variable (CLOSURE 0)))
+		variables))
+	      ((global)
+	       (for-each
+		(lambda (variable)
+		  (var-set-global! variable)) ;; SHOULD BE ALIAS
+		variables))
+	      ((closure)
+	       ???))
+
 	    
-	    ;; TODO: Map! variables bound by this letrec-expression.
-	    ;; This should haben before the environment is saved above!
-	    ;; FIXME/TODO
-	    (restore-env! env) ; Has to happen before the body is evaluated!
-	    exp
-	    ))))
+	    (body
+
+	     
+		(begin
+		  (for-each
+		   (lambda (var label)
+		     (if well-known
+			 (if (= 1 (length closure-vars))
+			     (map-var-alias! var (car closure-vars))
+			     (unless (null? closure-vars)
+			       (map-var-arg! var)))
+			 (if (null? closure-vars)
+			     (map-var-const! var label)
+			     (map-var-arg! var))))
+		   variables closure-labels)
+		  (convert* (letrec-expression-body exp))))
+	       (old-env (save-env))
+	       (closure-var-count
+		(let loop ((closure-vars closure-vars) (i 0))
+		  (cond
+		   ((null? closure-vars)
+		    0)
+		   (else
+		    ;; FIXME: The closure may be of a special type (e.g. pair, vector ...)
+		    (map-var-closure! (car closure-vars) i)
+		    (loop (cdr closure-vars) (+ 1 i)))))))
+	   (for-each
+	    (lambda (var procedure label)
+	      (let* ((closure-arg (make-location (expression-syntax procedure)))
+		     (closure-flag (or (not well-known) (not (null? closure-vars)))))
+		(parameterize ((current-closure-arg closure-arg))
+		  (add-procedure!
+		   (procedure-label procedure)
+		   (make-procedure
+					; CLAUSES
+		    procedure)))))
+	    variables procedures closure-labels)
+	   (restore-env! env) 
+	   
+	   ;; ADD PROCEDURE DEFINITIONS!
+	   ;; REWRITE LETREC!
+	   
+	   ;; TODO: Map! variables bound by this letrec-expression.
+	   ;; This should haben before the environment is saved above!
+	   ;; FIXME/TODO
+	   exp
+	   ))))
     (let*
 	((exp (convert exp)))
       (make-letrec-expression
-       ;; TODO: Use list-queues
-       (append (constant-definitions) ; XXX: Not all literals are lifted.
-	                              ; Which should we lift?
-	       (procedure-definitions))
+       (list-queue-list
+	(list-queue-append (constant-definitions)
+			   (procedure-definitions)))
        (list exp)
        exp))))
 
@@ -383,7 +436,7 @@
   (expression-aux exp))
 
 (define (init-var! location)
-  (denotation-set-aux! location (vector #t #f)))
+  (denotation-set-aux! location (vector #t #f 'eliminated #f)))
 
 (define (var-well-known-flag location)
   (vector-ref (denotation-aux location) 0))
@@ -391,11 +444,48 @@
 (define (var-label location)
   (vector-ref (denotation-aux location) 1))
 
+(define (var-type location)
+  (vector-ref (denotation-aux location) 2))
+
+(define (var-alias location)
+  (vector-ref (denotation-aux location 3)))
+
+(define (var-local? location)
+  (eq? 'local (var-type location)))
+
 (define (var-set-well-known-flag! location flag)
   (vector-set! (denotation-aux location) 0 flag))
 
 (define (var-set-label! location label)
   (vector-set! (denotation-aux location) 1 label))
+
+(define (var-set-global! location)
+  (let ((aux (denotation-aux location)))
+    (vector-set! aux 2 'global)
+    (vector-set! aux 3 location)))
+
+(define (var-set-local! location)
+  (let ((aux (denotation-aux location)))
+    (vector-set! aux 2 'local)
+    (vector-set! aux 3 location)))
+
+(define (var-set-alias! location alias)
+  (let ((aux (denotation-aux location)))
+    (vector-set! aux 2 (var-type alias))
+    (vector-set! aux 3 alias)))
+
+(define (var->ref location syntax)
+  (let ((alias (var-alias location)))
+    (cond
+     ((free-var-index alias)
+      => make-closure-reference)
+     (else
+      (make-reference alias syntax)))))
+
+(define current-closure-vars (make-parameter #f))
+(define (make-closure-var-set) (imap var-comparator))
+(define (closure-var-index var)
+  (imap-ref/default (current-closure-vars) var #f))
 
 (define (clause-set-free-vars! clause free-vars)
   (clause-set-aux! clause free-vars))
