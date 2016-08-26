@@ -196,7 +196,7 @@
 	  (let ((location (reference-location exp)))
 	    (if (primitive? location)
 		exp
-		(var->ref location)))))
+		(var->ref location exp)))))
        (current-literal-method
 	(lambda (exp)
 	  (let ((var (make-var #f)))
@@ -213,8 +213,9 @@
 	    (if label
 		(let ((code-pointer (reference-location operator)))
 		  (if (var-eliminated? code-pointer)
-		      (make-procedure-call label operands #f)
-		      (make-procedure-call label (cons (convert operator) operands) #f)))
+		      (make-procedure-call (make-reference label #f) operands #f)
+		      (make-procedure-call (make-reference label #f)
+					   (cons (convert operator) operands) #f)))
 		(make-procedure-call (make-reference (make-primitive 'call #f) #f)
 				     (cons (convert operator) operands) #f)))))
        (current-letrec-expression-method
@@ -321,14 +322,15 @@
 					     (cons closure-label (formals-fixed formals)))
 					 (formals-rest formals)
 					 (formals-syntax formals))
-			   (convert* (clause-body clause)))))
-		      (procedure-clauses clause))
+			   (convert* (clause-body clause))
+			   (clause-syntax clause))))
+		      (procedure-clauses procedure))
 		     procedure)))))
 	     labels procedures)
 
 	    (let*
 		((body-closure
-		  (make-literal #f))
+		  (make-var #f))
 		 (new-exp
 		  (parameterize
 		      ((closure-name body-closure))
@@ -440,7 +442,7 @@
   (expression-aux exp))
 
 (define (init-var! location)
-  (denotation-set-aux! location (vector #t #f 'eliminated #f #f)))
+  (denotation-set-aux! location (vector #t #f 'eliminated location #f)))
 
 (define (make-var syntax)
   (let ((var (make-location syntax)))
@@ -478,13 +480,11 @@
 
 (define (var-set-global! location)
   (let ((aux (denotation-aux location)))
-    (vector-set! aux 2 'global)
-    (vector-set! aux 3 location)))
+    (vector-set! aux 2 'global)))
 
 (define (var-set-local! location)
   (let ((aux (denotation-aux location)))
-    (vector-set! aux 2 'local)
-    (vector-set! aux 3 location)))
+    (vector-set! aux 2 'local)))
 
 (define (var-set-alias! location alias)
   (let ((aux (denotation-aux location)))
@@ -492,9 +492,8 @@
     (vector-set! aux 3 alias)))
 
 (define (var-set-code-pointer! var closure-name i)
-  (let ((aux (denotation-aux location)))
+  (let ((aux (denotation-aux var)))
     (vector-set! aux 2 'code-pointer)
-    (vector-set! aux 3 var)
     (vector-set! aux 4 (vector closure-name i))))
 
 (define (var->ref location syntax)
@@ -539,14 +538,13 @@
   
 (define (make-code-pointer-reference var syntax)
   (let*
-      ((aux (denotation-aux location))
+      ((aux (denotation-aux var))
        (aux (vector-ref aux 4)))
     (make-procedure-call (make-reference (make-primitive 'closure->code-pointer syntax) syntax)
-			 (make-reference ((vector-ref aux 0)) syntax)
-			 (make-literal (vector-ref aux 1) syntax)
+			 (list (make-reference ((vector-ref aux 0)) syntax)
+			       (make-literal (vector-ref aux 1) syntax))
 			 syntax)))
 
-(define current-closure-vars (make-parameter #f))
 (define (make-closure-var-set) (imap var-comparator))
 (define (closure-var-index var)
   (imap-ref/default (current-closure-vars) var #f))
@@ -566,3 +564,8 @@
 		     (< (denotation-identity location1)
 			(denotation-identity location2)))
 		   #f))
+
+;;; Global parameters
+
+(define current-closure-vars (make-parameter (make-closure-var-set)))
+
