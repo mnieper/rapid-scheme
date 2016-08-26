@@ -183,52 +183,7 @@
 	(make-formals (list label) '() (location-syntax label))
 	procedure
 	(location-syntax label)))))
-  
-  ;; Environment // REMOVE ME
-  (define (make-environment)
-    (imap var-comparator))
-  (define env (make-environment))
-  (define (save-env) env)
-  (define (restore-env! old-env)
-    (set! env old-env))
-  (define (closure-var? var)
-    (let ((value (imap-ref/default env var #f)))
-      (and var (eq? 'variable (car value)))))
-  (define (make-var-alias var alias)
-    (cons 'alias
-	  (lambda (syntax)
-	    (make-reference alias syntax))))
-  (define (make-var-const const)
-    (cons 'constant
-	  (lambda (syntax)
-	    (make-reference const syntax))))
-  (define (make-var-arg arg)
-    (cons 'variable
-	  (lambda (syntax)
-	    (make-reference arg syntax))))
-  (define current-closure-arg (make-parameter #f))
-  (define (make-var-closure index)
-    (cons 'variable
-	  (lambda (syntax)
-	    (make-procedure-call (make-reference (make-primitive 'closure-ref syntax)
-						 syntax)
-				 (make-reference (current-closure-arg) syntax)
-				 (make-literal index syntax)
-				 syntax))))
-  (define (var->exp var)
-    ((cdr (imap-ref env var)) (location-syntax var)))
-  (define (map-var-const! var const)
-    (set! env (imap-replace env var (make-var-const const))))
-  (define (var->closure var)
-    (and-let*
-	((value (imap-ref/default env var #f))
-	 (thunk (cdr value)))
-      (thunk (location-syntax var))))
-  (define (map-var-arg! var arg)
-    (set! env (imap-replace env var (make-var-arg arg))))
-  (define (map-var-closure! var index)
-    (set! env (imap-replace env var (make-var-closure index))))
-  
+    
   (define (convert exp)
     (expression-dispatch exp))
 
@@ -262,20 +217,6 @@
 		      (make-procedure-call label (cons (convert operator) operands) #f)))
 		(make-procedure-call (make-reference (make-primitive 'call #f) #f)
 				     (cons (convert operator) operands) #f)))))
-       #;(current-procedure-method
-	(lambda (exp)
-	  ;; TODO: Add procedure to label table;
-	  ;; FIXME
-	  (for-each
-	   (lambda (clause)
-	     (for-each
-	      (lambda (var)
-		(map-var-arg! var var))
-	      (formals-locations (clause-formals clause))))
-	   (procedure-clauses exp))	
-	  ;; TODO: Add closure parameters for not-well-known procedures
-	  exp
-	  ))
        (current-letrec-expression-method
 	(lambda (exp)
 	  (let*
@@ -287,6 +228,8 @@
 		     definitions))
 	       (procedures
 		(map variables-expression definitions))
+	       (labels
+		(map procedure-label procedures))
 	       (well-known
 		(every procedure-well-known-flag procedures))
 	       (free-vars
@@ -294,18 +237,20 @@
 	       (free-vars
 		(free-var-delete* free-vars variables))
 	       (closure-var-list-queue (list-queue))
+	       (cp-count (if well-known 0 (length labels)))
 	       (closure-var-count+closure-vars
 		(imap-fold
 		 (lambda (var _ cnt+vars)
-		   (if (var-local? var)
+		   (if (and (var-local? var) (not (var-alias? var)))
 		       (let ((i (vector-ref cnt+vars 0)))
 			 (list-queue-add-back! closure-var-list-queue var)
 			 (vector (+ 1 i)
 				 (imap-replace (vector-ref cnt+vars 1)
 					       var i)))
 		       cnt+vars))
-		 (vector 0 (make-closure-var-set)) free-vars))
-	       (closure-var-count (vector-ref closure-var-count+closure-vars 0))
+		 (vector cp-count (make-closure-var-set)) free-vars))
+	       (closure-var-count (- (vector-ref closure-var-count+closure-vars 0)
+				     cp-count))
 	       (closure-vars (vector-ref closure-var-count+closure-vars 1))
 	       (closure-var-list (list-queue-list closure-var-list-queue))
 	       (closure-type
@@ -313,77 +258,127 @@
 		    (case closure-var-count
 		      ((0) 'eliminated)
 		      ((1) 'alias)
+		      ((2) 'pair)
 		      (else 'vector))
 		    (case closure-var-count
 		      ((0) 'global)
-		      (else 'closure)))))
-
+		      (else 'closure))))
+	       (closure-label (make-location #f))
+	       (closure-name (make-parameter closure-label)))
+	    
 	    (case closure-type
 	      ((alias)
 	       (for-each
 		(lambda (variable)
 		  (var-set-alias! variable (car closure-var-list))))
 	       variables)
-	      ((global) ; ONLY THE CODE POINTER
+	      ((pair vector)
 	       (for-each
 		(lambda (variable)
-		  (let ((label (make-location #f)))
-		    (add-constant! label ...)
-		    (var-set-global! label)
-		    (var-set-alias! variable label)
-		    ))
+		  (var-set-alias! variable closure-name))
 		variables))
-	      ((closure)
-	       ???))
+	      ((global closure)
+	       (do ((variables variables (cdr variables))
+		    (i 0 (+ 1 i)))
+		   ((null? variables))
+		 (let ((variable (car variables)))
+		   (var-set-code-pointer! variable closure-name i)))))
 
-	    
-	    (body
+	    (when (eq? 'global closure-type)
+	      (add-constant!
+	       closure-label
+	       (make-procedure-call
+		(make-reference (make-primitive 'make-closure #f) #f)
+		(map (lambda (label)
+		       (make-reference label #f))
+		     labels)
+		#f)))
 
-	     
-		(begin
-		  (for-each
-		   (lambda (var label)
-		     (if well-known
-			 (if (= 1 (length closure-vars))
-			     (map-var-alias! var (car closure-vars))
-			     (unless (null? closure-vars)
-			       (map-var-arg! var)))
-			 (if (null? closure-vars)
-			     (map-var-const! var label)
-			     (map-var-arg! var))))
-		   variables closure-labels)
-		  (convert* (letrec-expression-body exp))))
-	       (old-env (save-env))
-	       (closure-var-count
-		(let loop ((closure-vars closure-vars) (i 0))
-		  (cond
-		   ((null? closure-vars)
-		    0)
-		   (else
-		    ;; FIXME: The closure may be of a special type (e.g. pair, vector ...)
-		    (map-var-closure! (car closure-vars) i)
-		    (loop (cdr closure-vars) (+ 1 i)))))))
-	   (for-each
-	    (lambda (var procedure label)
-	      (let* ((closure-arg (make-location (expression-syntax procedure)))
-		     (closure-flag (or (not well-known) (not (null? closure-vars)))))
-		(parameterize ((current-closure-arg closure-arg))
-		  (add-procedure!
-		   (procedure-label procedure)
-		   (make-procedure
-					; CLAUSES
-		    procedure)))))
-	    variables procedures closure-labels)
-	   (restore-env! env) 
-	   
-	   ;; ADD PROCEDURE DEFINITIONS!
-	   ;; REWRITE LETREC!
-	   
-	   ;; TODO: Map! variables bound by this letrec-expression.
-	   ;; This should haben before the environment is saved above!
-	   ;; FIXME/TODO
-	   exp
-	   ))))
+	    (for-each
+	     (lambda (label procedure)
+	       (let*
+		   ((closure-label (make-identifier (expression-syntax procedure))))
+		 (parameterize
+		     ((current-closure-vars closure-vars)
+		      (closure-name closure-label))
+		   (add-procedure!
+		    label
+		    (make-procedure
+		     (map
+		      (lambda (clause)
+			(let*
+			    ((formals (clause-formals clause)))
+			  (for-each
+			   (lambda (arg)
+			     (var-set-local! arg))
+			   (formals-locations formals))
+			  (make-clause
+			   (make-formals (if (eq? 'eliminated
+						  closure-type)
+					     (formals-fixed formals)
+					     (cons closure-label (formals-fixed formals)))
+					 (formals-rest formals)
+					 (formals-syntax formals))
+			   (convert* (clause-body clause)))))
+		      (procedure-clauses clause))
+		     procedure)))))
+	     labels procedures)
+
+	    (let*
+		((body-closure
+		  (make-literal #f))
+		 (new-exp
+		  (parameterize
+		      ((closure-name body-closure))
+		    (make-sequence (convert* (letrec-expression-body exp)) #f)))
+		 (new-exp
+		  (case closure-type
+		    ((closure)
+		     (make-let-expression
+		      (make-variables
+		       (make-formals (list closure-label) '() #f)
+		       (make-procedure-call
+			(make-reference (make-primitive 'make-closure #f) #f)
+			(append ; TODO: Optimize
+			 (map (lambda (label)
+				(make-reference label #f))
+			      labels)
+			 (map (lambda (var)
+				(make-reference var #f))
+			      closure-var-list))
+			#f)
+		       #f)
+		      (list new-exp))
+		     #f)))
+		    ((pair)
+		     (make-let-expression
+		      (make-variables
+		       (make-formals (list closure-label) '() #f)
+		       (make-procedure-call
+			(make-reference (make-primitive 'cons #f) #f)
+			(list
+			 (make-reference (car closure-var-list) #f)
+			 (make-refernece (cadr closure-var-list) #f))
+			#f)
+		       #f)
+		      (list new-exp)
+		      #f))
+		    ((vector)
+		     (make-let-expression
+		      (make-variables
+		       (make-formals (list closure-label) '() #f)
+		       (make-procedure-call
+			(make-reference (make-primitive 'vector #f) #f)
+			(map (lambda (var)
+			       (make-reference var #f))
+			     closure-var-list)
+			#f)
+		       #f)
+		      (list new-exp)
+		      #f))
+		    (else
+		     new-exp))))
+	      new-exp)))
     (let*
 	((exp (convert exp)))
       (make-letrec-expression
@@ -443,7 +438,7 @@
   (expression-aux exp))
 
 (define (init-var! location)
-  (denotation-set-aux! location (vector #t #f 'eliminated #f)))
+  (denotation-set-aux! location (vector #t #f 'eliminated #f #f)))
 
 (define (var-well-known-flag location)
   (vector-ref (denotation-aux location) 0))
@@ -458,7 +453,12 @@
   (vector-ref (denotation-aux location 3)))
 
 (define (var-local? location)
-  (eq? 'local (var-type location)))
+  (or
+   (eq? 'local (var-type location))
+   (eq? 'code-pointer (var-type location))))
+
+(define (var-alias? location)
+  (not (eq? location (var-alias location))))
 
 (define (var-set-well-known-flag! location flag)
   (vector-set! (denotation-aux location) 0 flag))
@@ -481,13 +481,58 @@
     (vector-set! aux 2 (var-type alias))
     (vector-set! aux 3 alias)))
 
+(define (var-set-code-pointer! var closure-name i)
+  (let ((aux (denotation-aux location)))
+    (vector-set! aux 2 'code-pointer)
+    (vector-set! aux 3 var)
+    (vector-set! aux 4 (vector closure-name i))))
+
 (define (var->ref location syntax)
   (let ((alias (var-alias location)))
     (cond
      ((free-var-index alias)
-      => make-closure-reference)
+      => (lambda (index)
+	   (make-closure-reference index syntax)))
+     ((eq? 'code-pointer (var-type alias))
+      (make-code-pointer-reference alias syntax))
      (else
       (make-reference alias syntax)))))
+
+(define (make-closure-reference index syntax)
+  (let ((closure (make-reference (current-closure-arg) syntax)))
+    (cond
+     ((current-closure-type)
+      ((alias)
+       (make-reference closure-arg syntax))
+      ((pair)
+       (make-procedure-call (make-reference (make-primitive (if (zero? index)
+								'car
+								'cdr)
+							    syntax)
+					    syntax)
+			    (list closure)
+			    syntax))
+      ((vector)
+       (make-procedure-call (make-reference (make-primitive 'vector-ref syntax)
+					    syntax)
+			    (list closure
+				  (make-literal index syntax))
+			    syntax))
+      ((closure)
+       (make-procedure-call (make-reference (make-primitive 'closure-ref syntax)
+					    syntax)
+			    (list closure
+				  (make-literal index syntax))
+			    syntax))))))
+  
+(define (make-code-pointer-reference var syntax)
+  (let*
+      ((aux (denotation-aux location))
+       (aux (vector-ref aux 4)))
+    (make-procedure-call (make-reference (make-primitive 'closure->code-pointer syntax) syntax)
+			 (make-reference ((vector-ref aux 0)) syntax)
+			 (make-literal (vector-ref aux 1) syntax)
+			 syntax)))
 
 (define current-closure-vars (make-parameter #f))
 (define (make-closure-var-set) (imap var-comparator))

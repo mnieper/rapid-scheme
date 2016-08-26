@@ -431,6 +431,35 @@
   (%make-let-values-expression definition (flatten body) (convert/syntax syntax)
 			       current-let-values-expression-method))
 
+;; Let expression
+
+(define current-let-expression-method
+  (make-parameter
+   (lambda (expression . args)
+     (make-let-expression (let ((variables (let-expression-definition
+					    expression)))
+			    (make-variables (variables-formals variables)
+					    (apply expression-dispatch
+						   (variables-expression
+						    variables)
+						   args)
+					    (variables-syntax variables)))
+			  (apply expression-dispatch*
+				 (let-values-body expression)
+				 args)
+			  (expression-syntax expression)))))
+
+(define-record-type (<let-expression> <expression>)
+  (%make-let-expression definition body syntax method)
+  let-expression?
+  (definition let-expression-definition)
+  (body let-expression-body))
+
+(define (make-let-expression definition body syntax)
+  (%make-let-expression definition (flatten body) (convert/syntax syntax)
+			current-let-expression-method))
+
+
 ;; Extra types
 
 (define-record-type <variables>
@@ -567,7 +596,15 @@
 	     `(,(formals->datum (variables-formals variables))
 	       ,(expression->datum (variables-expression variables)))))
        ,@(map expression->datum (let-values-expression-body expression))))
-         
+
+   ;; Let-values expression
+   ((let-expression? expression)
+    `(let
+	 (,(let ((variables (let-expression-definition expression)))
+	     `(,(formals->datum (variables-formals variables))
+	       ,(expression->datum (variables-expression variables)))))
+       ,@(map expression->datum (let-expression-body expression))))
+   
    ;; Sequences
    ((sequence? expression)
     `(begin ,@(map expression->datum (sequence-expressions expression))))

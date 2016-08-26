@@ -21,6 +21,7 @@
 	  begin
 	  quote
 	  letrec
+	  let
 	  
 	  make-rtd
 	  make-constructor
@@ -31,6 +32,11 @@
 	  make-cell
 	  cell-ref
 	  cell-set!
+
+	  make-closure
+	  closure-ref
+	  closure->code-pointer
+	  call
 	  
 	  *
 	  +

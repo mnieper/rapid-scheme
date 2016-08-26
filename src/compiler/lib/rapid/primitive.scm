@@ -76,3 +76,18 @@
       ((record-fields (rtd-record-fields rtd)))
     (lambda (cont flag marks record value)
       (cont (vector-set! (record-fields record) index value)))))
+
+;;; Closure-related primitives
+
+(define (make-closure . elements)
+  (apply vector elements))
+
+(define (closure-ref closure index)
+  (vector-ref closure index))
+
+(define (closure->code-pointer closure index)
+  (cons (closure-ref closure index) closure))
+
+(define (call code-pointer . operands)
+  (apply (car code-pointer) (cdr code-pointer) operands))
+
