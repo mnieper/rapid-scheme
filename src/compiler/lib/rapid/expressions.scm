@@ -601,7 +601,7 @@
    ((let-expression? expression)
     `(let
 	 (,(let ((variables (let-expression-definition expression)))
-	     `(,(formals->datum (variables-formals variables))
+	     `(,(car (formals->datum (variables-formals variables)))
 	       ,(expression->datum (variables-expression variables)))))
        ,@(map expression->datum (let-expression-body expression))))
    

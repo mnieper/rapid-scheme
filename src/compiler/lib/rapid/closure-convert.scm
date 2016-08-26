@@ -195,29 +195,41 @@
 	(lambda (exp)
 	  (let ((location (reference-location exp)))
 	    (if (primitive? location)
+		;; FIXME: Handle references to primitives.
+		;; IDEA: Could be lifted as literals
+		;; However ... (let ((x car)) ... (apply x ...) <- adds cont to x, etc.
 		exp
 		(var->ref location exp)))))
        (current-literal-method
+	;; TODO: Only lift complicated constants
+	;; Or don't lift at all and fold later
 	(lambda (exp)
 	  (let ((var (make-var #f)))
 	    (add-constant! var exp)
 	    (var-set-global! var)
 	    (make-reference var #f))))
        (current-procedure-call-method
-	;; TODO: Handle apply.
+	;; FIXME: Handle apply.
 	(lambda (exp)
 	  (let*
-	      ((label (procedure-call-label exp))
-	       (operator (procedure-call-operator exp))
+	      ((operator (procedure-call-operator exp))
 	       (operands (convert* (procedure-call-operands exp))))
-	    (if label
-		(let ((code-pointer (reference-location operator)))
-		  (if (var-eliminated? code-pointer)
-		      (make-procedure-call (make-reference label #f) operands #f)
-		      (make-procedure-call (make-reference label #f)
-					   (cons (convert operator) operands) #f)))
-		(make-procedure-call (make-reference (make-primitive 'call #f) #f)
-				     (cons (convert operator) operands) #f)))))
+	    (cond
+	     ((and-let*
+		  (((reference? operator))
+		   (primitive (reference-location operator)))
+		(primitive? primitive))
+	      (make-procedure-call operator operands #f))
+	     (else	  
+	      (let ((label (procedure-call-label exp)))
+		(if label
+		    (let ((code-pointer (reference-location operator)))
+		      (if (var-eliminated? code-pointer)
+			  (make-procedure-call (make-reference label #f) operands #f)
+			  (make-procedure-call (make-reference label #f)
+					       (cons (convert operator) operands) #f)))
+		    (make-procedure-call (make-reference (make-primitive 'call #f) #f)
+					 (cons (convert operator) operands) #f))))))))
        (current-letrec-expression-method
 	(lambda (exp)
 	  (let*
@@ -276,7 +288,7 @@
 	      ((pair vector)
 	       (for-each
 		(lambda (variable)
-		  (var-set-alias! variable closure-name))
+		  (var-set-alias! variable closure-label))
 		variables))
 	      ((global closure)
 	       (do ((variables variables (cdr variables))
@@ -329,12 +341,8 @@
 	     labels procedures)
 
 	    (let*
-		((body-closure
-		  (make-var #f))
-		 (new-exp
-		  (parameterize
-		      ((closure-name body-closure))
-		    (make-sequence (convert* (letrec-expression-body exp)) #f)))
+		((new-exp
+		  (make-sequence (convert* (letrec-expression-body exp)) #f))
 		 (new-exp
 		  (case closure-type
 		    ((closure)
