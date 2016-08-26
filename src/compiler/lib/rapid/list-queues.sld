@@ -25,12 +25,14 @@
 	  list-queue-add-back!
 	  list-queue-append!
 	  list-queue-for-each
+	  list-queue-map
 	  list-queue-map!)
   (cond-expand
    ((and (not larceny)
 	 (library (srfi 117)))
     (import (srfi 117)))
    (else
-    (import (scheme base))
+    (import (scheme base)
+	    (rapid receive))
     (include "list-queues.scm"))))
 

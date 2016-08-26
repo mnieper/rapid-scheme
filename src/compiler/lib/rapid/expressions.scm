@@ -445,7 +445,7 @@
 						   args)
 					    (variables-syntax variables)))
 			  (apply expression-dispatch*
-				 (let-values-body expression)
+				 (let-expression-body expression)
 				 args)
 			  (expression-syntax expression)))))
 

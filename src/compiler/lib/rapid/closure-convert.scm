@@ -121,7 +121,7 @@
 	   (lambda (definition)
 	     (let* ((procedure (variables-expression definition))
 		    (variable (formals-location (variables-formals definition)))
-		    (label (make-location variable #f)))
+		    (label (make-var #f)))
 	       (init-var! variable)
 	       (var-set-well-known-flag! variable #t)
 	       (var-set-label! variable label)
@@ -199,7 +199,7 @@
 		(var->ref location)))))
        (current-literal-method
 	(lambda (exp)
-	  (let ((var (make-location #f)))
+	  (let ((var (make-var #f)))
 	    (add-constant! var exp)
 	    (var-set-global! var)
 	    (make-reference var #f))))
@@ -212,7 +212,7 @@
 	       (operands (convert* (procedure-call-operands exp))))
 	    (if label
 		(let ((code-pointer (reference-location operator)))
-		  (if (eliminated? code-pointer)
+		  (if (var-eliminated? code-pointer)
 		      (make-procedure-call label operands #f)
 		      (make-procedure-call label (cons (convert operator) operands) #f)))
 		(make-procedure-call (make-reference (make-primitive 'call #f) #f)
@@ -263,7 +263,7 @@
 		    (case closure-var-count
 		      ((0) 'global)
 		      (else 'closure))))
-	       (closure-label (make-location #f))
+	       (closure-label (make-var #f))
 	       (closure-name (make-parameter closure-label)))
 	    
 	    (case closure-type
@@ -297,9 +297,11 @@
 	    (for-each
 	     (lambda (label procedure)
 	       (let*
-		   ((closure-label (make-identifier (expression-syntax procedure))))
+		   ((closure-label (make-var (expression-syntax procedure))))
 		 (parameterize
 		     ((current-closure-vars closure-vars)
+		      (current-closure-arg closure-label)
+		      (current-closure-type closure-type)
 		      (closure-name closure-label))
 		   (add-procedure!
 		    label
@@ -348,8 +350,8 @@
 			      closure-var-list))
 			#f)
 		       #f)
-		      (list new-exp))
-		     #f)))
+		      (list new-exp)
+		      #f))
 		    ((pair)
 		     (make-let-expression
 		      (make-variables
@@ -358,7 +360,7 @@
 			(make-reference (make-primitive 'cons #f) #f)
 			(list
 			 (make-reference (car closure-var-list) #f)
-			 (make-refernece (cadr closure-var-list) #f))
+			 (make-reference (cadr closure-var-list) #f))
 			#f)
 		       #f)
 		      (list new-exp)
@@ -378,13 +380,13 @@
 		      #f))
 		    (else
 		     new-exp))))
-	      new-exp)))
+	      new-exp)))))
     (let*
 	((exp (convert exp)))
       (make-letrec-expression
        (list-queue-list
-	(list-queue-append (constant-definitions)
-			   (procedure-definitions)))
+	(list-queue-append! (constant-definitions)
+			    (procedure-definitions)))
        (list exp)
        exp))))
 
@@ -440,6 +442,11 @@
 (define (init-var! location)
   (denotation-set-aux! location (vector #t #f 'eliminated #f #f)))
 
+(define (make-var syntax)
+  (let ((var (make-location syntax)))
+    (init-var! var)
+    var))
+
 (define (var-well-known-flag location)
   (vector-ref (denotation-aux location) 0))
 
@@ -450,7 +457,10 @@
   (vector-ref (denotation-aux location) 2))
 
 (define (var-alias location)
-  (vector-ref (denotation-aux location 3)))
+  (vector-ref (denotation-aux location) 3))
+
+(define (var-eliminated? location)
+  (eq? 'eliminated (var-type location)))
 
 (define (var-local? location)
   (or
@@ -490,7 +500,7 @@
 (define (var->ref location syntax)
   (let ((alias (var-alias location)))
     (cond
-     ((free-var-index alias)
+     ((closure-var-index alias)
       => (lambda (index)
 	   (make-closure-reference index syntax)))
      ((eq? 'code-pointer (var-type alias))
@@ -498,12 +508,14 @@
      (else
       (make-reference alias syntax)))))
 
+(define current-closure-arg (make-parameter #f))
+(define current-closure-type (make-parameter #f))
+
 (define (make-closure-reference index syntax)
   (let ((closure (make-reference (current-closure-arg) syntax)))
-    (cond
-     ((current-closure-type)
+    (case (current-closure-type)
       ((alias)
-       (make-reference closure-arg syntax))
+       closure)
       ((pair)
        (make-procedure-call (make-reference (make-primitive (if (zero? index)
 								'car
@@ -523,7 +535,7 @@
 					    syntax)
 			    (list closure
 				  (make-literal index syntax))
-			    syntax))))))
+			    syntax)))))
   
 (define (make-code-pointer-reference var syntax)
   (let*

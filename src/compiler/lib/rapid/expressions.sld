@@ -50,6 +50,8 @@
 	  letrec-expression-definitions letrec-expression-body
 	  make-let-values-expression let-values-expression?
 	  let-values-expression-definition let-values-expression-body
+	  make-let-expression let-expression?
+	  let-expression-definition let-expression-body
 	  make-undefined undefined?
 	  make-variables variables? variables-formals variables-expression
 	  variables-syntax

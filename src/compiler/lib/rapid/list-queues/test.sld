@@ -65,6 +65,18 @@
 		     lq)
 		    (list-queue-list lq)))
 
+      (test-equal "list-queue-map"
+		  '(2 4 6)
+		  (let ((lq (list-queue)))
+		    (list-queue-add-back! lq 1)
+		    (list-queue-add-back! lq 2)
+		    (list-queue-add-back! lq 3)
+		    (list-queue-list		    
+		     (list-queue-map
+		      (lambda (i)
+			(* i 2))
+		      lq))))
+
       (test-equal "list-queue-append!"
 		  '(1 2 3)
 		  (let ((lq1 (list-queue))
