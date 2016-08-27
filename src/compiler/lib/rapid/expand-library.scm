@@ -140,13 +140,13 @@
 				   (list (make-undefined #f))
 				   #f))
 	 (expression
+	  (introduce-let expression))
+	 (expression
 	  (fix-letrec expression))
 	 (expression
 	  (cps-transform expression))
 	 (expression
 	  (mutable-variable-eliminate expression))
-	 (expression
-	  (introduce-let expression))
 	 (expression
 	  (bind-procedures expression))
 	 (expression

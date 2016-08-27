@@ -55,16 +55,18 @@
 	    free-vars)))
        (current-letrec-expression-method
 	(lambda (exp)
-	  (free-var-union
-	   (cons
-	    (uncover-free-variables*! (letrec-expression-body exp))
-	    (map
-	     (lambda (definition)
-	       (free-var-delete (uncover-free-variables! (variables-expression
-							  definition))
-				(formals-location (variables-formals
-						   definition))))
-	     (letrec-expression-definitions exp))))))
+	  (free-var-delete*
+	   (free-var-union
+	    (cons
+	     (uncover-free-variables*! (letrec-expression-body exp))
+	     (map
+	      (lambda (definition)
+		(uncover-free-variables! (variables-expression definition)))
+	      (letrec-expression-definitions exp))))
+	   (map (lambda (definition)
+		  (formals-location (variables-formals
+				     definition)))
+		(letrec-expression-definitions exp)))))
        (current-sequence-method
 	(lambda (exp)
 	  (uncover-free-variables*! (sequence-expressions exp))))
@@ -125,9 +127,11 @@
 	       (init-var! variable)
 	       (var-set-well-known-flag! variable #t)
 	       (var-set-label! variable label)
-	       (procedure-set-label! procedure label)
-	       (uncover-known-calls! procedure)))
-	   (letrec-expression-definitions exp))	  
+	       (procedure-set-label! procedure label)))
+	   (letrec-expression-definitions exp))
+	  (for-each (lambda (definition)
+		      (uncover-known-calls! (variables-expression definition)))
+		    (letrec-expression-definitions exp))		      
 	  (for-each uncover-known-calls! (letrec-expression-body exp))
 	  (for-each
 	   (lambda (definition)
@@ -159,7 +163,8 @@
   (define (add-constant! var lit)
     (list-queue-add-back! constants (cons var lit)))
   (define (map-constants proc)
-    (list-queue-map (lambda (constant) (proc (car constant) (cdr constant))) constants))
+    (list-queue-map
+     (lambda (constant) (proc (car constant) (cdr constant))) constants))
   (define (constant-definitions)
     (map-constants
      (lambda (var lit)
@@ -175,7 +180,8 @@
   (define (add-procedure! label procedure)
     (list-queue-add-back! procedures (cons label procedure)))
   (define (map-procedures proc)
-    (list-queue-map (lambda (procedure) (proc (car procedure) (cdr procedure))) procedures))
+    (list-queue-map
+     (lambda (procedure) (proc (car procedure) (cdr procedure))) procedures))
   (define (procedure-definitions)
     (map-procedures
      (lambda (label procedure)
@@ -249,12 +255,24 @@
 		(free-var-union (map procedure-free-vars procedures)))
 	       (free-vars
 		(free-var-delete* free-vars variables))
+	       ;; XXX
+	       #;(free-vars
+		(begin
+		  (error (list variables (imap-fold (lambda (key value acc)
+						      (cons key acc))
+						    '() free-vars)))
+		  free-vars))
+	       
+	       
 	       (closure-var-list-queue (list-queue))
 	       (cp-count (if well-known 0 (length labels)))
 	       (closure-var-count+closure-vars
 		(imap-fold
 		 (lambda (var _ cnt+vars)
 		   (if (and (var-local? var) (not (var-alias? var)))
+		       ;; FIXME: Das mit dem Alias ist Unsinn. Es kann nämlich sein,
+		       ;; daß die Variable, auf die der Alias zeigt, gar nicht in
+		       ;; den Free-Vars ist.		       
 		       (let ((i (vector-ref cnt+vars 0)))
 			 (list-queue-add-back! closure-var-list-queue var)
 			 (vector (+ 1 i)
@@ -331,7 +349,8 @@
 			   (make-formals (if (eq? 'eliminated
 						  closure-type)
 					     (formals-fixed formals)
-					     (cons closure-label (formals-fixed formals)))
+					     (cons closure-label
+						   (formals-fixed formals)))
 					 (formals-rest formals)
 					 (formals-syntax formals))
 			   (convert* (clause-body clause))
@@ -356,7 +375,7 @@
 				(make-reference label #f))
 			      labels)
 			 (map (lambda (var)
-				(make-reference var #f))
+				(make-reference (var-alias var) #f))
 			      closure-var-list))
 			#f)
 		       #f)
@@ -413,8 +432,8 @@
   (case-lambda
    (()
     (imap var-comparator))
-   ((identifier)
-    (imap var-comparator identifier #t))))
+   ((var)
+    (imap var-comparator var #t))))
 
 (define (free-var-union free-var-set*)
   (apply imap-union free-var-set*))
@@ -422,8 +441,8 @@
 (define (free-var-delete free-var-set identifier)
   (imap-delete free-var-set identifier))
 
-(define (free-var-delete* free-var-set identifier*)
-  (imap-delete-keys free-var-set identifier*))
+(define (free-var-delete* free-var-set var*)
+  (imap-delete-keys free-var-set var*))
 
 (define (procedure-set-free-vars! procedure free-vars)
   (expression-set-aux! procedure (vector free-vars #f #f)))

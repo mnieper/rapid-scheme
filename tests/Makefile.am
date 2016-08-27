@@ -56,10 +56,10 @@ check.sh: Makefile
 	echo "cmp -s \$$srcdir/\$$test.ok \$$test.out" >> $@
 	echo "if test \$$? != 0; then" >> $@
 	echo "  diff \$$srcdir/\$$test.ok \$$test.out" >> $@
-	echo "  rm \$$test.bin \$$test.out" >> $@
+	echo "#  rm \$$test.bin \$$test.out" >> $@
 	echo "  exit 1" >> $@
 	echo "fi" >> $@
-	echo "rm \$$test.bin \$$test.out" >> $@
+	echo "#rm \$$test.bin \$$test.out" >> $@
 	chmod a+x $@
 
 CLEANFILES = $(check_SCRIPTS)
