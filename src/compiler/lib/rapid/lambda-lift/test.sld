@@ -19,11 +19,36 @@
   (export run-tests)
   (import (rapid base)
           (rapid test)
+	  (rapid expressions)
+	  (rapid syntactic-environments)
 	  (rapid lambda-lift))
   (begin
     (define (run-tests)
       (test-begin "Lambda lift")
 
-      ;; FIXME: Write some tests.
+      (test-equal "Lambda lift"
+		  #(((letrec ((g0 g0))
+		       g0)
+		     g1)
+		    (letrec ((g0 g0))
+		      (g0 g1)))
+		  (let*
+		      ((g0 (make-location 0 #f))
+		       (g1 (make-location 1 #f))
+		       (exp
+			(make-procedure-call
+			 (make-letrec-expression
+			  (list
+			   (make-variables (make-formals (list g0) (list) #f)
+					   (make-reference g0 #f)
+					   #f))
+			  (list (make-reference g0 #f))
+			  #f)
+			 (list
+			  (make-reference g1 #f))
+			 #f)))
+		    (vector
+		     (expression->datum exp)
+		     (expression->datum (lambda-lift exp)))))
 
       (test-end))))

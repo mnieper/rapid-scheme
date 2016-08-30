@@ -49,19 +49,19 @@
 	      exp))))
        (current-letrec-expression-method
 	(lambda (exp k)
-	  (k (make-letrec-expression
-	      (map
-	       (lambda (definition)
-		 (make-variables (variables-formals definition)
-				 (lift (lambda (e) e)
-				       (variables-expression definition))
-				 (variables-syntax definition)))
-	       (letrec-expression-definitions exp))
-	      (list
-	       (lift (lambda (e) e)
-		     (make-sequence (letrec-expression-body exp)
-				    exp)))
-	      exp))))
+	  (make-letrec-expression
+	   (map
+	    (lambda (definition)
+	      (make-variables (variables-formals definition)
+			      (lift (lambda (e) e)
+				    (variables-expression definition))
+			      (variables-syntax definition)))
+	    (letrec-expression-definitions exp))
+	   (list
+	    (lift k
+		  (make-sequence (letrec-expression-body exp)
+				 exp)))
+	   exp)))
        (current-sequence-method
 	(lambda (exp k)
 	  (apply lift

@@ -55,18 +55,19 @@
 	    free-vars)))
        (current-letrec-expression-method
 	(lambda (exp)
-	  (free-var-delete*
-	   (free-var-union
-	    (cons
-	     (uncover-free-variables*! (letrec-expression-body exp))
+	  (let ((definitions (letrec-expression-definitions exp)))
+	    (free-var-delete*
+	     (free-var-union
+	      (cons
+	       (uncover-free-variables*! (letrec-expression-body exp))
+	       (map
+		(lambda (definition)
+		  (uncover-free-variables! (variables-expression definition)))
+		definitions)))
 	     (map
 	      (lambda (definition)
-		(uncover-free-variables! (variables-expression definition)))
-	      (letrec-expression-definitions exp))))
-	   (map (lambda (definition)
-		  (formals-location (variables-formals
-				     definition)))
-		(letrec-expression-definitions exp)))))
+		(formals-location (variables-formals definition)))
+	      definitions)))))
        (current-sequence-method
 	(lambda (exp)
 	  (uncover-free-variables*! (sequence-expressions exp))))
@@ -94,7 +95,6 @@
 	;; TODO: Handle apply.
 	(lambda (exp)
 	  (let ((operator (procedure-call-operator exp)))
-	    (uncover-known-calls! operator)
 	    (for-each uncover-known-calls! (procedure-call-operands exp))
 	    (cond
 	     ((and-let*
@@ -105,6 +105,7 @@
 	      => (lambda (label)
 		   (procedure-call-set-label! exp label)))
 	     (else
+	      (uncover-known-calls! operator)
 	      (procedure-call-set-label! exp #f))))))
        (current-procedure-method
 	(lambda (exp)
@@ -119,27 +120,33 @@
 	   (procedure-clauses exp))))
        (current-letrec-expression-method
 	(lambda (exp)
-	  (for-each
-	   (lambda (definition)
-	     (let* ((procedure (variables-expression definition))
-		    (variable (formals-location (variables-formals definition)))
-		    (label (make-var #f)))
-	       (init-var! variable)
-	       (var-set-well-known-flag! variable #t)
-	       (var-set-label! variable label)
-	       (procedure-set-label! procedure label)))
-	   (letrec-expression-definitions exp))
-	  (for-each (lambda (definition)
-		      (uncover-known-calls! (variables-expression definition)))
-		    (letrec-expression-definitions exp))		      
-	  (for-each uncover-known-calls! (letrec-expression-body exp))
-	  (for-each
-	   (lambda (definition)
-	     (let ((variable (formals-location (variables-formals definition)))
-		   (procedure (variables-expression definition)))
-	       (procedure-set-well-known-flag! procedure
-					       (var-well-known-flag variable))))
-	   (letrec-expression-definitions exp))))
+	  (let ((definitions (letrec-expression-definitions exp)))
+	    (for-each
+	     (lambda (definition)
+	       (let*
+		   ((procedure
+		     (variables-expression definition))
+		    (variable
+		     (formals-location (variables-formals definition)))
+		    (label
+		     (make-var #f)))
+		 (init-var! variable)
+		 (var-set-well-known-flag! variable #t)
+		 (var-set-label! variable label)
+		 (procedure-set-label! procedure label)))
+	     definitions)
+	    (for-each
+	     (lambda (definition)
+	       (uncover-known-calls! (variables-expression definition)))
+	     definitions)		      
+	    (for-each uncover-known-calls! (letrec-expression-body exp))
+	    (for-each
+	     (lambda (definition)
+	       (let ((variable (formals-location (variables-formals definition)))
+		     (procedure (variables-expression definition)))
+		 (procedure-set-well-known-flag! procedure
+						 (var-well-known-flag variable))))
+	     definitions))))
        (current-sequence-method
 	(lambda (exp)
 	  (for-each uncover-known-calls! (sequence-expressions exp))))
@@ -151,6 +158,7 @@
     (uncover-known-calls! exp))
   
   ;; Closure conversion
+  exp ;; XXX
   (convert exp))
 
 ;; The actual closure conversion
@@ -221,11 +229,13 @@
 	      ((operator (procedure-call-operator exp))
 	       (operands (convert* (procedure-call-operands exp))))
 	    (cond
+	     ;; Primitives
 	     ((and-let*
 		  (((reference? operator))
 		   (primitive (reference-location operator)))
 		(primitive? primitive))
 	      (make-procedure-call operator operands #f))
+	     ;; Regular procedures
 	     (else	  
 	      (let ((label (procedure-call-label exp)))
 		(if label
@@ -255,24 +265,17 @@
 		(free-var-union (map procedure-free-vars procedures)))
 	       (free-vars
 		(free-var-delete* free-vars variables))
-	       ;; XXX
-	       #;(free-vars
-		(begin
-		  (error (list variables (imap-fold (lambda (key value acc)
-						      (cons key acc))
-						    '() free-vars)))
-		  free-vars))
-	       
-	       
 	       (closure-var-list-queue (list-queue))
 	       (cp-count (if well-known 0 (length labels)))
+	       (free-vars
+		(imap-fold
+		 (lambda (var _ vars)
+		   (imap-replace vars (var-alias var) #t))
+		 (imap var-comparator) free-vars))		   
 	       (closure-var-count+closure-vars
 		(imap-fold
 		 (lambda (var _ cnt+vars)
-		   (if (and (var-local? var) (not (var-alias? var)))
-		       ;; FIXME: Das mit dem Alias ist Unsinn. Es kann nämlich sein,
-		       ;; daß die Variable, auf die der Alias zeigt, gar nicht in
-		       ;; den Free-Vars ist.		       
+		   (if (var-local? var)
 		       (let ((i (vector-ref cnt+vars 0)))
 			 (list-queue-add-back! closure-var-list-queue var)
 			 (vector (+ 1 i)
@@ -315,7 +318,8 @@
 		 (let ((variable (car variables)))
 		   (var-set-code-pointer! variable closure-name i)))))
 
-	    (when (eq? 'global closure-type)
+	    (cond
+	     ((eq? 'global closure-type)
 	      (add-constant!
 	       closure-label
 	       (make-procedure-call
@@ -323,12 +327,16 @@
 		(map (lambda (label)
 		       (make-reference label #f))
 		     labels)
-		#f)))
+		#f))
+	      (var-set-global! closure-label))
+	     (else
+	      (var-set-local! closure-label)))
 
 	    (for-each
 	     (lambda (label procedure)
 	       (let*
 		   ((closure-label (make-var (expression-syntax procedure))))
+		 (var-set-local! closure-label)
 		 (parameterize
 		     ((current-closure-vars closure-vars)
 		      (current-closure-arg closure-label)
@@ -414,8 +422,8 @@
 	((exp (convert exp)))
       (make-letrec-expression
        (list-queue-list
-	(list-queue-append! (constant-definitions)
-			    (procedure-definitions)))
+	(list-queue-append! (procedure-definitions)
+			    (constant-definitions)))
        (list exp)
        exp))))
 
