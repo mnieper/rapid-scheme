@@ -15,23 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(import (scheme base)
-	(scheme process-context)
-	(rapid test)
-	(rename (rapid test test) (run-tests run-rapid-test-tests))
-	(rename (rapid box test) (run-tests run-rapid-box-tests))
-	(rename (rapid binary test) (run-tests run-rapid-binary-tests))
-	(rename (rapid elf test) (run-tests run-rapid-elf-tests)))
-
-(test-begin "Rapid Scheme")
-
-(run-rapid-test-tests)
-(run-rapid-box-tests)
-(run-rapid-binary-tests)
-(run-rapid-elf-tests)
-
-(test-end "Rapid Scheme")
-
-(let ((runner (test-runner-current)))
-  (exit (and (zero? (test-runner-fail-count runner))
-	     (zero? (test-runner-xpass-count runner)))))
+(define-library (rapid elf)
+  (export)
+  (import (scheme base))
+  (include "elf.scm"))
