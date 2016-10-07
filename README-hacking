@@ -1,0 +1,50 @@
+This README-hacking file describes the development environment.
+
+  Copyright (C) 2016 Marc Nieper-Wißkirchen
+
+  Copying and distribution of this file, with or without modification,
+  are permitted in any medium without royalty provided the copyright
+  notice and this notice are preserved.
+
+The development sources are available through git at GitLab:
+
+  https://gitlab.com/nieper/rapid-scheme
+
+
+Autotools
+---------
+
+This distribution uses quite recent versions of the Autotools.  Older
+versions may work; please report success to the author.
+
+
+Host Scheme system
+------------------
+
+As Rapid Scheme is written in Scheme code as described by R7RS, a
+suitable implementation of the R7RS is needed. The configure scripts
+distributed with the development sources assumes that a sufficiently
+recent build of Chibi Scheme is installed on the system, however any
+other Scheme system that fully implements the R7RS should also work.
+
+
+Building
+--------
+
+After installing Chibi Scheme (or any other implementation of the R7RS
+after suitably patching the provided configuration files), you can run
+
+  ./bootstrap
+
+to do a fresh build.  After the first time, running make should
+suffice to build the system.
+
+
+Run tests
+---------
+
+You can run
+
+  make check
+
+to execute the provided tests.

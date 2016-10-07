@@ -1,0 +1,4 @@
+#! /bin/sh
+PROGRAM="$1"
+shift
+chibi-scheme -h 1G -I /home/mnieper/gitlab/rapid-scheme/src/compiler/lib "${PROGRAM}" "$@"
