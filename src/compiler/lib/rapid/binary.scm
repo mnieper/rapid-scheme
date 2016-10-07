@@ -42,3 +42,27 @@
 
 (define (bytevector->integer bytevector)
   (bytevector-integer-ref bytevector 0 (bytevector-length bytevector)))
+
+(define write-byte
+  (case-lambda
+   ((byte) (write-byte byte (current-output-port)))
+   ((byte port)
+    (write-bytevector (integer->bytevector byte 1) port))))
+
+(define write-word
+  (case-lambda
+   ((word) (write-word word (current-output-port)))
+   ((word port)
+    (write-bytevector (integer->bytevector word 2) port))))
+
+(define write-long
+  (case-lambda
+   ((long) (write-long long (current-output-port)))
+   ((long port)
+    (write-bytevector (integer->bytevector long 4) port))))
+
+(define write-quad
+  (case-lambda
+   ((quad) (write-quad quad (current-output-port)))
+   ((quad port)
+    (write-bytevector (integer->bytevector quad 8) port))))

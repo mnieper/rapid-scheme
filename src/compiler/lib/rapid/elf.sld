@@ -16,6 +16,17 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid elf)
-  (export)
-  (import (scheme base))
+  (export make-elf-object write-elf-object
+	  elf-object-section
+	  elf-object-text-section
+	  elf-object-data-section
+	  elf-object-bss-section
+	  elf-object-add-progbits
+	  elf-object-add-space
+	  elf-object-add-global-symbol
+	  elf-object-section?
+	  elf-object-location?)
+  (import (scheme base)
+	  (scheme case-lambda)
+	  (rapid binary))
   (include "elf.scm"))

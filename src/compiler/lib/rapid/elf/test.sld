@@ -24,4 +24,11 @@
     (define (run-tests)
       (test-begin "Rapid Elf")
 
+      (test-equal #u8(#x7f #x45 #x4c #x46 #x02 #x01 #x01
+			   #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00)
+		  (let ((elf-object (make-elf-object)))
+		    (define port (open-output-bytevector))
+		    (write-elf-object elf-object port)
+		    (bytevector-copy (get-output-bytevector port) 0 16)))
+      
       (test-end))))

@@ -19,6 +19,11 @@
   (export integer->bytevector
 	  bytevector->integer
 	  bytevector-integer-set!
-	  bytevector-integer-ref)
-  (import (scheme base))
+	  bytevector-integer-ref
+	  write-byte
+	  write-word
+	  write-long
+	  write-quad)
+  (import (scheme base)
+	  (scheme case-lambda))
   (include "binary.scm"))

@@ -45,5 +45,15 @@
       (test-equal "Retrieving integers from bytevectors"
 	#xFF02
 	(bytevector-integer-ref #u8(#xAA #x02 #xFF) 1 2))
-	   
+
+      (test-equal "Writing integers as bytevectors"
+		  #u8(#x01 #x02 #x00 #x04 #x00 #x00 #x00
+			   #x08 #x00 #x00 #x00 #x00 #x00 #x00 #x00)
+		  (let ((port (open-output-bytevector)))
+		    (write-byte #x01 port)
+		    (write-word #x02 port)
+		    (write-long #x04 port)
+		    (write-quad #x08 port)
+		    (get-output-bytevector port)))
+      
       (test-end))))
