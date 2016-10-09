@@ -15,18 +15,19 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(import (scheme base)
-	(scheme write)
-	(scheme file)
-	(rapid object-file))
-
-(define (main)
-  (define object-file (make-object-file))
-  (define rapid-text-section (object-file-make-section object-file "rapid_text" '(alloc write execinstr) #t))
-  (object-file-section-add-global! rapid-text-section "rapid_run" 0)
-
-  (when (file-exists? "bootstrap.s")
-    (delete-file "bootstrap.s"))
-  (output-object-file object-file "bootstrap.s"))
-
-(main)
+(define-library (rapid object-file)
+  (export make-object-file
+	  object-file?
+	  object-file-make-section
+	  object-file-get-text-section
+	  object-file-get-data-section
+	  object-file-get-bss-section
+	  output-object-file
+	  object-file-section-set-size!
+	  object-file-section-set-contents!
+	  object-file-section-set-alignment!
+	  object-file-section-add-global!
+	  object-file-section-add-reloc!)
+  (import (scheme base)
+	  (scheme file))
+  (include "object-file.scm"))

@@ -21,14 +21,16 @@
 	(rename (rapid test test) (run-tests run-rapid-test-tests))
 	(rename (rapid box test) (run-tests run-rapid-box-tests))
 	(rename (rapid binary test) (run-tests run-rapid-binary-tests))
-	(rename (rapid elf test) (run-tests run-rapid-elf-tests)))
+	(rename (rapid assembler test) (run-tests run-rapid-assembler-tests))
+	(rename (rapid object-file test) (run-tests run-rapid-object-file-tests)))
 
 (test-begin "Rapid Scheme")
 
 (run-rapid-test-tests)
 (run-rapid-box-tests)
 (run-rapid-binary-tests)
-(run-rapid-elf-tests)
+(run-rapid-assembler-tests)
+(run-rapid-object-file-tests)
 
 (test-end "Rapid Scheme")
 

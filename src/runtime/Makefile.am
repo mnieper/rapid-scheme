@@ -15,3 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
+
+RAPID_COMPILER = ../compiler/rapid-compiler
+
+bin_PROGRAMS = bootstrap
+bootstrap_SOURCES = bootstrap.s
+bootstrap_LDADD = ../../librapid/librapidscheme.la
+
+bootstrap.s: $(RAPID_COMPILER)
+	$(RAPID_COMPILER)
+
+noinst_PROGRAMS = bootstrap
+
+CLEANFILES = bootstrap.s

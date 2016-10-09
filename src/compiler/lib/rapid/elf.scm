@@ -137,7 +137,7 @@
 		    0 0 section-header-offset 0 64 0 0
 		    64 (length sections) shstrndx
 		    port)
-  ;; FIXME: Write the rest
+  ;; FIXME: Write the rest // should be doable
   )
 
 (define (get-section-header-offset sections)

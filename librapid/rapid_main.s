@@ -16,6 +16,18 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-ACLOCAL_AMFLAGS = -I m4
-
-SUBDIRS = lib librapid src/compiler src/runtime doc tests tests/runtime
+	.section	rapid_text, "awx"
+	.global	main
+	.type	main, @function
+main:
+	pushq	%rbp
+	leaq	Lrapid_gpt(%rip), %rbp
+	leaq	str(%rip), %rdi
+	call	*(%rbp)
+	movl	$42, %eax
+	popq	%rbp
+	ret
+	.balign	8
+Lrapid_gpt:
+	.quad	puts
+str:	.asciz	"Hello, World!"

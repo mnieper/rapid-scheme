@@ -15,18 +15,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(import (scheme base)
-	(scheme write)
-	(scheme file)
-	(rapid object-file))
+(define-library (rapid assembler test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
+	  (rapid assembler))
+  (begin
+    (define (run-tests)
+      (test-begin "Rapid Assembler")
 
-(define (main)
-  (define object-file (make-object-file))
-  (define rapid-text-section (object-file-make-section object-file "rapid_text" '(alloc write execinstr) #t))
-  (object-file-section-add-global! rapid-text-section "rapid_run" 0)
+      (test-assert "make-assembler"
+		   (assembler? (make-assembler)))
 
-  (when (file-exists? "bootstrap.s")
-    (delete-file "bootstrap.s"))
-  (output-object-file object-file "bootstrap.s"))
+      (test-end))))
 
-(main)

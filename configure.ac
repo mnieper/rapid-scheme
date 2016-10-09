@@ -32,6 +32,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
   Makefile
   lib/Makefile
+  librapid/Makefile
   src/compiler/Makefile
   src/runtime/Makefile
   doc/Makefile
@@ -43,6 +44,7 @@ AC_CONFIG_FILES([
 AC_PROG_CC
 gl_EARLY
 AC_PROG_CC_STDC
+AM_PROG_AS
 
 gl_INIT
 

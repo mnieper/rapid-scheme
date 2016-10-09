@@ -16,6 +16,6 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-ACLOCAL_AMFLAGS = -I m4
-
-SUBDIRS = lib librapid src/compiler src/runtime doc tests tests/runtime
+lib_LTLIBRARIES = librapidscheme.la
+librapidscheme_la_SOURCES = rapid_main.s
+librapidscheme_la_LIBADD = ../lib/libgnu.la
