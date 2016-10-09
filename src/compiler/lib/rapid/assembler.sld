@@ -17,8 +17,16 @@
 
 (define-library (rapid assembler)
   (export make-assembler
-	  assembler?)
-  (import (scheme base))
-  (include "assembler.scm"))
-
-	  
+	  assembler?
+	  assembler-get-code
+	  assembler-label
+	  assemble
+	  label-here!
+	  label-location
+	  current-assembler)
+  (import (scheme base)
+	  (scheme cxr)
+	  (rapid binary))
+  (include "assembler.scm"
+	   "assembler.registers.scm"
+	   "assembler.instructions.scm"))

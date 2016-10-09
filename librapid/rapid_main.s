@@ -23,11 +23,10 @@ main:
 	pushq	%rbp
 	leaq	Lrapid_gpt(%rip), %rbp
 	leaq	str(%rip), %rdi
-	call	*(%rbp)
-	movl	$42, %eax
-	popq	%rbp
-	ret
+	call	*8(%rbp)
+	jmpq	*(%rbp)
 	.balign	8
 Lrapid_gpt:
+	.quad	rapid_run
 	.quad	puts
 str:	.asciz	"Hello, World!"

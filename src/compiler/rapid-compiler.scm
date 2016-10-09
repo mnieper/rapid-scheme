@@ -18,13 +18,28 @@
 (import (scheme base)
 	(scheme write)
 	(scheme file)
+	(rapid assembler)
 	(rapid object-file))
 
 (define (main)
+  (define assembler (make-assembler))
   (define object-file (make-object-file))
-  (define rapid-text-section (object-file-make-section object-file "rapid_text" '(alloc write execinstr) #t))
-  (object-file-section-add-global! rapid-text-section "rapid_run" 0)
-
+  (define rapid-text-section
+    (object-file-make-section object-file "rapid_text" '(alloc write execinstr) #t))
+  (define label #f)
+  (parameterize ((current-assembler assembler))
+    (set! label (assembler-label assembler))
+    (assemble `(movl 42 eax))
+    (assemble `(popq rbp))
+    (assemble `(ret)))
+  (let ((code (assembler-get-code assembler)))
+    (object-file-section-set-size! rapid-text-section (bytevector-length code))
+    (object-file-section-set-contents! rapid-text-section
+				       code
+				       0)
+    (object-file-section-add-global! rapid-text-section "rapid_run"
+				     (label-location label)))
+  
   (when (file-exists? "bootstrap.s")
     (delete-file "bootstrap.s"))
   (output-object-file object-file "bootstrap.s"))

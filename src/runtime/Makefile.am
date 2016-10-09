@@ -22,7 +22,7 @@ bin_PROGRAMS = bootstrap
 bootstrap_SOURCES = bootstrap.s
 bootstrap_LDADD = ../../librapid/librapidscheme.la
 
-bootstrap.s: $(RAPID_COMPILER)
+bootstrap.s: ../compiler/rapid-compiler.scm
 	$(RAPID_COMPILER)
 
 noinst_PROGRAMS = bootstrap
