@@ -19,7 +19,9 @@
   (export make-assembler
 	  assembler?
 	  assembler-get-code
-	  assembler-label
+	  assembler-make-label
+	  assembler-patch-code!
+	  assembler-align!
 	  assemble
 	  label-here!
 	  label-location

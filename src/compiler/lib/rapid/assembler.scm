@@ -54,7 +54,7 @@
      (lambda (patch)
        (bytevector-integer-set! code
 				(patch-location patch)
-				(-
+				(+
 				 (bytevector-integer-ref code
 							 (patch-location patch)
 							 (patch-size patch))
@@ -90,7 +90,7 @@
   (location label-use-location)
   (size label-use-size))
 
-(define (assembler-label assembler)
+(define (assembler-make-label assembler)
   (make-label assembler (assembler-location assembler) '()))
 
 (define (label-here! label)
@@ -196,18 +196,33 @@
 
 (define (assemble inst) (assembler-assemble (current-assembler) inst))
 
+(define (align integer alignment)
+  (let*
+      ((alignment (if (zero? alignment)
+		      1
+		      alignment))
+       (integer (+ integer alignment -1)))
+    (- integer (remainder integer alignment))))
+
+(define (assembler-align! assembler alignment)
+  (assembler-emit assembler
+		  (make-bytevector (- (align (assembler-location assembler) alignment)
+				      (assembler-location assembler)))))
+
+(define (assembler-emit assembler bytevector)
+  (write-bytevector bytevector (assembler-port assembler))
+  (assembler-set-location! assembler
+			   (+ (assembler-location assembler)
+			      (bytevector-length bytevector))))
+
 (define (assembler-assemble assembler inst)
 
   (define patch #f)
 
   (define (relative! size)
-    (set! patch (vector (assembler-location assembler) size)))
+    (set! patch (vector (- (assembler-location assembler)) size)))
   
-  (define (emit bytevector)
-    (write-bytevector bytevector (assembler-port assembler))
-    (assembler-set-location! assembler
-			     (+ (assembler-location assembler)
-				(bytevector-length bytevector))))
+  (define (emit bytevector) (assembler-emit assembler bytevector))
 
   (define (emit-value value size)
     (if (label? value)
@@ -283,10 +298,14 @@
 	  (let* ((component (car opcode))
 		 (opcode (cdr opcode)))
 	    (case component
+	      ((ib)
+	       (emit-byte (get-imm-value operands)))
 	      ((iw)
 	       (emit-word (get-imm-value operands)))
 	      ((id)
 	       (emit-long (get-imm-value operands)))
+	      ((iq)
+	       (emit-quad (get-imm-value operands)))
 	      ((cd)
 	       (relative! 4)
 	       (emit-long (get-imm-value operands)))

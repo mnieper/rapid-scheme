@@ -18,8 +18,18 @@
 (define-library (rapid codegen)
   (export make-codegen
 	  codegen?
-	  codegen-add-module!
-	  codegen-emit)
+	  codegen-add-module
+	  codegen-emit
+	  codegen-make-label
+	  codegen-label?
+	  codegen-module?
+	  codegen-module-add-procedure!
+	  codegen-module-procedure?
+	  codegen-module-add-datum!
+	  codegen-module-datum?
+	  codegen-module-add-var!
+	  codegen-module-var?
+	  codegen-module-var-set!)
   (import (scheme base)
 	  (rapid assembler)
 	  (rapid object-file))
