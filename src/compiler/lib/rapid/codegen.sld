@@ -26,10 +26,8 @@
 	  codegen-module-add-procedure!
 	  codegen-module-procedure?
 	  codegen-module-add-datum!
-	  codegen-module-datum?
-	  codegen-module-add-var!
-	  codegen-module-var?
-	  codegen-module-var-set!)
+	  codegen-module-add-var
+	  codegen-module-var?)
   (import (scheme base)
 	  (rapid assembler)
 	  (rapid object-file))

@@ -32,9 +32,10 @@
   (assembler-label label-assembler-label))
 
 (define-record-type <codegen-module>
-  (make-module datums)
+  (make-module datums vars)
   codegen-module?
-  (datums module-datums module-set-datums!))
+  (datums module-datums module-set-datums!)
+  (vars module-vars module-set-vars!))
 
 (define-record-type <codegen-module-procedure>
   (make-procedure)
@@ -48,8 +49,9 @@
   (bytes datum-bytes))
 
 (define-record-type <codegen-module-var>
-  (make-var)
-  codegen-module-var?)
+  (make-var init)
+  codegen-module-var?
+  (init var-init))
 
 (define-record-type <codegen>
   (%make-codegen assembler modules)
@@ -67,7 +69,7 @@
   (make-label (assembler-make-label (codegen-assembler codegen))))
 
 (define (codegen-add-module codegen)
-  (let ((module (make-module '())))
+  (let ((module (make-module '() '())))
     (codegen-set-modules! codegen
 			  (cons module
 				(codegen-modules codegen)))
@@ -75,6 +77,12 @@
 
 (define (for-each-datum proc module)
   (for-each proc (reverse (module-datums module))))
+
+(define (for-each-var proc module)
+  (for-each proc (reverse (module-vars module))))
+
+(define (var-count module)
+  (length (module-vars module)))
 
 (define (codegen-module-add-datum! module label bytes)
   (module-set-datums! module
@@ -84,11 +92,12 @@
 (define (codegen-module-add-procedure! codegen label)
   (make-procedure))
 
-(define (codegen-module-add-var! codegen label)
-  (make-var))
-
-(define (codegen-module-var-set! var label)
-  'TODO)
+(define (codegen-module-add-var codegen init)
+  (let ((var (make-var init)))
+    (module-set-vars! module
+		      (cons var
+			    (module-vars module)))
+    var))
 
 (define (codegen-emit codegen filename label)
   (define object-file (make-object-file))
@@ -107,7 +116,7 @@
        (assembler-align! (current-assembler) 8)
        (label-here! start-label)
        (assemble `(quad 0))
-       (assemble `(quad 0)) ;; FIXME: HAVE TO PATCH THIS WITH NUMBER OF SLOTS
+       (assemble `(quad ,(* 8 (var-count module))))
        
        (for-each-datum
 	(lambda (datum)
@@ -121,7 +130,9 @@
 	      ((= i (bytevector-length (datum-bytes datum))))
 	    (assemble `(byte ,(bytevector-u8-ref (datum-bytes datum) i)))))
 	module)
-    
+
+       ;; ADD VARS! (init is either a quad or a label of this codegen!)
+       
        (label-here! end-label)
 
        (assembler-patch-code! (current-assembler)
