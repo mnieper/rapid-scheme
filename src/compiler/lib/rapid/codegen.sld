@@ -20,9 +20,9 @@
 	  codegen?
 	  codegen-add-module
 	  codegen-emit
-	  codegen-make-label
 	  codegen-label?
 	  codegen-module?
+	  codegen-module-make-label
 	  codegen-module-add-procedure!
 	  codegen-module-procedure?
 	  codegen-module-add-datum!

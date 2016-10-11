@@ -22,10 +22,11 @@
 
 (define (main)
   (define codegen (make-codegen))
-  (define run-label (codegen-make-label codegen))
   (define module (codegen-add-module codegen))
+  (define var (codegen-module-add-var module 1024))
+  (define run-label (codegen-module-make-label module))
   (codegen-module-add-datum! module run-label #u8(#xDE #xAD #xBE #xEF))
-			     
+  
   (when (file-exists? "bootstrap.s")
     (delete-file "bootstrap.s"))
   (codegen-emit codegen "bootstrap.s" run-label))
