@@ -18,44 +18,17 @@
 (import (scheme base)
 	(scheme write)
 	(scheme file)
+	(rapid module)
 	(rapid codegen))
 
 (define (main)
   (define codegen (make-codegen))
-  (define module (codegen-add-module codegen))
-  (define var (codegen-module-add-var module 1024))
-  (define run-label (codegen-module-make-label module))
-  (codegen-module-add-datum! module run-label #u8(#xDE #xAD #xBE #xEF))
-  
-  (when (file-exists? "bootstrap.s")
-    (delete-file "bootstrap.s"))
-  (codegen-emit codegen "bootstrap.s" run-label))
-  
-
-#|
-  
-  (define assembler (make-assembler))
-  (define object-file (make-object-file))
-  (define rapid-text-section
-    (object-file-make-section object-file "rapid_text" '(alloc write execinstr) #t))
-  (define label #f)
-  (parameterize ((current-assembler assembler))
-    (set! label (assembler-label assembler))
-    (assemble `(movl 42 eax))
-    (assemble `(popq rbp))
-    (assemble `(ret)))
-  (let ((code (assembler-get-code assembler)))
-    (object-file-section-set-size! rapid-text-section (bytevector-length code))
-    (object-file-section-set-contents! rapid-text-section
-				       code
-				       0)
-    (object-file-section-add-global! rapid-text-section "rapid_run"
-				     (label-location label)))
-  (when (file-exists? "bootstrap.s")
-    (delete-file "bootstrap.s"))
-  (output-object-file object-file "bootstrap.s")
-  
-|#
+  (define module (make-module codegen))
+  (define var (module-add-var module 42))
+  (define datum (module-add-datum module #u8(#xDE #xAD #xBE #xEF)))
+  (codegen-add-module! module)
+  (codegen-set-var! var (module-datum-reference datum))
+  (codegen-emit codegen "bootstrap.s" (module-datum-reference datum)))
 
 (main)
  

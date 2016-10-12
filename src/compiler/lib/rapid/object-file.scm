@@ -75,6 +75,7 @@
   (let
       ((name
 	(case name
+	  ((R_X86_64_64) "R_X86_64_64")
 	  ((R_X86_64_32S) "R_X86_64_32S")
 	  (else
 	   (error "unknown reloc name" name)))))

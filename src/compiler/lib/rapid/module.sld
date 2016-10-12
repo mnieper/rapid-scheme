@@ -15,20 +15,24 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid codegen)
-  (export make-codegen
-	  codegen?
-	  codegen-add-module
-	  codegen-emit
-	  codegen-label?
-	  codegen-module?
-	  codegen-module-make-label
-	  codegen-module-add-procedure!
-	  codegen-module-procedure?
-	  codegen-module-add-datum!
-	  codegen-module-add-var
-	  codegen-module-var?)
+(define-library (rapid module)
+  (export module-reference?
+	  module-reference-address
+	  module-procedure?
+	  module-datum?
+	  module-datum-reference
+	  module-var?
+	  module-var-reference
+	  module?
+	  module-set-offset!
+	  make-module
+	  module-add-datum
+	  module-add-procedure
+	  module-add-var
+	  module-get-code) 
   (import (scheme base)
-	  (rapid module)
-	  (rapid object-file))
-  (include "codegen.scm"))
+	  (rapid assembler))
+  (include "module.scm"))
+
+
+    
