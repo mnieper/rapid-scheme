@@ -23,12 +23,15 @@
 
 (define (main)
   (define codegen (make-codegen))
-  (define module (make-module codegen))
+  (define module (make-module))
   (define var (module-add-var module 42))
   (define datum (module-add-datum module #u8(#xDE #xAD #xBE #xEF)))
-  (codegen-add-module! module)
-  (codegen-set-var! var (module-datum-reference datum))
-  (codegen-emit codegen "bootstrap.s" (module-datum-reference datum)))
+  (define procedure (module-add-procedure module))
+  (parameterize ((module-current-procedure procedure))
+    (lir:halt))
+  (codegen-add-module! codegen module)
+  (codegen-var-set! codegen var (module-datum-reference datum))
+  (codegen-emit codegen "bootstrap.s" (module-procedure-reference procedure)))
 
 (main)
- 
+

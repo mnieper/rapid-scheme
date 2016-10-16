@@ -26,11 +26,25 @@
      (reference-offset reference)))
 
 (define-record-type <module-procedure>
-  (make-procedure)
-  module-procedure?)
+  (make-procedure reference instructions)
+  module-procedure?
+  (reference module-procedure-reference)
+  (instructions procedure-instructions procedure-set-instructions!))
+
+(define (procedure-get-instructions procedure)
+  (reverse (procedure-instructions procedure)))
+
+(define-syntax asm!
+  (syntax-rules ()
+    ((asm! . instruction)
+     (let ((procedure (module-current-procedure)))
+       (procedure-set-instructions! procedure
+				    (cons (lambda ()
+					    (asm: . instruction))
+					  (procedure-instructions procedure)))))))
 
 (define-record-type <module-datum>
-  (make-datum label bytes)
+  (make-datum reference bytes)
   module-datum?
   (reference module-datum-reference)
   (bytes datum-bytes))
@@ -48,16 +62,17 @@
   (code module-code module-set-code!)
   (offset module-offset module-set-offset!)
   (datums module-datums module-set-datums!)
+  (procedures module-procedures module-set-procedures!)
   (vars module-vars module-set-vars!))
 
 (define (make-module)
   (%make-module (make-assembler) '() '() #f))
 
-#;(define (module-make-reference module)
-  (make-reference module))
-
 (define (for-each-datum proc module)
   (for-each proc (reverse (module-datums module))))
+
+(define (for-each-procedure proc module)
+  (for-each proc (reverse (module-procedures module))))
 
 (define (for-each-var proc module)  
  (for-each proc (reverse (module-vars module))))
@@ -72,7 +87,10 @@
     datum))
 
 (define (module-add-procedure module)
-  (make-procedure))
+  (let ((procedure (make-procedure (make-reference module) '())))
+    (module-set-procedures! module
+			    (cons procedure (module-procedures module)))
+    procedure))
 
 (define (module-add-var module init)
   (let ((var (make-var (make-reference module) init)))
@@ -91,29 +109,44 @@
 	  (define start-label (assembler-make-label (current-assembler)))	  
 	  (define end-label (assembler-make-label (current-assembler)))
 	  (label-here! start-label)
-	  (assemble `(quad 0))
-	  (assemble `(quad ,(* 8 (var-count module))))
+	  (asm: quad 0)
+	  (asm: quad ,(* 8 (var-count module)))
 
 	  (for-each-datum
 	   (lambda (datum)
 	     (assembler-align! (current-assembler) 8)
 	     (let ((label (assembler-make-label (current-assembler))))
 	       ;; FIXME: HAVE TO ADD GC-MARK BIT TO DIFFERENCE
-	       (assemble `(quad ,(- (label-location label)
-				    (label-location start-label)))))
-	     (module-reference-here! (datum-reference datum))
+	       (asm: quad ,(- (label-location label)
+			      (label-location start-label))))
+	     (reference-here! module (module-datum-reference datum))
 	     (do ((i 0 (+ i 1)))
 		 ((= i (bytevector-length (datum-bytes datum))))
-	       (assemble `(byte ,(bytevector-u8-ref (datum-bytes datum) i)))))
+	       (asm: byte ,(bytevector-u8-ref (datum-bytes datum) i))))
 	   module)
 
+	  (for-each-procedure
+	   (lambda (procedure)
+	     (assembler-align! (current-assembler) 8)
+	     (let ((label (assembler-make-label (current-assembler))))
+	       ;; FIXME: HAVE TO ADD GC-MARK BIT TO DIFFERENCE
+	       ;; TODO: Refactor this code and the corresponding code for datums
+	       (asm: quad ,(- (label-location label)
+			      (label-location start-label))))
+	     (reference-here! module (module-procedure-reference procedure))
+	     (for-each
+	      (lambda (inst)
+		(inst))
+	      (procedure-get-instructions procedure)))
+	   module)
+	  
 	  (assembler-align! (current-assembler) 8)
 	  (for-each-var
 	   (lambda (var)
-	     (module-reference-here! (var-reference var))
-	     (assemble `(quad ,(var-init var))))
+	     (reference-here! module (module-var-reference var))
+	     (asm: quad ,(var-init var)))
 	   module)
-	  
+
 	  (label-here! end-label)
 
 	  (assembler-patch-code! (current-assembler)
@@ -124,3 +157,16 @@
 	  (let ((code (assembler-get-code (current-assembler))))
 	    (module-set-code! module code)
 	    code)))))
+
+(define (global-symbol symbol)
+  (let ((index (global-symbol-index symbol)))
+    `(,(* index 8) rbp))) 
+
+(define mem:exit (global-symbol 'exit))
+
+(define (lir:halt)
+  (asm! movq 0 rdi)
+  ;; TODO: Implement (4(%rbp))
+  #;(asm! callq (,mem:exit)))
+
+(define module-current-procedure (make-parameter #f))

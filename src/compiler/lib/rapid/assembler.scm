@@ -15,6 +15,148 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Syntax definitions
+
+(define-syntax asm:
+  (syntax-rules ()
+    ((asm: . instruction)
+     (assemble `instruction))))
+
+(define-syntax define-register
+  (syntax-rules ()
+    ((define-register name types value rex)
+     (set! *registers*
+	   (cons (cons 'name (make-register 'types value rex))
+		 *registers*)))))
+
+(define-syntax define-instruction
+  (syntax-rules ()
+    ((define-instruction (mnemonic operand ...) . opcode)
+     (set! *instructions* (cons (make-instruction 'mnemonic '(operand ...) 'opcode)
+				*instructions*)))))
+
+;;; Registers
+
+(define-record-type <register>
+  (make-register types value rex)
+  %register?
+  (types register-types)
+  (value register-value)
+  (rex register-rex))
+
+(define *registers* '())
+
+;;; Instructions
+
+(define-record-type <instruction>
+  (make-instruction mnemonic operand-types opcode)
+  instruction?
+  (mnemonic instruction-mnemonic)
+  (operand-types instruction-operand-types)
+  (opcode instruction-opcode))
+
+(define (get-instruction mnemonic operands)
+  (let loop ((instructions *instructions*))
+    (when (null? instructions)
+      (error "invalid instruction" mnemonic operands))
+    (let ((continue (lambda () (loop (cdr instructions))))
+	  (instruction (car instructions)))
+      (define types (instruction-operand-types instruction))
+      (if (and (eq? (instruction-mnemonic instruction) mnemonic)
+	       (= (length types) (length operands)))	       
+	  (let loop ((operands operands)
+		     (types (instruction-operand-types instruction)))
+	    (if (null? operands)
+		instruction
+		(if (operand-matches (car operands) (car types))
+		    (loop (cdr operands) (cdr types))
+		    (continue))))
+	  (continue)))))
+      
+(define *instructions* '())
+
+;;; Operands
+
+(define-record-type <operand>
+  (%make-operand matcher processor)
+  operand?
+  (matcher operand-matcher)
+  (processor operand-processor))
+
+(define (operand-matches operand type)
+  ((operand-matcher operand) type))
+
+(define (operand-process! operand code type)
+  ((operand-processor operand) code type))
+
+(define (make-operand source)
+  (cond
+   ((register? source) (make-register-operand source))
+   ((immediate? source) (make-immediate-operand source))
+   #;((memory? source) (make-memory-operand source))
+   #;((memory-absolute? source) (make-memory-absolute-operand source))
+   (else
+    (error "invalid operand" source))))
+
+(define (register? source)
+  (assq source *registers*))
+
+(define (immediate? source)
+  (or (number? source)
+      (label? source)))
+
+(define (memory? source)
+  (and (pair? source)
+       (or (register? (car source))
+	   (immediate? (car source)))))
+
+(define (memory-absolute? source)
+  (and (pair? source)
+       (memory? (car source))))
+
+(define (make-immediate-operand source)
+  (%make-operand
+   (lambda (type)
+     (case type
+       ((imm8 imm16 imm32 imm64 imm16/32 imm32/64) #t)
+       (else #f)))
+   (lambda (code type)
+     (code-set-imm! code source))))
+
+(define (make-register-operand source)
+  (let ((register (cdr (assq source *registers*))))
+    (%make-operand
+     (lambda (type)
+       (and (memq type (register-types register)) #t))
+     (lambda (code type)
+       (case type
+	 ((reg8 reg16 reg16/32 reg32 reg64)
+	  (code-set-reg! code (register-value register))
+	  (code-set-rex.r! code (register-rex register))
+	  )
+	 (else
+	  (error "unsupported operand type" type)))))))
+
+;;; Code to be assembled
+
+(define-record-type <code>
+  (%make-code rex.w rex.r rex.x rex.b)
+  code?
+  (disp code-disp code-set-disp!)
+  (imm code-imm code-set-imm!)
+  (reg code-reg code-set-reg!)
+  (rex.w code-rex.w code-set-rex.w!)
+  (rex.r code-rex.r code-set-rex.r!)
+  (rex.x code-rex.x code-set-rex.x!)
+  (rex.b code-rex.b code-set-rex.b!)
+  ;; add patch information from below
+  )
+
+(define (make-code)
+  (%make-code #f #f #f #f))
+
+;;; Assembler object
+
 (define-record-type <assembler>
   (%make-assembler port location labels patches)
   assembler?
@@ -77,6 +219,8 @@
      assembler)
     code))
 
+;;; Assembler labels
+
 (define-record-type <label>
   (make-label assembler location uses)
   label?
@@ -107,6 +251,11 @@
 (define (for-each-use proc label)
   (for-each proc (label-uses label)))
 
+
+;;; Instruction prefix definitions
+
+(define (rex-prefix w r x b)
+  (+ #x40 (* 8 (or w 0)) (* 4 (or r 0)) (* 2 (or x 0)) (or b 0)))
 (define prefix/lock #xF0)
 (define prefix/repne #xF2)
 (define prefix/repnz #xF2)
@@ -118,83 +267,10 @@
 (define prefix/operand-size #x66)
 (define prefix/address-size #x67)
 
-(define (rex-prefix w r x b)
-  (+ #x40 (* 8 w) (* 4 r) (* 2 x) b))
-
-(define *registers* '())
-(define (make-register name type value rex)
-  (list name type value rex))
-(define (register-type register) (list-ref register 1))
-(define (register-value register) (list-ref register 2))
-(define (register-rex register) (list-ref register 3))
-(define-syntax define-register
-  (syntax-rules ()
-    ((define-register name type value rex)
-     (set! *registers*
-	   (cons (make-register 'name 'type value rex)
-		 *registers*)))))
-
-(define (instruction-mnemonic instruction)
-  (car instruction))
-(define (instruction-operands instruction)
-  (map make-operand (cdr instruction)))
-(define (make-operand source)
-  (cond
-   ((assq source *registers*)
-    => make-register-operand)
-   ((immediate? source)
-    (%make-operand 'imm source #f #f #f #f))
-   (else
-    (error "unknown operand type" source))))
-(define (immediate? source)
-  (or (label? source)
-      (number? source)))
-
-(define (make-register-operand register)
-  (let ((type (register-type register))
-	(value (register-value register))
-	(rex (register-rex register)))
-    (%make-operand type
-		   (remainder value 8)
-		   (if (>= value 8)
-		       1
-		       rex)
-		   #f
-		   #f
-		   #f)))
-
-(define-record-type <operand>
-  (%make-operand type value rex.w rex.r rex.x rex.b)
-  operand?
-  (type operand-type)
-  (value operand-value)
-  (rex.w operand-rex.w)
-  (rex.r operand-rex.r)
-  (rex.x operand-rex.x)
-  (rex.b operand-rex.b))
-
-(define *instructions* '())
-(define (make-instruction mnemonic operand-types opcode)
-  (list (list mnemonic operand-types) opcode))
-(define-syntax define-instruction
-  (syntax-rules ()
-    ((define-instruction (mnemonic operand ...) . opcode)
-     (set! *instructions* (cons (cons (list 'mnemonic '(operand ...))
-				      (make-instruction 'opcode))
-				*instructions*)))))
-(define (get-instruction mnemonic operands)
-  (let ((types (map operand-type operands)))
-    (cond
-     ((assoc (list mnemonic types) *instructions*)
-      => cdr)
-     (else
-      (error "invalid instruction" mnemonic operands)))))
-(define-record-type <instruction>
-  (make-instruction opcode)
-  instruction?
-  (opcode instruction-opcode))
+;;; Assembler
 
 (define (assemble inst) (assembler-assemble (current-assembler) inst))
+
 
 (define (align integer alignment)
   (let*
@@ -216,13 +292,16 @@
 			      (bytevector-length bytevector))))
 
 (define (assembler-assemble assembler inst)
-
+  
   (define patch #f)
 
   (define (relative! size)
     (set! patch (vector (- (assembler-location assembler)) size)))
   
-  (define (emit bytevector) (assembler-emit assembler bytevector))
+  (define code (make-code))
+
+  (define (emit bytevector)
+    (assembler-emit assembler bytevector))
 
   (define (emit-value value size)
     (if (label? value)
@@ -243,86 +322,65 @@
 
   (define (emit-quad int)
     (emit-value int 8))
+
+  (define (get-rex-prefix)
+    (let ((rex.w (code-rex.w code))
+	  (rex.r (code-rex.r code))
+	  (rex.x (code-rex.x code))
+	  (rex.b (code-rex.b code)))
+      (and (or rex.w rex.r rex.x rex.b)
+	   (rex-prefix rex.w rex.r rex.x rex.b))))
   
-  (define (write-rex-prefix operands)
-    (let ((prefix (get-rex-prefix operands)))
+  (define (write-rex-prefix)
+    (let ((prefix (get-rex-prefix)))
       (when prefix
 	(emit-byte prefix))))
-
-  (define (get-reg-value operands)
-    (let loop ((operands operands))
-      (case (operand-type (car operands))
-	((reg8 reg16 reg32 reg64)
-	 (operand-value (car operands)))
-	(else
-	 (loop (cdr operands))))))
-
-  (define (get-imm-value operands)
-    (let loop ((operands operands))
-      (case (operand-type (car operands))
-	((imm)
-	 (operand-value (car operands)))
-	(else
-	 (loop (cdr operands))))))
-  
-  (define (get-rex-prefix operands)
-    (let ((rex.w (join-bits (map operand-rex.w operands)))
-	  (rex.r (join-bits (map operand-rex.r operands)))
-	  (rex.x (join-bits (map operand-rex.x operands)))
-	  (rex.b (join-bits (map operand-rex.b operands))))
-      (and (or rex.w rex.r rex.x rex.b)
-	   (rex-prefix (or rex.w 0)
-		       (or rex.r 0)
-		       (or rex.x 0)
-		       (or rex.b 0)))))
-
-  (define (join-bits bits)
-    (let loop ((join #f) (bits bits))
-      (if (null? bits)
-	  #f
-	  (let ((bit (car bits))
-		(join (join-bits (cdr bits))))
-	    (if bit
-		(begin
-		  (unless (= bit join)
-		    (error "invalid operand combination"))
-		  bit)
-		join)))))
-
-  (let ((mnemonic (instruction-mnemonic inst))
-	(operands (instruction-operands inst)))
+    
+  (let ((mnemonic (car inst))
+	(operands (map make-operand (cdr inst))))
     (let ((instruction (get-instruction mnemonic operands)))
-      (write-rex-prefix operands)
-      (let loop ((opcode (instruction-opcode instruction)))
+      (define opcode (instruction-opcode instruction))
+      
+      (for-each
+       (lambda (operand type)
+	 (operand-process! operand code type))
+       operands (instruction-operand-types instruction))
+
+      (when (eq? 'rex (car opcode))
+	(code-set-rex.w! code 1)
+	(set! opcode (cdr opcode)))	
+      (write-rex-prefix)
+
+      (let loop ((opcode opcode))
 	(unless (null? opcode)
 	  (let* ((component (car opcode))
 		 (opcode (cdr opcode)))
 	    (case component
 	      ((ib)
-	       (emit-byte (get-imm-value operands)))
+	       (emit-byte (code-imm code)))
 	      ((iw)
-	       (emit-word (get-imm-value operands)))
+	       (emit-byte (code-imm code)))
 	      ((id)
-	       (emit-long (get-imm-value operands)))
+	       (emit-byte (code-imm code)))
 	      ((iq)
-	       (emit-quad (get-imm-value operands)))
+	       (emit-byte (code-imm code)))
 	      ((cd)
 	       (relative! 4)
-	       (emit-long (get-imm-value operands)))
+	       (emit-long (code-imm code)))
 	      (else
 	       (if (and (pair? opcode)
 			(memq (car opcode) '(+rb +rw +rd +rq)))
 		   (begin
-		     (emit-byte (+ component
-				   (get-reg-value operands)))
+		     (emit-byte (+ component (code-reg code)))
 		     (loop (cdr opcode)))
 		   (begin
 		     (emit-byte component)
 		     (loop opcode))))))))
+
       (when patch
 	(assembler-patch-code! assembler
 			       (vector-ref patch 0)
 			       (assembler-location assembler)
 			       (vector-ref patch 1))))))
-
+    
 (define current-assembler (make-parameter #f))

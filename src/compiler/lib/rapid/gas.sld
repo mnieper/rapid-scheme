@@ -15,16 +15,9 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;;;; ** FIXME should add column that records whether REX is needed 
+(define-library (rapid gas)
+  (export write-label write-local-label
+	  write-directive write-instruction number->hex)
+  (import (scheme base))
+  (include "gas.scm"))
 
-(define-instruction (byte imm8)            ib         )
-(define-instruction (callq mem)            #xFF / 2   ) ;; what mem?
-(define-instruction (jmp rel32off)         #xE9 cd    )
-(define-instruction (movl imm32 reg32)     #xB8 +rd id)
-(define-instruction (movq imm64 reg64) rex #xB8 +rq iq)
-(define-instruction (nop)                  #x90       )
-(define-instruction (popq reg64)           #x58 +rq   )
-(define-instruction (pushq reg64)          #x50 +rq   )
-(define-instruction (quad imm64)           iq         )
-(define-instruction (ret)                  #xC3       )
-(define-instruction (ret imm16)            #xC2 iw    )

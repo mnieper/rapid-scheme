@@ -26,7 +26,7 @@
 ;;; ...
 
 (define-record-type <codegen>
-  (%make-codegen modules)
+  (%make-codegen modules relocs)
   codegen?
   (modules codegen-modules codegen-set-modules!)
   (relocs codegen-relocs codegen-set-relocs!))
@@ -51,7 +51,7 @@
 			(cons module
 			      (codegen-modules codegen))))
 
-(define (codegen-var-set! var reference)
+(define (codegen-var-set! codegen var reference)
   (codegen-set-relocs! codegen
 		       (cons (make-reloc var reference)
 			     (codegen-relocs codegen))))
@@ -80,10 +80,11 @@
      (let ((var (reloc-var reloc))
 	   (reference (reloc-reference reloc)))
      (object-file-section-add-reloc! rapid-text-section
-				     (reference-address (module-var-reference var))
+				     (module-reference-address
+				      (module-var-reference var))
 				     'R_X86_64_64
 				     "rapid_text"
-				     (reference-address reference))))
+				     (module-reference-address reference))))
    codegen)
   
   (for-each-module
@@ -95,7 +96,7 @@
   
   (object-file-section-add-global! rapid-text-section
 				   "rapid_run"
-				   (reference-address entry))
+				   (module-reference-address entry))
   (output-object-file object-file filename))
 
 (define (align integer alignment)

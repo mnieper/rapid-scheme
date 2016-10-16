@@ -154,37 +154,6 @@
    object-file)
   (write-directive "end"))
 
-  (define (write-label label)
-  (write-string label)
-  (write-char #\:)
-  (newline))
-
-(define (write-directive directive . operands)
-  (write-char #\tab)
-  (write-char #\.)
-  (write-string directive)
-  (write-char #\tab)
-  (do ((operands operands (cdr operands))
-       (sep "" ", "))
-      ((null? operands))
-    (write-string sep)
-    (write-string (car operands)))
-  (newline))
-
-(define (write-instruction instruction . operands)
-  (write-char #\tab)
-  (write-string instruction)
-  (write-char #\tab)
-  (do ((operands operands (cdr operands))
-       (sep "" ", "))
-      ((null? operands))
-    (write-string sep)
-    (write-string (car operands)))
-  (newline))
-
-(define (number->hex number)
-  (string-append "0x" (number->string number 16)))
-
 (define (list->flags list)
   (string-append "\""
 		 (let loop ((list list))

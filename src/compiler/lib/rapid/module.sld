@@ -19,19 +19,24 @@
   (export module-reference?
 	  module-reference-address
 	  module-procedure?
+	  module-procedure-reference
 	  module-datum?
 	  module-datum-reference
 	  module-var?
 	  module-var-reference
 	  module?
+	  module-offset
 	  module-set-offset!
 	  make-module
 	  module-add-datum
 	  module-add-procedure
 	  module-add-var
-	  module-get-code) 
+	  module-get-code
+	  module-current-procedure
+	  lir:halt) 
   (import (scheme base)
-	  (rapid assembler))
+	  (rapid assembler)
+	  (rapid runtime))
   (include "module.scm"))
 
 

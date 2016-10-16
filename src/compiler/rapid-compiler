@@ -1,2 +1,0 @@
-#! /bin/sh
-/home/mnieper/gitlab/rapid-scheme/src/compiler/scheme /home/mnieper/gitlab/rapid-scheme/src/compiler/rapid-compiler.scm "$@"

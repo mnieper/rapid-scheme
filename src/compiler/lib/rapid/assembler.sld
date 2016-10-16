@@ -22,7 +22,8 @@
 	  assembler-make-label
 	  assembler-patch-code!
 	  assembler-align!
-	  assemble
+	  assembler-assemble
+	  asm:
 	  label-here!
 	  label-location
 	  current-assembler)

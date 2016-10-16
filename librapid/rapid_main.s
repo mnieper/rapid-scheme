@@ -21,12 +21,8 @@
 	.type	main, @function
 main:
 	pushq	%rbp
-	leaq	Lrapid_gpt(%rip), %rbp
-	leaq	str(%rip), %rdi
-	call	*8(%rbp)
-	jmpq	*(%rbp)
+	leaq	.Lrapid_gst(%rip), %rbp
+	jmpq	*.Lrapid_run(%rbp)
 	.balign	8
-Lrapid_gpt:
-	.quad	rapid_run
-	.quad	puts
-str:	.asciz	"Hello, World!"
+.Lrapid_gst:
+	.include	"global-symbols.s"

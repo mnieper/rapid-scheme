@@ -32,8 +32,8 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
   Makefile
   lib/Makefile
-  librapid/Makefile
   src/compiler/Makefile
+  librapid/Makefile
   src/runtime/Makefile
   doc/Makefile
   tests/Makefile

@@ -29,5 +29,6 @@
 	  object-file-section-add-global!
 	  object-file-section-add-reloc!)
   (import (scheme base)
-	  (scheme file))
+	  (scheme file)
+	  (rapid gas))
   (include "object-file.scm"))
