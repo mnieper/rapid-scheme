@@ -18,7 +18,7 @@
 ;;;; ** FIXME should add column that records whether REX is needed 
 
 (define-instruction (byte imm8)            ib         )
-(define-instruction (callq mem)            #xFF / 2   ) ;; what mem?
+(define-instruction (callq* reg/mem64)     #xFF / 2   )
 (define-instruction (jmp rel32off)         #xE9 cd    )
 (define-instruction (movl imm32 reg32)     #xB8 +rd id)
 (define-instruction (movq imm64 reg64) rex #xB8 +rq iq)
