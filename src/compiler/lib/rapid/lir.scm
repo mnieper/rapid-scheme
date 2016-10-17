@@ -15,16 +15,20 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;;;; ** FIXME should add column that records whether REX is needed 
 
-(define-instruction (byte imm8)            ib         )
-(define-instruction (callq* reg/mem64)     #xFF / 2   )
-(define-instruction (jmp rel32off)         #xE9 cd    )
-(define-instruction (movl imm32 reg32)     #xB8 +rd id)
-(define-instruction (movq imm64 reg64) rex #xB8 +rq iq)
-(define-instruction (nop)                  #x90       )
-(define-instruction (popq reg64)           #x58 +rq   )
-(define-instruction (pushq reg64)          #x50 +rq   )
-(define-instruction (quad imm64)           iq         )
-(define-instruction (ret)                  #xC3       )
-(define-instruction (ret imm16)            #xC2 iw    )
+;;;; List all instructions that we need
+;;;;   -> alloc a b (just gc with pointer to proc and mask!)
+;;;;   -> (perform (op puts) (reg 1) (reg 2) ...)
+;;;;   -> anstelle von (reg i) können wir auch (off v 3) oder (ref 29) schreiben
+;;;;   ->    bytevectors/andere prozeduren werden mit rip-relativem Label addressiert.
+
+(define-record-type <lir-label>
+  (make-lir-label)
+  lir-label?)
+
+(define (lir-assemble code)
+  (for-each
+   (lambda (inst)
+     (assemble-instruction inst))
+   code))
+  

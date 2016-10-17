@@ -26,22 +26,13 @@
      (reference-offset reference)))
 
 (define-record-type <module-procedure>
-  (make-procedure reference instructions)
+  (make-procedure reference text)
   module-procedure?
   (reference module-procedure-reference)
-  (instructions procedure-instructions procedure-set-instructions!))
+  (text procedure-text procedure-set-text!))
 
-(define (procedure-get-instructions procedure)
-  (reverse (procedure-instructions procedure)))
-
-(define-syntax asm!
-  (syntax-rules ()
-    ((asm! . instruction)
-     (let ((procedure (module-current-procedure)))
-       (procedure-set-instructions! procedure
-				    (cons (lambda ()
-					    (asm: . instruction))
-					  (procedure-instructions procedure)))))))
+(define (procedure-get-text procedure)
+  (reverse (procedure-text procedure)))
 
 (define-record-type <module-datum>
   (make-datum reference bytes)
@@ -92,6 +83,10 @@
 			    (cons procedure (module-procedures module)))
     procedure))
 
+(define (add-instruction! instruction)
+  (let ((procedure (module-current-procedure)))
+    (procedure-set-text! procedure (cons instruction (procedure-text procedure)))))
+
 (define (module-add-var module init)
   (let ((var (make-var (make-reference module) init)))
     (module-set-vars! module
@@ -135,9 +130,9 @@
 			      (label-location start-label))))
 	     (reference-here! module (module-procedure-reference procedure))
 	     (for-each
-	      (lambda (inst)
-		(inst))
-	      (procedure-get-instructions procedure)))
+	      (lambda (instruction)
+		(asm: ,@instruction))
+	      (procedure-get-text procedure)))
 	   module)
 	  
 	  (assembler-align! (current-assembler) 8)
@@ -165,8 +160,7 @@
 (define mem:exit (global-symbol 'exit))
 
 (define (lir:halt)
-  (asm! movq 0 rdi)
-  ;; TODO: Implement (4(%rbp))
-  #;(asm! callq (,mem:exit)))
+  (add-instruction! `(movq 0 rdi))
+  (add-instruction! `(callq* ,mem:exit)))
 
 (define module-current-procedure (make-parameter #f))

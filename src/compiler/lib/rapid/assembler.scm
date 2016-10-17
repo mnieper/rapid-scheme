@@ -46,6 +46,13 @@
 
 (define *registers* '())
 
+(define (get-register name)
+  (cond
+   ((assq name *registers*)
+    => cdr)
+   (else
+    (error "unknown register" name))))
+
 ;;; Instructions
 
 (define-record-type <instruction>
@@ -93,7 +100,7 @@
   (cond
    ((register? source) (make-register-operand source))
    ((immediate? source) (make-immediate-operand source))
-   #;((memory? source) (make-memory-operand source))
+   ((memory? source) (make-memory-operand source))
    #;((memory-absolute? source) (make-memory-absolute-operand source))
    (else
     (error "invalid operand" source))))
@@ -124,7 +131,7 @@
      (code-set-imm! code source))))
 
 (define (make-register-operand source)
-  (let ((register (cdr (assq source *registers*))))
+  (let ((register (get-register source)))
     (%make-operand
      (lambda (type)
        (and (memq type (register-types register)) #t))
@@ -132,10 +139,56 @@
        (case type
 	 ((reg8 reg16 reg16/32 reg32 reg64)
 	  (code-set-reg! code (register-value register))
-	  (code-set-rex.r! code (register-rex register))
-	  )
+	  (code-set-rex.r! code (register-rex register)))
 	 (else
 	  (error "unsupported operand type" type)))))))
+
+(define (make-memory-operand source)
+  (let-values (((base index scale disp) (get-sib+disp source)))
+    (%make-operand
+     (lambda (type)
+       (case type
+	 ((reg/mem64) #t)
+	 (else #f)))
+     (lambda (code type)
+       (case type
+	 ((reg/mem64)
+	  (code-set-disp! code disp)
+	  (code-set-base! code base)
+	  (code-set-index! code index)
+	  (code-set-scale! code scale)
+	  (when base
+	    (code-set-rex.b! code (register-rex base)))
+	  (when index
+	    (code-set-rex.x! code (register-rex index)))))))))
+
+(define (get-sib+disp source)
+  (let-values
+      (((disp source)
+	(if (register? (car source))
+	    (values #f source)
+	    (values (car source) (cdr source)))))
+    (case (length source)
+      ((0) (values #f #f 0 disp))
+      ((1) (values (get-register (list-ref source 0))
+		   #f 0 disp))
+      ((2) (values (get-register (list-ref source 0))
+		   (get-register (list-ref source 1))
+		   0 disp))
+      ((3) (values (get-register (list-ref source 0))
+		   (get-register (list-ref source 1))
+		   (get-scale (list-ref source 2)) disp))
+      (else
+       (error "invalid memory operand" source)))))
+
+(define (get-scale scale)
+  (case scale
+    ((#f 1) 0)
+    ((2) 1)
+    ((4) 2)
+    ((8) 3)
+    (else
+     (error "invalid scale" scale))))
 
 ;;; Code to be assembled
 
@@ -145,12 +198,13 @@
   (disp code-disp code-set-disp!)
   (imm code-imm code-set-imm!)
   (reg code-reg code-set-reg!)
+  (base code-base code-set-base!)
+  (index code-index code-set-index!)
+  (scale code-scale code-set-scale!)
   (rex.w code-rex.w code-set-rex.w!)
   (rex.r code-rex.r code-set-rex.r!)
   (rex.x code-rex.x code-set-rex.x!)
-  (rex.b code-rex.b code-set-rex.b!)
-  ;; add patch information from below
-  )
+  (rex.b code-rex.b code-set-rex.b!))
 
 (define (make-code)
   (%make-code #f #f #f #f))
@@ -267,6 +321,14 @@
 (define prefix/operand-size #x66)
 (define prefix/address-size #x67)
 
+;;; Instruction components
+
+(define (modrm-byte mod reg r/m)
+  (+ (* 64 mod) (* 8 reg) r/m))
+
+(define (sib-byte scale index base)
+  (+ (* 64 scale) (* 8 index) base))
+
 ;;; Assembler
 
 (define (assemble inst) (assembler-assemble (current-assembler) inst))
@@ -323,6 +385,20 @@
   (define (emit-quad int)
     (emit-value int 8))
 
+  (define (emit-modrm-sib-disp)
+    (emit-byte (modrm-byte (if (code-base code)
+			       #b10
+			       #b00)
+			   (code-reg code) #b100))
+    (emit-byte (sib-byte (code-scale code)
+			 (if (code-index code)
+			     (register-value (code-index code))
+			     #b100)
+			 (if (code-base code)
+			     (register-value (code-base code))
+			     #b101)))
+    (emit-long (or (code-disp code) 0)))
+  
   (define (get-rex-prefix)
     (let ((rex.w (code-rex.w code))
 	  (rex.r (code-rex.r code))
@@ -359,14 +435,19 @@
 	      ((ib)
 	       (emit-byte (code-imm code)))
 	      ((iw)
-	       (emit-byte (code-imm code)))
+	       (emit-word (code-imm code)))
 	      ((id)
-	       (emit-byte (code-imm code)))
+	       (emit-double (code-imm code)))
 	      ((iq)
-	       (emit-byte (code-imm code)))
+	       (emit-quad (code-imm code)))
 	      ((cd)
 	       (relative! 4)
 	       (emit-long (code-imm code)))
+	      ((/)
+	       (code-set-reg! code (car opcode))
+	       ;; TODO: The following is in general not the most effective encoding.
+	       (emit-modrm-sib-disp)
+	       (loop (cdr opcode)))
 	      (else
 	       (if (and (pair? opcode)
 			(memq (car opcode) '(+rb +rw +rd +rq)))
