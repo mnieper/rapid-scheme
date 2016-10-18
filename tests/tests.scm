@@ -20,6 +20,7 @@
 	(rapid test)
 	(rename (rapid test test) (run-tests run-rapid-test-tests))
 	(rename (rapid box test) (run-tests run-rapid-box-tests))
+	(rename (rapid compiler identifier test) (run-tests run-rapid-compiler-identifier-tests))
 	(rename (rapid binary test) (run-tests run-rapid-binary-tests))
 	(rename (rapid assembler test) (run-tests run-rapid-assembler-tests))
 	(rename (rapid object-file test) (run-tests run-rapid-object-file-tests))
@@ -29,6 +30,7 @@
 
 (run-rapid-test-tests)
 (run-rapid-box-tests)
+(run-rapid-compiler-identifier-tests)
 (run-rapid-binary-tests)
 (run-rapid-assembler-tests)
 (run-rapid-object-file-tests)

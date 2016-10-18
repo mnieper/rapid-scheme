@@ -16,8 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid gas)
-  (export write-label write-local-label
-	  write-directive write-instruction number->hex)
+  (export write-label write-directive write-instruction number->hex)
   (import (scheme base))
   (include "gas.scm"))
 

@@ -15,23 +15,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid assembler test)
-  (export run-tests)
-  (import (scheme base)
-	  (rapid test)
-	  (rapid assembler))
-  (begin
-    (define (run-tests)
-      (test-begin "Rapid Assembler")
-
-      (test-assert "make-assembler"
-		   (assembler? (make-assembler)))
-
-      ;; FIXME
-      #;(test-equal "assembler"
-		  #u8(#xB8 42 0 0 0)
-		  (parameterize ((current-assembler (make-assembler)))
-		    (assemble `(movl 42 eax))
-		    (assembler-get-code (current-assembler))))
-      
-      (test-end))))
+(define-library (rapid compiler identifier)
+  (export make-synthetic-identifier
+          synthetic-identifier?
+          identifier?
+          identifier->symbol
+          make-renaming-procedure)
+  (import (scheme base))
+  (include "identifier.scm"))

@@ -20,10 +20,6 @@
   (write-char #\:)
   (newline))
 
-(define (write-local-label label)
-  (write-string ".L")
-  (write-label label))
-
 (define (write-directive directive . operands)
   (write-char #\tab)
   (write-char #\.)
