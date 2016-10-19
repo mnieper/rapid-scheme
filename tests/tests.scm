@@ -26,7 +26,8 @@
 	(rename (rapid assembler test) (run-tests run-rapid-assembler-tests))
 	(rename (rapid compiler backend object-file test)
 		(run-tests run-rapid-compiler-backend-object-file-tests))
-	(rename (rapid codegen test) (run-tests run-rapid-codegen-tests)))
+	(rename (rapid compiler backend codegen test)
+		(run-tests run-rapid-compiler-backend-codegen-tests)))
 
 (test-begin "Rapid Scheme")
 
@@ -37,7 +38,7 @@
 (run-rapid-binary-tests)
 (run-rapid-assembler-tests)
 (run-rapid-compiler-backend-object-file-tests)
-(run-rapid-codegen-tests)
+(run-rapid-compiler-backend-codegen-tests)
 
 (test-end "Rapid Scheme")
 

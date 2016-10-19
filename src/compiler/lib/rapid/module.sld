@@ -17,7 +17,8 @@
 
 (define-library (rapid module)
   (export module-reference?
-	  module-reference-address
+	  module-reference-offset
+	  module-reference-module
 	  module-procedure?
 	  module-procedure-reference
 	  module-datum?
@@ -25,8 +26,6 @@
 	  module-var?
 	  module-var-reference
 	  module?
-	  module-offset
-	  module-set-offset!
 	  make-module
 	  module-add-datum
 	  module-add-procedure

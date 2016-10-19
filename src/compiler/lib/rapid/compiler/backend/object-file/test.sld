@@ -24,9 +24,6 @@
     (define (run-tests)
       (test-begin "Rapid Object-File")
 
-      (test-assert "make-object-file"
-		   (object-file? (make-object-file '())))
-
-      ;; FIXME: Write more tests.
+      ;; FIXME: Write some tests.
       
       (test-end))))

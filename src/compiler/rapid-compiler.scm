@@ -19,19 +19,18 @@
 	(scheme write)
 	(scheme file)
 	(rapid module)
-	(rapid codegen))
+	(rapid compiler backend codegen))
 
 (define (main)
-  (define codegen (make-codegen))
   (define module (make-module))
   (define var (module-add-var module 42))
   (define datum (module-add-datum module #u8(#xDE #xAD #xBE #xEF)))
   (define procedure (module-add-procedure module))
   (parameterize ((module-current-procedure procedure))
     (lir:halt))
-  (codegen-add-module! codegen module)
-  (codegen-var-set! codegen var (module-datum-reference datum))
-  (codegen-emit codegen "bootstrap.s" (module-procedure-reference procedure)))
+  (codegen-emit "bootstrap.s"
+		(list module)
+		(list (list var (module-datum-reference datum)))
+		(module-procedure-reference procedure)))
 
 (main)
-

@@ -18,12 +18,8 @@
 (define-record-type <module-entry>
   (make-reference module)
   module-reference?
-  (module reference-module reference-set-module!)
-  (offset reference-offset reference-set-offset!))
-
-(define (module-reference-address reference)
-  (+ (module-offset (reference-module reference))
-     (reference-offset reference)))
+  (module module-reference-module reference-set-module!)
+  (offset module-reference-offset reference-set-offset!))
 
 (define-record-type <module-procedure>
   (make-procedure reference text)
@@ -51,7 +47,6 @@
   module?
   (assembler module-assembler)
   (code module-code module-set-code!)
-  (offset module-offset module-set-offset!)
   (datums module-datums module-set-datums!)
   (procedures module-procedures module-set-procedures!)
   (vars module-vars module-set-vars!))

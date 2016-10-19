@@ -23,7 +23,7 @@
   (name global-name)
   (offset global-offset))
 
-(define (write-global)
+(define (write-global section global)
   (write-directive "global" (global-name global))
   (write-directive "set"
 		   (global-name global)
@@ -45,13 +45,13 @@
   (make-reloc offset (symbol->name name) symbol addend))
 
 (define (symbol->name symbol)
-  (case name
+  (case symbol
     ((R_X86_64_64) "R_X86_64_64")
     ((R_X86_64_32S) "R_X86_64_32S")
     (else
-     (error "unknown reloc name" name))))
+     (error "unknown reloc name" symbol))))
 
-(define (write-reloc)
+(define (write-reloc reloc)
   (write-directive "reloc"
 		   (number->hex (reloc-offset reloc))
 		   (reloc-name reloc)
@@ -72,8 +72,8 @@
   (globals section-globals)
   (relocs section-relocs))
 
-(define (object-file-make-section flags alignment size progbits globals reloc)
-  (make-section (list->flags list) alignment size progbits globals reloc))
+(define (object-file-make-section name flags alignment size progbits globals reloc)
+  (make-section name (list->flags flags) alignment size progbits globals reloc))
 
 (define (list->flags list)
   (string-append "\""
@@ -112,7 +112,7 @@
 		     (if (section-progbits section)
 			 "@progbits"
 			 "@nobits"))
-    (for-each write-global (section-globals section))
+    (for-each (lambda (global) (write-global section global)) (section-globals section))
     (for-each write-reloc (section-relocs section))
     (when (>= (section-alignment section) 2)
       (write-directive "balign" (number->string (section-alignment section))))
@@ -126,14 +126,9 @@
   
 ;;; Object files
 
-(define-record-type <object-file>
-  (make-object-file sections)
-  object-file?
-  (sections object-file-sections))
+(define (output-object-file filename sections)
+  (with-output-to-file filename (lambda () (write-object-file sections))))
 
-(define (output-object-file object-file filename)
-  (with-output-to-file filename (lambda () (write-object-file object-file))))
-
-(define (write-object-file object-file)
-  (for-each write-section (object-file-sections section))
+(define (write-object-file sections)
+  (for-each write-section sections)
   (write-directive "end"))

@@ -16,9 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid compiler backend object-file)
-  (export make-object-file
-	  object-file?
-	  object-file-make-section
+  (export object-file-make-section
 	  object-file-make-program-section
 	  object-file-make-text-section
 	  object-file-make-data-section

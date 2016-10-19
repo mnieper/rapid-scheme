@@ -15,20 +15,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid object-file)
-  (export make-object-file
-	  object-file?
-	  object-file-make-section
-	  object-file-get-text-section
-	  object-file-get-data-section
-	  object-file-get-bss-section
-	  output-object-file
-	  object-file-section-set-size!
-	  object-file-section-set-contents!
-	  object-file-section-set-alignment!
-	  object-file-section-add-global!
-	  object-file-section-add-reloc!)
+(define-library (rapid compiler backend codegen)
+  (export codegen-emit)
   (import (scheme base)
-	  (scheme file)
-	  (rapid gas))
-  (include "object-file.scm"))
+	  (rapid imap)
+	  (rapid module)
+	  (rapid compiler backend object-file))
+  (include "codegen.scm"))

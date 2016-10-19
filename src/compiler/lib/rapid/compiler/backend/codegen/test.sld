@@ -15,16 +15,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid codegen test)
+(define-library (rapid compiler backend codegen test)
   (export run-tests)
   (import (scheme base)
 	  (rapid test)
-	  (rapid codegen))
+	  (rapid compiler backend codegen))
   (begin
     (define (run-tests)
       (test-begin "Rapid Codegen")
 
-      (test-assert "make-codegen"
-		   (codegen? (make-codegen)))
-      
+      ;; FIXME: Write some tests.
+
       (test-end))))
