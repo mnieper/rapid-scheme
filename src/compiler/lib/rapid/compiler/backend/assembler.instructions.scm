@@ -26,3 +26,4 @@
 (define-instruction (quad imm64)           iq         )
 (define-instruction (ret)                  #xC3       )
 (define-instruction (ret imm16)            #xC2 iw    )
+(define-instruction (sarq reg/mem64)   rex #xD1 / 7   )

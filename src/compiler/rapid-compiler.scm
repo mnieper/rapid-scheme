@@ -23,7 +23,7 @@
 
 (define (main)
   (define module
-    (make-module (list (list 'proc '(XXX)))
+    (make-module (list (list 'proc '((exit 42))))
 		 (list (list 'datum #u8(#xDE #xAD #xBE #xEF)))
 		 (list (list 'var 42))))
   (codegen-emit "bootstrap.s"

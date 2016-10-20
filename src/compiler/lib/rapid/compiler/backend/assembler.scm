@@ -153,12 +153,21 @@
   (let ((register (get-register source)))
     (%make-operand
      (lambda (type)
-       (and (memq type (register-types register)) #t))
+       (let ((type (case type
+		     ((reg/mem8) 'reg8)
+		     ((reg/mem16) 'reg16)
+		     ((reg/mem32) 'reg32)
+		     ((reg/mem64) 'reg64)
+		     (else type))))
+      	 (and (memq type (register-types register)) #t)))
      (lambda (code type)
        (case type
 	 ((reg8 reg16 reg16/32 reg32 reg64)
 	  (code-set-reg! code (register-value register))
 	  (code-set-rex.r! code (register-rex register)))
+	 ((reg/mem8 reg/mem16 reg/mem32 reg/mem64)
+	  (code-set-rm! code (register-value register))
+	  (code-set-rex.b! code (register-rex register)))	  
 	 (else
 	  (error "unsupported operand type" type)))))))
 
@@ -212,11 +221,12 @@
 ;;; Code to be assembled
 
 (define-record-type <code>
-  (%make-code rex.w rex.r rex.x rex.b)
+  (%make-code rm rex.w rex.r rex.x rex.b)
   code?
   (disp code-disp code-set-disp!)
   (imm code-imm code-set-imm!)
   (reg code-reg code-set-reg!)
+  (rm code-rm code-set-rm!)
   (base code-base code-set-base!)
   (index code-index code-set-index!)
   (scale code-scale code-set-scale!)
@@ -226,7 +236,7 @@
   (rex.b code-rex.b code-set-rex.b!))
 
 (define (make-code)
-  (%make-code #f #f #f #f))
+  (%make-code #f #f #f #f #f))
 
 ;;; Patches
 (define-record-type <patch>
@@ -407,19 +417,23 @@
     (emit-value int 8))
 
   (define (emit-modrm-sib-disp)
-    (emit-byte (modrm-byte (if (code-base code)
-			       #b10
-			       #b00)
-			   (code-reg code) #b100))
-    (emit-byte (sib-byte (code-scale code)
-			 (if (code-index code)
-			     (register-value (code-index code))
-			     #b100)
-			 (if (code-base code)
-			     (register-value (code-base code))
-			     #b101)))
-    (emit-long (or (code-disp code) 0)))
-  
+    (let ((rm (code-rm code)))
+      (if rm
+	  (emit-byte (modrm-byte #b11 (code-reg code) rm))
+	  (begin    
+	    (emit-byte (modrm-byte (if (code-base code)
+				       #b10
+				       #b00)
+				   (code-reg code) #b100))
+	    (emit-byte (sib-byte (code-scale code)
+				 (if (code-index code)
+				     (register-value (code-index code))
+				     #b100)
+				 (if (code-base code)
+				     (register-value (code-base code))
+				     #b101)))
+	    (emit-long (or (code-disp code) 0))))))
+	  
   (define (get-rex-prefix)
     (let ((rex.w (code-rex.w code))
 	  (rex.r (code-rex.r code))
@@ -458,7 +472,7 @@
 	      ((iw)
 	       (emit-word (code-imm code)))
 	      ((id)
-	       (emit-double (code-imm code)))
+	       (emit-long (code-imm code)))
 	      ((iq)
 	       (emit-quad (code-imm code)))
 	      ((cd)

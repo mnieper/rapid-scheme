@@ -44,10 +44,10 @@
 
     (define (compile-procedure procedure)
       (let ((label (car procedure))
-	    (instructions (cadr procedure)))
+	    (stmts (cadr procedure)))
 	`(begin (align 8)
 		,label
-		,(compile-instructions instructions))))
+		,(compile-statements stmts))))
 
     (define (compile-datum datum)
       (let ((label (car datum))
@@ -105,10 +105,83 @@
   (let ((index (global-symbol-index symbol)))
     `(,(* index 8) rbp))) 
 
-(define (compile-instructions instructions)
-  `(begin ,@(map compile-instruction instructions)))
+(define (compile-statements stmts)
+  `(begin ,@(map compile-statement stmts)))
+
+(define (compile-statement stmt)
+  (cond
+   ((label? stmt)
+    (compile-label stmt))
+   ((instruction? stmt)
+    (compile-instruction stmt))
+   (else
+    (error "invalid statement" stmt))))
+
+(define (label? stmt)
+  (identifier? stmt))
+
+(define (instruction? stmt)
+  (pair? stmt))
+
+(define (instruction-name inst)
+  (car inst))
+
+(define (instruction-operands inst)
+  (cdr inst))
+
+(define (compile-label label)
+  label)
 
 (define (compile-instruction inst)
-  ;; FIXME
+  (case (instruction-name inst)
+    ((exit)
+     (compile-exit inst))
+    ((halt)
+     (compile-halt inst))
+    (else (error "invalid instruction" inst))))
+
+(define (compile-exit inst)
+  (let ((operand (car (instruction-operands inst))))	 
+    `(begin ,(load 'rdi operand)
+	    (sarq rdi)
+	    (callq ,(global-symbol 'exit)))))
+
+(define (compile-halt inst)
   `(begin (movq 0 rdi)
 	  (callq ,(global-symbol 'exit))))
+
+(define (load reg operand)
+  (cond
+   ((register? operand)
+    (load-register reg operand))
+   ((immediate? operand)
+    (load-immediate reg operand))
+   (else
+    (error "invalid operand" operand))))
+
+(define (register? operand)
+  (and (pair? operand) (eq? (car operand) 'reg)))
+
+(define (immediate? operand)
+  (number? operand))
+
+(define (immediate-value imm)
+  (+ (* 2 imm) 1))
+
+(define (register-index reg)
+  (cadr reg))
+
+(define (load-register target reg)
+  (let ((index (register-index reg)))
+    (let ((source (get-machine-register index)))
+      (if (eq? target source)
+	  '(begin)
+	  `(movq ,source ,target)))))
+
+(define (load-immediate target imm)
+  (let ((value (immediate-value imm)))
+    `(movq ,value ,target)))
+
+(define *machine-registers* #(rbx r12 r13 r14 r15))
+(define (get-machine-register index)
+  (vector-ref *machine-registers* index))
