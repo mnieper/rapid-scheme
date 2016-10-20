@@ -19,6 +19,6 @@
   (export codegen-emit)
   (import (scheme base)
 	  (rapid imap)
-	  (rapid module)
+	  (rapid compiler backend module)
 	  (rapid compiler backend object-file))
   (include "codegen.scm"))

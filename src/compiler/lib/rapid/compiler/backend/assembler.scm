@@ -325,11 +325,12 @@
 
 (define (assemble-statement assembler stmt offsets patches)
   (cond
-   ;; TODO: Add sequence stmt
    ((identifier? stmt)
     (assemble-label assembler stmt offsets patches))
    ((align-directive? stmt)
     (assemble-align-directive assembler stmt offsets patches))
+   ((assembler-sequence? stmt)
+    (assemble-sequence assembler stmt offsets patches))
    ((assembler-instruction? stmt)
     (assemble-instruction assembler stmt offsets patches))
    (else
@@ -340,6 +341,12 @@
 
 (define (align-directive-alignment stmt)
   (cadr stmt))
+
+(define (assembler-sequence? stmt)
+  (and (pair? stmt) (eq? (car stmt) 'begin)))
+
+(define (assembler-sequence-statements stmt)
+  (cdr stmt))
 
 (define (assembler-instruction? stmt)
   (pair? stmt))
@@ -352,6 +359,16 @@
   (let ((alignment (align-directive-alignment directive)))
     (assembler-align! assembler alignment)
     (values offsets patches)))
+
+(define (assemble-sequence assembler sequence offsets patches)
+  (let loop ((stmts (assembler-sequence-statements sequence))
+	     (offsets offsets)
+	     (patches patches))
+    (if (null? stmts)
+	(values offsets patches)
+	(let-values (((offsets patches)
+		      (assemble-statement assembler (car stmts) offsets patches)))
+	  (loop (cdr stmts) offsets patches)))))
 
 (define (assemble-instruction assembler inst offsets patches)
   (define code (make-code))

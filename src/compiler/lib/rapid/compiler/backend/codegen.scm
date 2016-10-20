@@ -27,7 +27,7 @@
     (define (init->reloc init)
       (let ((var (car init))
 	    (reference (cadr init)))
-	(object-file-make-reloc (reference-address (module-var-reference var))
+	(object-file-make-reloc (reference-address var)
 				'R_X86_64_64
 				"rapid_text"
 				(reference-address reference))))
@@ -36,7 +36,7 @@
 	  (progbits (make-bytevector size 0)))
       (for-each
        (lambda (module)
-	 (bytevector-copy! progbits (module-offset module) (module-get-code module)))
+	 (bytevector-copy! progbits (module-offset module) (module-code module)))
        modules)
       (let ((rapid-text-section
 	     (object-file-make-program-section "rapid_text" '(alloc write execinstr)
@@ -50,7 +50,7 @@
     (if (null? modules)
 	(values offsets offset)
 	(let ((module (car modules)))
-	  (let ((code (module-get-code module)))
+	  (let ((code (module-code module)))
 	    (loop (cdr modules)
 		  (+ offset (align (+ offset (bytevector-length code)) 16))
 		  (imap-replace offsets module offset)))))))

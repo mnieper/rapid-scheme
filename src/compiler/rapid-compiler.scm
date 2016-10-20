@@ -18,19 +18,18 @@
 (import (scheme base)
 	(scheme write)
 	(scheme file)
-	(rapid module)
+	(rapid compiler backend module)
 	(rapid compiler backend codegen))
 
 (define (main)
-  (define module (make-module))
-  (define var (module-add-var module 42))
-  (define datum (module-add-datum module #u8(#xDE #xAD #xBE #xEF)))
-  (define procedure (module-add-procedure module))
-  (parameterize ((module-current-procedure procedure))
-    (lir:halt))
+  (define module
+    (make-module (list (list 'proc '(XXX)))
+		 (list (list 'datum #u8(#xDE #xAD #xBE #xEF)))
+		 (list (list 'var 42))))
   (codegen-emit "bootstrap.s"
 		(list module)
-		(list (list var (module-datum-reference datum)))
-		(module-procedure-reference procedure)))
+		(list (list (module-reference module 'var)
+			    (module-reference module 'datum)))
+		(module-reference module 'proc)))
 
 (main)
