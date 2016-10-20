@@ -15,30 +15,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid module)
-  (export module-reference?
-	  module-reference-offset
-	  module-reference-module
-	  module-procedure?
-	  module-procedure-reference
-	  module-datum?
-	  module-datum-reference
-	  module-var?
-	  module-var-reference
-	  module?
-	  make-module
-	  module-add-datum
-	  module-add-procedure
-	  module-add-var
-	  module-get-code
-	  module-current-procedure
-	  lir:halt) 
+(define-library (rapid compiler backend runtime)
+  (export generate-global-symbols-file
+	  global-symbol-index)
   (import (scheme base)
-	  (rapid imap)
-	  (rapid compiler identifier)
-	  (rapid compiler backend assembler)
-	  (rapid compiler backend runtime))
-  (include "module.scm"))
+	  (scheme file)
+	  (rapid gas))
+  (include "runtime.scm"
+	   "runtime.global-symbols.scm"))
 
-
-    
+  

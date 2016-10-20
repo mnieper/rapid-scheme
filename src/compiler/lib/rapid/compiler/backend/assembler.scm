@@ -17,11 +17,6 @@
 
 ;;; Syntax definitions
 
-(define-syntax asm:
-  (syntax-rules ()
-    ((asm: . instruction)
-     (assemble `instruction))))
-
 (define-syntax define-register
   (syntax-rules ()
     ((define-register name types value rex)
@@ -82,6 +77,30 @@
       
 (define *instructions* '())
 
+
+;;; Instruction prefix definitions
+
+(define (rex-prefix w r x b)
+  (+ #x40 (* 8 (or w 0)) (* 4 (or r 0)) (* 2 (or x 0)) (or b 0)))
+(define prefix/lock #xF0)
+(define prefix/repne #xF2)
+(define prefix/repnz #xF2)
+(define prefix/rep #xF3)
+(define prefix/repe #xF3)
+(define prefix/repz #xF3)
+(define prefix/fs #x64)
+(define prefix/gs #x65)
+(define prefix/operand-size #x66)
+(define prefix/address-size #x67)
+
+;;; Instruction components
+
+(define (modrm-byte mod reg r/m)
+  (+ (* 64 mod) (* 8 reg) r/m))
+
+(define (sib-byte scale index base)
+  (+ (* 64 scale) (* 8 index) base))
+
 ;;; Operands
 
 (define-record-type <operand>
@@ -101,7 +120,6 @@
    ((register? source) (make-register-operand source))
    ((immediate? source) (make-immediate-operand source))
    ((memory? source) (make-memory-operand source))
-   #;((memory-absolute? source) (make-memory-absolute-operand source))
    (else
     (error "invalid operand" source))))
 
@@ -110,7 +128,8 @@
 
 (define (immediate? source)
   (or (number? source)
-      (label? source)))
+      (identifier? source)
+      (label-expression? source)))
 
 (define (memory? source)
   (and (pair? source)
@@ -209,130 +228,38 @@
 (define (make-code)
   (%make-code #f #f #f #f))
 
-;;; Assembler object
+;;; Patches
+(define-record-type <patch>
+  (make-patch position size expression)
+  patch?
+  (position patch-position)
+  (size patch-size)
+  (expression patch-expression))
+
+;;; Assembler state
 
 (define-record-type <assembler>
-  (%make-assembler port location labels patches)
-  assembler?
+  (%make-assembler port position)
+  code-vector?
   (port assembler-port)
-  (location assembler-location assembler-set-location!)
-  (labels assembler-labels assembler-set-labels!)
-  (patches assembler-patches assembler-set-patches!))
+  (position assembler-position assembler-set-position!))
 
 (define (make-assembler)
-  (%make-assembler (open-output-bytevector) 0 '() '()))
-
-(define (assembler-add-label! assembler label)
-  (assembler-set-labels! assembler
-			 (cons label (assembler-labels assembler))))
-
-(define (for-each-label proc assembler)
-  (for-each proc (assembler-labels assembler)))
-
-(define (assembler-patch-code! assembler location value size)
-  (assembler-set-patches! assembler
-			  (cons (make-patch location value size)
-				(assembler-patches assembler))))
-
-(define-record-type <patch>
-  (make-patch location value size)
-  patch?
-  (location patch-location)
-  (value patch-value)
-  (size patch-size))
-  
-(define (for-each-patch proc assembler)
-  (for-each proc (assembler-patches assembler)))
+  (%make-assembler (open-output-bytevector) 0))
 
 (define (assembler-get-code assembler)
-  (let ((code (get-output-bytevector (assembler-port assembler))))
-    (for-each-patch
-     (lambda (patch)
-       (bytevector-integer-set! code
-				(patch-location patch)
-				(+
-				 (bytevector-integer-ref code
-							 (patch-location patch)
-							 (patch-size patch))
-				 (patch-value patch))
-				(patch-size patch)))
-     assembler)
-    (for-each-label
-     (lambda (label)
-       (let ((label-location (label-location label)))
-	 (for-each-use
-	  (lambda (use)
-	    (bytevector-integer-set! code
-				     (label-use-location use)
-				     (+ label-location
-				        (bytevector-integer-ref code
-								(label-use-location use)
-								(label-use-size use)))
-				     (label-use-size use)))
-	  label)))
-     assembler)
-    code))
+  (get-output-bytevector (assembler-port assembler)))
 
-;;; Assembler labels
+(define (assembler-emit assembler bytevector)
+  (write-bytevector bytevector (assembler-port assembler))
+  (assembler-set-position! assembler
+			   (+ (assembler-position assembler)
+			      (bytevector-length bytevector))))
 
-(define-record-type <label>
-  (make-label assembler location uses)
-  label?
-  (assembler label-assembler)
-  (location label-location label-set-location!)
-  (uses label-uses label-set-uses!))
-
-(define-record-type <label-use>
-  (make-label-use location size)
-  label-use?
-  (location label-use-location)
-  (size label-use-size))
-
-(define (assembler-make-label assembler)
-  (make-label assembler (assembler-location assembler) '()))
-
-(define (label-here! label)
-  (let ((assembler (label-assembler label)))
-    (label-set-location! label (assembler-location assembler))
-    (assembler-add-label! assembler label)))
-
-(define (label-add-use! label size)
-  (let ((assembler (label-assembler label))) 
-    (label-set-uses! label
-		     (cons (make-label-use (assembler-location assembler) size)
-			   (label-uses label)))))
-
-(define (for-each-use proc label)
-  (for-each proc (label-uses label)))
-
-
-;;; Instruction prefix definitions
-
-(define (rex-prefix w r x b)
-  (+ #x40 (* 8 (or w 0)) (* 4 (or r 0)) (* 2 (or x 0)) (or b 0)))
-(define prefix/lock #xF0)
-(define prefix/repne #xF2)
-(define prefix/repnz #xF2)
-(define prefix/rep #xF3)
-(define prefix/repe #xF3)
-(define prefix/repz #xF3)
-(define prefix/fs #x64)
-(define prefix/gs #x65)
-(define prefix/operand-size #x66)
-(define prefix/address-size #x67)
-
-;;; Instruction components
-
-(define (modrm-byte mod reg r/m)
-  (+ (* 64 mod) (* 8 reg) r/m))
-
-(define (sib-byte scale index base)
-  (+ (* 64 scale) (* 8 index) base))
-
-;;; Assembler
-
-(define (assemble inst) (assembler-assemble (current-assembler) inst))
-
+(define (assembler-align! assembler alignment)
+  (assembler-emit assembler
+		  (make-bytevector (- (align (assembler-position assembler) alignment)
+				      (assembler-position assembler)))))
 
 (define (align integer alignment)
   (let*
@@ -341,38 +268,115 @@
 		      alignment))
        (integer (+ integer alignment -1)))
     (- integer (remainder integer alignment))))
-
-(define (assembler-align! assembler alignment)
-  (assembler-emit assembler
-		  (make-bytevector (- (align (assembler-location assembler) alignment)
-				      (assembler-location assembler)))))
-
-(define (assembler-emit assembler bytevector)
-  (write-bytevector bytevector (assembler-port assembler))
-  (assembler-set-location! assembler
-			   (+ (assembler-location assembler)
-			      (bytevector-length bytevector))))
-
-(define (assembler-assemble assembler inst)
   
-  (define patch #f)
+(define (assemble text)
+  (let ((assembler (make-assembler)))
+    (let loop ((text text)
+	       (offsets (make-imap eq?))
+	       (patches '()))
+      (if (null? text)
+	  (let ((code (assembler-get-code assembler)))
+	    (patch-code! code offsets patches)
+	    (values code offsets))
+	  (let-values (((offsets patches)
+			(assemble-statement assembler
+					    (car text)
+					    offsets
+					    patches)))
+	    (loop (cdr text) offsets patches))))))
 
-  (define (relative! size)
-    (set! patch (vector (- (assembler-location assembler)) size)))
+(define (patch-code! code offsets patches)
+  (for-each (lambda (patch)
+	      (apply-patch! code offsets patch))
+	    patches))
+
+(define (apply-patch! code offsets patch)
+  (let ((position (patch-position patch))
+	(size (patch-size patch))
+	(expression (patch-expression patch)))
+    (let ((value
+	   (cond
+	    ((label-difference? expression)
+	      (- (imap-ref offsets (label-difference-minuend expression))
+		 (imap-ref offsets (label-difference-subtrahend expression))))
+	     (else
+	      (error "invalid assembler expression" expression)))))
+      (bytevector-integer-set! code
+			       position
+			       (+ (bytevector-integer-ref code position size)
+				  value)
+			       size))))
+
+(define (make-label-difference minuend subtrahend)
+  `(- ,minuend ,subtrahend))
+
+(define (label-difference? exp)
+  (and (pair? exp)
+       (eq? (car exp) '-)))
+
+(define (label-difference-minuend exp)
+  (cadr exp))
+
+(define (label-difference-subtrahend exp)
+  (caddr exp))
+
+(define (label-expression? exp)
+  (or (label-difference? exp)))
+
+(define (assemble-statement assembler stmt offsets patches)
+  (cond
+   ;; TODO: Add sequence stmt
+   ((identifier? stmt)
+    (assemble-label assembler stmt offsets patches))
+   ((align-directive? stmt)
+    (assemble-align-directive assembler stmt offsets patches))
+   ((assembler-instruction? stmt)
+    (assemble-instruction assembler stmt offsets patches))
+   (else
+    (error "invalid assembler statement" stmt))))
+
+(define (align-directive? stmt)
+  (and (pair? stmt) (eq? (car stmt) 'align)))
+
+(define (align-directive-alignment stmt)
+  (cadr stmt))
+
+(define (assembler-instruction? stmt)
+  (pair? stmt))
+
+(define (assemble-label assembler label offsets patches)
+  (let ((offsets (imap-replace offsets label (assembler-position assembler))))
+    (values offsets patches)))
   
+(define (assemble-align-directive assembler directive offsets patches)
+  (let ((alignment (align-directive-alignment directive)))
+    (assembler-align! assembler alignment)
+    (values offsets patches)))
+
+(define (assemble-instruction assembler inst offsets patches)
   (define code (make-code))
 
+  (define after-label (make-synthetic-identifier 'after-inst))
+
+  (define (relative! size)
+    (let ((patch-label (make-synthetic-identifier 'patch)))    
+      (let ((patch (make-patch (assembler-position assembler)
+			       size
+			       (make-label-difference after-label patch-label))))
+	(set! patches (add-patch patches patch)))))
+			     
   (define (emit bytevector)
     (assembler-emit assembler bytevector))
 
   (define (emit-value value size)
-    (if (label? value)
-	(begin
-	  (label-add-use! value size)
+    (if (label-expression? value)
+	(let ((patch (make-patch (assembler-position assembler)
+				 size
+				 value)))
+	  (set! patches (add-patch patches patch))
 	  (emit (make-bytevector size 0)))
-	(begin
-	  (emit (integer->bytevector value size)))))
-  
+	(emit (integer->bytevector value size))))
+
   (define (emit-byte int)
     (emit-value int 1))
 
@@ -416,7 +420,7 @@
 	(operands (map make-operand (cdr inst))))
     (let ((instruction (get-instruction mnemonic operands)))
       (define opcode (instruction-opcode instruction))
-      
+
       (for-each
        (lambda (operand type)
 	 (operand-process! operand code type))
@@ -458,10 +462,7 @@
 		     (emit-byte component)
 		     (loop opcode))))))))
 
-      (when patch
-	(assembler-patch-code! assembler
-			       (vector-ref patch 0)
-			       (assembler-location assembler)
-			       (vector-ref patch 1))))))
-    
-(define current-assembler (make-parameter #f))
+      (values offsets patches))))
+
+(define (add-patch patches patch)
+  (cons patch patches))

@@ -22,7 +22,7 @@ lib_LTLIBRARIES = librapidscheme.la
 librapidscheme_la_SOURCES = rapid_main.s
 librapidscheme_la_LIBADD = ../lib/libgnu.la
 
-global-symbols.s: ../src/compiler/lib/rapid/runtime.global-symbols.scm
+global-symbols.s: ../src/compiler/lib/rapid/compiler/backend/runtime.global-symbols.scm
 	$(GENERATE_GLOBAL_SYMBOLS)
 
 rapid_main.s: global-symbols.s

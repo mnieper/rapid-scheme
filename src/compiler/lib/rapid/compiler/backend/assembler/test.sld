@@ -15,17 +15,14 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid assembler test)
+(define-library (rapid compiler backend assembler test)
   (export run-tests)
   (import (scheme base)
 	  (rapid test)
-	  (rapid assembler))
+	  (rapid compiler backend assembler))
   (begin
     (define (run-tests)
       (test-begin "Rapid Assembler")
-
-      (test-assert "make-assembler"
-		   (assembler? (make-assembler)))
 
       ;; FIXME
       #;(test-equal "assembler"

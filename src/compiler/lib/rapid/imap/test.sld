@@ -35,11 +35,12 @@
 	  (list (imap-ref map 1) (imap-ref map 2) (imap-ref map 1))))
 
       (test-equal "imap-replace"
-	'(qux bar)
+	'(qux bar frob)
 	(let* ((map (make-imap eq?))
 	       (map (imap-replace map 1 'foo))
 	       (map (imap-replace map 2 'bar))
+	       (map (imap-replace map 3 'frob))
 	       (map (imap-replace map 1 'qux)))
-	  (list (imap-ref map 1) (imap-ref map 2))))
+	  (list (imap-ref map 1) (imap-ref map 2) (imap-ref map 3))))
       
       (test-end))))

@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (import (scheme base)
-	(rapid runtime))
+	(rapid compiler backend runtime))
 
 (define (main)
   (generate-global-symbols-file "global-symbols.s"))

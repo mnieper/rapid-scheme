@@ -15,8 +15,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;;;; ** FIXME should add column that records whether REX is needed 
-
 (define-instruction (byte imm8)            ib         )
 (define-instruction (callq* reg/mem64)     #xFF / 2   )
 (define-instruction (jmp rel32off)         #xE9 cd    )

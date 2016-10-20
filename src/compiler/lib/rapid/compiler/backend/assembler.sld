@@ -15,21 +15,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid assembler)
-  (export make-assembler
-	  assembler?
-	  assembler-get-code
-	  assembler-make-label
-	  assembler-patch-code!
-	  assembler-align!
-	  assembler-assemble
-	  asm:
-	  label-here!
-	  label-location
-	  current-assembler)
+(define-library (rapid compiler backend assembler)
+  (export assemble)
   (import (scheme base)
 	  (scheme cxr)
+	  (rapid imap)
+	  (rapid compiler identifier)
 	  (rapid binary))
-  (include "assembler.scm"
-	   "assembler.registers.scm"
-	   "assembler.instructions.scm"))
+  (include "assembler.scm")
+  (include "assembler.registers.scm")
+  (include "assembler.instructions.scm"))

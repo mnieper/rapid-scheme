@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-record-type <module-entry>
+(define-record-type <module-reference>
   (make-reference module)
   module-reference?
   (module module-reference-module reference-set-module!)
@@ -43,16 +43,15 @@
   (init var-init))
 
 (define-record-type <module>
-  (%make-module assembler datums vars code)
+  (%make-module datums vars code)
   module?
-  (assembler module-assembler)
   (code module-code module-set-code!)
   (datums module-datums module-set-datums!)
   (procedures module-procedures module-set-procedures!)
   (vars module-vars module-set-vars!))
 
 (define (make-module)
-  (%make-module (make-assembler) '() '() #f))
+  (%make-module '() '() #f))
 
 (define (for-each-datum proc module)
   (for-each proc (reverse (module-datums module))))
@@ -95,56 +94,68 @@
 (define (module-get-code module)
   (let ((code (module-code module)))
     (or code
-	(parameterize ((current-assembler (module-assembler module)))
-	  (define start-label (assembler-make-label (current-assembler)))	  
-	  (define end-label (assembler-make-label (current-assembler)))
-	  (label-here! start-label)
-	  (asm: quad 0)
-	  (asm: quad ,(* 8 (var-count module)))
-
+	(let ()
+	  (define assembly '())
+	  (define references '())
+	  (define (assemble! inst) (set! assembly (cons inst assembly)))
+	  (define start-label (make-synthetic-identifier 'start))
+	  (define end-label (make-synthetic-identifier 'end))
+	  (define (reference! ref)
+	    (let ((label (make-synthetic-identifier 'label)))
+	      (assemble! label)
+	      (set! references (cons (cons ref label)
+				     references))))
+	  (define (setup-references! offsets)
+	    (for-each
+	     (lambda (entry)
+	       (let ((ref (car entry))
+		     (label (cdr entry)))
+		 (reference-set-module! ref module)
+		 (reference-set-offset! ref (imap-ref offsets label))))
+	     references))
+	  
+	  (assemble! start-label)
+	  (assemble! `(quad (- ,end-label ,start-label)))
+	  (assemble! `(quad ,(* 8 (var-count module))))
+	  
 	  (for-each-datum
 	   (lambda (datum)
-	     (assembler-align! (current-assembler) 8)
-	     (let ((label (assembler-make-label (current-assembler))))
-	       ;; FIXME: HAVE TO ADD GC-MARK BIT TO DIFFERENCE
-	       (asm: quad ,(- (label-location label)
-			      (label-location start-label))))
-	     (reference-here! module (module-datum-reference datum))
+	     (define datum-label (make-synthetic-identifier 'datum))
+	     (assemble! '(align 8))
+	     (assemble! datum-label)
+	     (assemble! `(quad (- ,datum-label ,start-label)))
+	     
+	     (reference! (module-datum-reference datum))
 	     (do ((i 0 (+ i 1)))
 		 ((= i (bytevector-length (datum-bytes datum))))
-	       (asm: byte ,(bytevector-u8-ref (datum-bytes datum) i))))
+	       (assemble! `(byte ,(bytevector-u8-ref (datum-bytes datum) i)))))
 	   module)
 
 	  (for-each-procedure
 	   (lambda (procedure)
-	     (assembler-align! (current-assembler) 8)
-	     (let ((label (assembler-make-label (current-assembler))))
-	       ;; FIXME: HAVE TO ADD GC-MARK BIT TO DIFFERENCE
-	       ;; TODO: Refactor this code and the corresponding code for datums
-	       (asm: quad ,(- (label-location label)
-			      (label-location start-label))))
-	     (reference-here! module (module-procedure-reference procedure))
+	     (define procedure-label (make-synthetic-identifier 'procedure))
+	     (assemble! '(align 8))
+	     (assemble! procedure-label)
+	     (assemble! `(quad (- ,procedure-label ,start-label)))
+	     (reference! (module-procedure-reference procedure))
 	     (for-each
 	      (lambda (instruction)
-		(asm: ,@instruction))
+		(assemble! instruction))
 	      (procedure-get-text procedure)))
 	   module)
 	  
-	  (assembler-align! (current-assembler) 8)
+	  (assemble! '(align 8))
 	  (for-each-var
 	   (lambda (var)
-	     (reference-here! module (module-var-reference var))
-	     (asm: quad ,(var-init var)))
+	     (reference! (module-var-reference var))
+	     (assemble! `(quad ,(var-init var))))
 	   module)
 
-	  (label-here! end-label)
+	  (assemble! end-label)
 
-	  (assembler-patch-code! (current-assembler)
-				 (label-location start-label)
-				 (- (label-location end-label)
-				    (label-location start-label))
-				 8)
-	  (let ((code (assembler-get-code (current-assembler))))
+	  (let-values (((code offsets)
+			(assemble (reverse assembly))))
+	    (setup-references! offsets)
 	    (module-set-code! module code)
 	    code)))))
 
@@ -156,6 +167,6 @@
 
 (define (lir:halt)
   (add-instruction! `(movq 0 rdi))
-  (add-instruction! `(callq* ,mem:exit)))
+  (add-instruction! `(callq ,mem:exit)))
 
 (define module-current-procedure (make-parameter #f))

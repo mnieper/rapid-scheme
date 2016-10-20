@@ -23,7 +23,8 @@
 	(rename (rapid imap test) (run-tests run-rapid-imap-tests))
 	(rename (rapid compiler identifier test) (run-tests run-rapid-compiler-identifier-tests))
 	(rename (rapid binary test) (run-tests run-rapid-binary-tests))
-	(rename (rapid assembler test) (run-tests run-rapid-assembler-tests))
+	(rename (rapid compiler backend assembler test)
+		(run-tests run-rapid-compiler-backend-assembler-tests))
 	(rename (rapid compiler backend object-file test)
 		(run-tests run-rapid-compiler-backend-object-file-tests))
 	(rename (rapid compiler backend codegen test)
@@ -36,7 +37,7 @@
 (run-rapid-imap-tests)
 (run-rapid-compiler-identifier-tests)
 (run-rapid-binary-tests)
-(run-rapid-assembler-tests)
+(run-rapid-compiler-backend-assembler-tests)
 (run-rapid-compiler-backend-object-file-tests)
 (run-rapid-compiler-backend-codegen-tests)
 

@@ -49,7 +49,7 @@
 				    alist)))
 		     (imap-set-alist! map alist)
 		     (success (cdr entry)))
-		   (loop (cdr alist) alist)))))))))
+		   (loop (cdr tail) tail)))))))))
 
 (define (imap-replace map key value)
   (let ((compare (imap-compare map)))
