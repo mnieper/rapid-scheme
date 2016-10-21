@@ -15,6 +15,4 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-global-symbol 'locals    0)
-(define-global-symbol 'rapid-run "rapid_run")
-(define-global-symbol 'exit      "exit")
+(define-local-symbol 'heap-start)

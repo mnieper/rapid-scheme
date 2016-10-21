@@ -17,11 +17,14 @@
 
 (define-library (rapid compiler backend runtime)
   (export generate-global-symbols-file
-	  global-symbol-index)
+	  generate-local-symbols-file
+	  global-symbol-index
+	  local-symbol-index)
   (import (scheme base)
 	  (scheme file)
 	  (rapid gas))
   (include "runtime.scm"
-	   "runtime.global-symbols.scm"))
+	   "runtime.global-symbols.scm"
+	   "runtime.local-symbols.scm"))
 
   

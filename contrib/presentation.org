@@ -1,0 +1,50 @@
+#+TITLE:  Rapid Scheme
+#+AUTHOR: Marc Nieper-Wißkirchen
+#+EMAIL:  marc@rapid-scheme.org
+
+#+LANGUAGE: en
+#+STARTUP: beamer
+#+OPTIONS: H:2
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [presentation]
+#+BEAMER_THEME: Copenhagen
+#+SUBTITLE: An Implementation of a @@latex: \\@@Dynamic Functional Programming Language
+#+LATEX_HEADER: \resetcounteronoverlays{lstlisting}
+
+* Introduction
+** What is Rapid Scheme?
+
+*Rapid Scheme* aims to become an implementation of the dynamic
+ functional programming language Scheme.
+
+- Its distinctive features will be:
+  - It is written in portable R7RS Scheme.
+  - It compiles expressions to native code before evaluating them.
+  - It is able to compile itself for bootstrapping purposes.
+  - It is free software.
+
+- Its current limitations are:
+  - The program is far from complete.
+  - The compiler is not optimizing yet.
+  - The only supported platform so far is x86\under{}64 GNU/Linux.
+  - It does not yet fully support a published Scheme standard.
+
+** Why Scheme?
+There are many languages that could be the source language for a
+language implementation project. What makes Scheme special?
+
+- Implementing a functional programming language on usual computer
+  architectures is less straight-forward than implementing more
+  hardware-oriented languages like C, and thus more fun.
+
+- Implementing a dynamical programming language means that there is no
+  clear distinction between compile-time and run-time.  This means
+  that the compiler has to be fully integrated into the runtime system
+  but makes the language much powerful.
+
+- Scheme is such a dynamic functional programming language. It has
+  clean semantics and a compact core making it an ideal source
+  language for a language implementation project.
+
+* General overview of the compiler
+

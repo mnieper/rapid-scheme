@@ -15,6 +15,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-global-symbol 'locals    0)
-(define-global-symbol 'rapid-run "rapid_run")
-(define-global-symbol 'exit      "exit")
+(import (scheme base)
+	(rapid compiler backend runtime))
+
+(define (main)
+  (generate-local-symbols-file "local-symbols.s"))
+
+(main)

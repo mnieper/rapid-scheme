@@ -16,7 +16,7 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-noinst_SCRIPTS = scheme rapid-compiler generate-global-symbols-file
+noinst_SCRIPTS = scheme rapid-compiler generate-global-symbols-file generate-local-symbols-file
 
 scheme: Makefile
 	echo "#! /bin/sh" > $@
@@ -35,6 +35,12 @@ generate-global-symbols-file: Makefile
 	echo "#! /bin/sh" > $@
 	echo -n "$(SCHEME) " >> $@
 	echo "$(abs_top_srcdir)/src/compiler/generate-global-symbols-file.scm \"\$$@\"" >> $@
+	chmod a+x $@
+
+generate-local-symbols-file: Makefile
+	echo "#! /bin/sh" > $@
+	echo -n "$(SCHEME) " >> $@
+	echo "$(abs_top_srcdir)/src/compiler/generate-local-symbols-file.scm \"\$$@\"" >> $@
 	chmod a+x $@
 
 CLEANFILES = $(noinst_SCRIPTS)

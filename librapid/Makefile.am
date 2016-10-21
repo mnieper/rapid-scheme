@@ -17,6 +17,7 @@
 # <http://www.gnu.org/licenses/>.
 
 GENERATE_GLOBAL_SYMBOLS = ../src/compiler/generate-global-symbols-file
+GENERATE_LOCAL_SYMBOLS = ../src/compiler/generate-local-symbols-file
 
 lib_LTLIBRARIES = librapidscheme.la
 librapidscheme_la_SOURCES = rapid_main.s
@@ -25,6 +26,9 @@ librapidscheme_la_LIBADD = ../lib/libgnu.la
 global-symbols.s: ../src/compiler/lib/rapid/compiler/backend/runtime.global-symbols.scm
 	$(GENERATE_GLOBAL_SYMBOLS)
 
-rapid_main.s: global-symbols.s
+local-symbols.s: ../src/compiler/lib/rapid/compiler/backend/runtime.local-symbols.scm
+	$(GENERATE_LOCAL_SYMBOLS)
 
-CLEANFILES = global-symbols.s
+rapid_main.s: global-symbols.s local-symbols.s
+
+CLEANFILES = global-symbols.s local-symbols.s

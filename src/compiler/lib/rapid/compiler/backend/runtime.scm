@@ -58,3 +58,43 @@
 	   (write-directive "set" name ". - .Lrapid_gst")
 	   (write-directive "quad" init)))))))
 
+(define-record-type <local-symbol>
+  (make-local-symbol name index)
+  local-symbol?
+  (name local-symbol-name)
+  (index %local-symbol-index))
+
+(define local-symbols '())
+(define local-symbol-count 0)
+(define (define-local-symbol symbol)
+  (let ((local-symbol (make-local-symbol
+		       (string-append ".L"
+				      (string-map (lambda (char)
+						    (if (eq? char #\-)
+							#\_
+							char))
+						  (symbol->string symbol)))
+		       local-symbol-count)))
+    (set! local-symbols (cons (cons symbol local-symbol)
+			       local-symbols))
+    (set! local-symbol-count (+ local-symbol-count 1))))
+(define (local-symbol-index symbol)
+  (cond
+   ((assq symbol local-symbols) => (lambda (entry) (%local-symbol-index (cdr entry))))
+   (else
+    (error "unknown local symbol" symbol))))
+(define (for-each-local-symbol proc)
+  (for-each (lambda (entry)
+	      (proc (cdr entry)))
+	    (reverse local-symbols)))
+
+(define (generate-local-symbols-file filename)
+  (when (file-exists? filename)
+    (delete-file filename))  
+  (with-output-to-file filename
+    (lambda ()
+      (for-each-local-symbol
+       (lambda (local-symbol)
+	 (let ((name (local-symbol-name local-symbol)))
+	   (write-directive "set" name ". - .Lrapid_lst")
+	   (write-directive "zero" 8)))))))

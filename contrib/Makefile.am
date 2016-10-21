@@ -16,22 +16,7 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-	.section	rapid_text, "awx"
-	.global	main
-	.type	main, @function
-main:
-	pushq	%rbp
-	leaq	.Lrapid_gst(%rip), %rbp
-	movq	.Lrapid_lst@gottpoff(%rip), %rax
-	movq	%rsp, %fs:.Lheap_start(%rax)
-	movq	%rax, .Llocals(%rbp)
-	jmpq	*.Lrapid_run(%rbp)
+pdf_DATA = presentation.pdf
 
-	.balign	8
-.Lrapid_gst:
-	.include	"global-symbols.s"
-
-	.section	.tbss, "awT", @nobits
-	.balign	8
-.Lrapid_lst:
-	.include	"local-symbols.s"
+presentation.pdf: presentation.org
+	emacs $@ --batch --eval="(require 'ox-beamer)" -f org-beamer-export-to-pdf --kill

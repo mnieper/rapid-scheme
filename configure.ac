@@ -38,6 +38,7 @@ AC_CONFIG_FILES([
   doc/Makefile
   tests/Makefile
   tests/runtime/Makefile
+  contrib/Makefile
 ])
 
 # Checks for programs.
