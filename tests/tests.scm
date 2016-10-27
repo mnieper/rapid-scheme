@@ -19,6 +19,8 @@
 	(scheme process-context)
 	(rapid test)
 	(rename (rapid test test) (run-tests run-rapid-test-tests))
+	(rename (rapid and-let test) (run-tests run-rapid-and-let-tests))
+	(rename (rapid match test) (run-tests run-rapid-match-tests))
 	(rename (rapid box test) (run-tests run-rapid-box-tests))
 	(rename (rapid imap test) (run-tests run-rapid-imap-tests))
 	(rename (rapid compiler identifier test) (run-tests run-rapid-compiler-identifier-tests))
@@ -33,6 +35,8 @@
 (test-begin "Rapid Scheme")
 
 (run-rapid-test-tests)
+(run-rapid-and-let-tests)
+(run-rapid-match-tests)
 (run-rapid-box-tests)
 (run-rapid-imap-tests)
 (run-rapid-compiler-identifier-tests)
