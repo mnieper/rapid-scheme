@@ -34,6 +34,21 @@
 	       (map (imap-replace map 2 'bar)))
 	  (list (imap-ref map 1) (imap-ref map 2) (imap-ref map 1))))
 
+      (test-equal "imap-ref"
+	'(foo bar foo)
+	(let* ((map (make-imap eq?))
+	       (map (imap-replace map 1 'foo))
+	       (map (imap-replace map 2 'bar)))
+	  (list (imap-ref map 1) (imap-ref map 2) (imap-ref map 1))))
+
+      (test-equal "imap-ref/default"
+	'(qux foo bar foo)
+	(let* ((map (make-imap eq?))
+	       (map (imap-replace map 1 'foo))
+	       (map (imap-replace map 2 'bar)))
+	  (list (imap-ref/default map 3 'qux)
+		(imap-ref map 1) (imap-ref map 2) (imap-ref map 1))))
+      
       (test-equal "imap-replace"
 	'(qux bar frob)
 	(let* ((map (make-imap eq?))

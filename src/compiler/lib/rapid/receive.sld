@@ -15,12 +15,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid imap)
-  (export make-imap
-	  imap?
-	  imap-ref
-	  imap-ref/default
-	  imap-replace)
-  (import (scheme base)
-	  (scheme case-lambda))
-  (include "imap.scm"))
+(define-library (rapid receive)
+  (export receive)
+  (import (scheme base))
+  (include "receive.scm"))
+
+;; Local Variables:
+;; eval: (put 'receive 'scheme-indent-function 2)
+;; eval: (font-lock-add-keywords 'scheme-mode
+;;                               '(("(\\(receive\\)\\>" 1 font-lock-keyword-face)))
+;; End:

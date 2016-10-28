@@ -15,7 +15,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid match)
-  (export match)
-  (import (scheme base))
-  (include "match.scm"))
+(define-library (rapid receive test)
+  (export run-tests)
+  (import (scheme base)
+	  (rapid test)
+	  (rapid receive))
+  (begin
+    (define (run-tests)
+      (test-begin "receive")
+      (test-equal "receive"
+		  '(1 2)
+		  (receive (a b) (values 1 2)
+		    (list a b)))
+      
+      (test-end))))

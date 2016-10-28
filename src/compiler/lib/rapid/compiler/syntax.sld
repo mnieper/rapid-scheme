@@ -15,12 +15,16 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid imap)
-  (export make-imap
-	  imap?
-	  imap-ref
-	  imap-ref/default
-	  imap-replace)
-  (import (scheme base)
-	  (scheme case-lambda))
-  (include "imap.scm"))
+(define-library (rapid compiler syntax)
+  (export make-syntax
+	  syntax?
+	  unwrap-syntax
+	  syntax-context
+	  syntax->datum
+	  derive-syntax
+          syntax-match)
+  (import (scheme base)     (scheme write)
+	  (rapid receive)
+	  (rapid imap)
+	  (rapid compiler identifier))
+  (include "syntax.scm"))

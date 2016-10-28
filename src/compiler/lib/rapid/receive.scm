@@ -15,18 +15,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid match test)
-  (export run-tests)
-  (import (scheme base)
-	  (rapid test)
-	  (rapid match))
-  (begin
-    (define (run-tests)
-      (test-begin "Rapid Match")
-
-      #;(test-equal
-	  '(1 2 3)
-	(match `'(1 2 3)
-	  ((,x x))))
-
-      (test-end))))
+(define-syntax receive
+  (syntax-rules ()
+    ((receive formals expression body ...)
+     (let-values ((formals expression))
+       body ...))))

@@ -51,6 +51,9 @@
 		     (success (cdr entry)))
 		   (loop (cdr tail) tail)))))))))
 
+(define (imap-ref/default map key default)
+  (imap-ref map key (lambda () default)))
+
 (define (imap-replace map key value)
   (let ((compare (imap-compare map)))
     (define (failure)
