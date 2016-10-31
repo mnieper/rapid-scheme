@@ -43,6 +43,8 @@
 
 (define (get-register name)
   (cond
+   ((eq? name 'rip)
+    name)
    ((assq name *registers*)
     => cdr)
    (else
@@ -176,19 +178,22 @@
     (%make-operand
      (lambda (type)
        (case type
-	 ((reg/mem64) #t)
+	 ((mem reg/mem64) #t)
 	 (else #f)))
      (lambda (code type)
        (case type
-	 ((reg/mem64)
+	 ((mem reg/mem64)
 	  (code-set-disp! code disp)
-	  (code-set-base! code base)
-	  (code-set-index! code index)
-	  (code-set-scale! code scale)
-	  (when base
-	    (code-set-rex.b! code (register-rex base)))
-	  (when index
-	    (code-set-rex.x! code (register-rex index)))))))))
+	  (if (eq? base 'rip)
+	      (code-set-rip! code #t)
+	      (begin
+		(code-set-base! code base)
+		(code-set-index! code index)
+		(code-set-scale! code scale)
+		(when base
+		  (code-set-rex.b! code (register-rex base)))
+		(when index
+		  (code-set-rex.x! code (register-rex index)))))))))))
 
 (define (get-sib+disp source)
   (let-values
@@ -221,12 +226,13 @@
 ;;; Code to be assembled
 
 (define-record-type <code>
-  (%make-code rm rex.w rex.r rex.x rex.b)
+  (%make-code rm rip rex.w rex.r rex.x rex.b)
   code?
   (disp code-disp code-set-disp!)
   (imm code-imm code-set-imm!)
   (reg code-reg code-set-reg!)
   (rm code-rm code-set-rm!)
+  (rip code-rip code-set-rip!)
   (base code-base code-set-base!)
   (index code-index code-set-index!)
   (scale code-scale code-set-scale!)
@@ -236,7 +242,7 @@
   (rex.b code-rex.b code-set-rex.b!))
 
 (define (make-code)
-  (%make-code #f #f #f #f #f))
+  (%make-code #f #f #f #f #f #f))
 
 ;;; Patches
 (define-record-type <patch>
@@ -418,21 +424,25 @@
 
   (define (emit-modrm-sib-disp)
     (let ((rm (code-rm code)))
-      (if rm
-	  (emit-byte (modrm-byte #b11 (code-reg code) rm))
-	  (begin    
-	    (emit-byte (modrm-byte (if (code-base code)
-				       #b10
-				       #b00)
-				   (code-reg code) #b100))
-	    (emit-byte (sib-byte (code-scale code)
-				 (if (code-index code)
-				     (register-value (code-index code))
-				     #b100)
-				 (if (code-base code)
-				     (register-value (code-base code))
-				     #b101)))
-	    (emit-long (or (code-disp code) 0))))))
+      (cond
+       (rm
+	(emit-byte (modrm-byte #b11 (code-reg code) rm)))
+       ((code-rip code)
+	(emit-byte (modrm-byte #b00 (code-reg code) #b101))
+	(emit-long (or (code-disp code) 0)))
+       (else
+	(emit-byte (modrm-byte (if (code-base code)
+				   #b10
+				   #b00)
+			       (code-reg code) #b100))
+	(emit-byte (sib-byte (code-scale code)
+			     (if (code-index code)
+				 (register-value (code-index code))
+				 #b100)
+			     (if (code-base code)
+				 (register-value (code-base code))
+				 #b101)))
+	(emit-long (or (code-disp code) 0))))))
 	  
   (define (get-rex-prefix)
     (let ((rex.w (code-rex.w code))
@@ -478,6 +488,9 @@
 	      ((cd)
 	       (relative! 4)
 	       (emit-long (code-imm code)))
+	      ((/r)
+	       (emit-modrm-sib-disp)
+	       (loop opcode))
 	      ((/)
 	       (code-set-reg! code (car opcode))
 	       ;; TODO: The following is in general not the most effective encoding.

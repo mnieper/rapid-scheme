@@ -35,30 +35,29 @@
 	'context
 	(syntax-context (make-syntax #f 'context)))
 
-      (test-equal "derive-syntax: no self-references"
+      (test-equal "derive-syntax"
 	(list 'foo 'bar)
 	(let ((syntax
 	       (derive-syntax (make-syntax 'foo 'quux) 'bar)))
 	  (list (unwrap-syntax syntax)
 		(syntax-context syntax))))
 
-      (test-equal "derive-syntax: with self-references"
-	1
-	(unwrap-syntax (car (unwrap-syntax (derive-syntax '#0=(1 #0# #1=(2) #1#) #f)))))
+      (test-assert "derive-syntax: lists"
+	(syntax?
+	 (derive-syntax '(a b c) #f)))
       
-      (test-equal "syntax->datum: no self-references"
+      (test-equal "syntax->datum"
 	'(1 2)
 	(syntax->datum (derive-syntax '(1 2) #f)))
-
-      ;; NOT YET IMPLEMENTED: self-references in derive-syntax
       
-      #;(let ((datum '#2=(1 #2#)))
-	(test-assert "syntax->datum: self-references"
-	  (derive-syntax datum #f)))
-      
-      #;(test-equal
+      #;
+      (test-equal
 	  '(1 2 3)
-	(syntax-match `'(1 2 3)
-	  ((,x x))))
+	(syntax->datum
+	 (syntax-match
+	  `(derive-syntax '(1 2 3) #f)
+	  (,x x))))
 
       (test-end))))
+
+

@@ -23,7 +23,8 @@
 	  syntax->datum
 	  derive-syntax
           syntax-match)
-  (import (scheme base)     (scheme write)
+  (import (scheme base)
+	  (rapid and-let)
 	  (rapid receive)
 	  (rapid imap)
 	  (rapid compiler identifier))

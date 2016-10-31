@@ -18,6 +18,7 @@
 (define-library (rapid compiler backend runtime)
   (export generate-global-symbols-file
 	  generate-local-symbols-file
+	  global-symbol?
 	  global-symbol-index
 	  local-symbol-index)
   (import (scheme base)

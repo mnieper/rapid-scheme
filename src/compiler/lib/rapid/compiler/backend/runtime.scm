@@ -41,6 +41,8 @@
    ((assq symbol global-symbols) => (lambda (entry) (%global-symbol-index (cdr entry))))
    (else
     (error "unknown global symbol" symbol))))
+(define (global-symbol? symbol)
+  (and (assq symbol global-symbols) #t))
 (define (for-each-global-symbol proc)
   (for-each (lambda (entry)
 	      (proc (cdr entry)))

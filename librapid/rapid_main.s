@@ -25,6 +25,8 @@ main:
 	movq	.Lrapid_lst@gottpoff(%rip), %rax
 	movq	%rsp, %fs:.Lheap_start(%rax)
 	movq	%rax, .Llocals(%rbp)
+	movq	stdout(%rip), %rax
+	movq	%rax, .Lstdout(%rbp)
 	jmpq	*.Lrapid_run(%rbp)
 
 	.balign	8

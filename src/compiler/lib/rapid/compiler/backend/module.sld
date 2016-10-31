@@ -24,6 +24,7 @@
 	  module-reference-module
 	  module-reference-offset)
   (import (scheme base)
+	  (scheme cxr)
 	  (rapid imap)
 	  (rapid compiler identifier)
 	  (rapid compiler backend assembler)

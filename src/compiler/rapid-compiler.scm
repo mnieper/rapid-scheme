@@ -21,15 +21,22 @@
 	(rapid compiler backend module)
 	(rapid compiler backend codegen))
 
+(define code
+  '((assign (reg 0) msg)
+    (assign (reg 1) stdout)
+    (call fputs)
+    (assign (reg 0) 42)
+    (call exit)))
+
 (define (main)
   (define module
-    (make-module (list (list 'proc '((exit 42))))
-		 (list (list 'datum #u8(#xDE #xAD #xBE #xEF)))
+    (make-module (list (list 'proc code))
+		 (list (list 'msg (string->utf8 "Hello, World!\n")))
 		 (list (list 'var 42))))
   (codegen-emit "bootstrap.s"
 		(list module)
 		(list (list (module-reference module 'var)
-			    (module-reference module 'datum)))
+			    (module-reference module 'msg)))
 		(module-reference module 'proc)))
 
 (main)

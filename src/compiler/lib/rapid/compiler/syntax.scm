@@ -18,7 +18,7 @@
 (define-record-type <syntax>
   (make-syntax datum context)
   syntax?
-  (datum unwrap-syntax syntax-set-datum!)
+  (datum unwrap-syntax)
   (context syntax-context))
 
 (define (syntax->datum syntax)
@@ -66,84 +66,64 @@
 		  (values (identifier->symbol datum) syntax-map))
 		 (else
 		  (values datum syntax-map)))))))
-	datum)))
+	datum)
+      syntax))
 
 (define (derive-syntax datum context)
- (if (syntax? datum)
-     (make-syntax (unwrap-syntax datum) context)
-     (receive (syntax datum-map)
-	 (let loop1 ((datum datum)
-		     (datum-map (make-imap eq?)))
-	   (define (failure)
+  ;; TODO: Handle vectors and self-referential data structures
+  (if (syntax? datum)
+      (make-syntax (unwrap-syntax datum) context)
+      (let loop1 ((datum datum))
+	(cond
+	 ((syntax? datum)
+	  datum)
+	 ((pair? datum)
+	  (make-syntax
+	   (let loop2 ((datum datum))
 	     (cond
+	      ((null? datum)
+	       '())
 	      ((pair? datum)
-	       (let* ((syntax-pair (make-syntax (cons #f '()) context))
-		      (datum-map (imap-replace datum-map datum syntax-pair)))
-		 (receive (syntax-element* datum-map)
-		     (let loop2 ((datum datum)
-				 (datum-map datum-map))
-		       (cond
-			((null? datum)
-			 (values '() datum-map))
-			
-			((pair? datum)
-			 (receive (syntax-element datum-map)
-			     (loop1 (car datum) datum-map)
-			   (receive (syntax-element* datum-map)
-			       (loop2 (cdr datum) datum-map)
-			     (values (cons syntax-element syntax-element*)
-				     datum-map))))
-			(else
-			 (loop1 datum datum-map))))
-		   (syntax-set-datum! syntax-pair syntax-element*)
-		   (values syntax-pair datum-map))))
-	     ((vector? datum)
-	       ;; FIXME
-	       (error "not implemented"))
-	      ((symbol? datum)
-	       (values (make-syntax (make-synthetic-identifier datum) context) datum-map))
+	       (cons (loop1 (car datum)) (loop2 (cdr datum))))
 	      (else
-	       (values (make-syntax datum context) datum-map))))
-	   (define (success syntax)
-	     (write-shared syntax) (newline)
-	     (values syntax datum-map))
-	   (if (syntax? datum) 
-	       (values datum datum-map)
-	       (imap-ref datum-map datum failure success)))
-       syntax)))
+	       (loop1 datum))))
+	   context))
+	 (else
+	  (make-syntax datum context))))))
 
 (define-syntax syntax-match
   (syntax-rules ()
-    ((match `expr clause ...)
-     (let ((e expr))
+    ((match `syntax clause ...)
+     (let ((e (unwrap-syntax syntax))
+	   (c (syntax-context syntax)))
        (call-with-current-continuation
 	(lambda (r)
-	  (match-aux "or" `e r clause ... ())))))))
+	  (match-aux "or" `e c r (clause ...) ())))))))
 
-;; XXX: let* alone is not sufficient; and-let* neither
-;; XXX: Where to automatically pack/unpack? -> should happen in match?
-;; `could be the packer. What about the unpacker?
-
+;; problematisch: mehrere Rückgabewerte; welches sind die Syntax-Einträge?
 (define-syntax match-aux
   (syntax-rules (unquote =>)
-    ((match-aux "or" `e r () ((ac* proc) ...))
-     (or (let*
+    ((match-aux "or" `e c r () ((s ac* lc* body) ...))
+     (or (and-let*
 	     ac*
-	   (call-with-current-continuation
-	    (lambda (skip)	   
-	      (call-with-values
-		  (lambda ()
-		    (proc (lambda () (skip #f))))
-		r)))) ...
+	   (let lc*
+	       (call-with-current-continuation
+		(lambda (skip)
+		  (define (s) (skip #f))
+		  (call-with-values
+		      (lambda () . body)
+		    r)
+		  c))))
+	 ...
 	 (if #f #f)))
-    ((match-aux "or" `e r (c . c*) tc*)
-     (match-aux "clause" c `e r c* tc*))
-    ((match-aux "clause" (p => proc) `e r c* tc*)
-     (match-aux "=>" (p proc) `e r c* tc*))
-    ((match-aux "clause" (p . body) `e r c* tc*)
-     (match-aux "=>" (p (lambda (skip) . body)) `e r c* tc*))
-    ((match-aux "=>" (,x proc) `e r c* (tc ...))
-     (match-aux "or" `e r c* (tc ... (((x e) proc)))))))
+    ((match-aux "or" `e c r (cl . cl*) tc*)
+     (match-aux "clause" cl `e c r cl* tc*))
+    ((match-aux "clause" (p (=> s) . body) `e c r cl* tc*)
+     (match-aux "=>" (p s body) `e c r cl* tc*))
+    ((match-aux "clause" (p . body) `e c r cl* tc*)
+     (match-aux "=>" (p s body) `e c r cl* tc*))
+    ((match-aux "=>" (,x s body) `e c r cl* (tc ...))
+     (match-aux "or" `e c r cl* (tc ... (s () ((x e)) body))))))
 		 
      #;(let-syntax
 	 ((qq (syntax-rules ..2 ()
