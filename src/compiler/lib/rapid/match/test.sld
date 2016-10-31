@@ -46,7 +46,17 @@
 	  (x (guard #t) #t)))      
 
       (test-end)
-	
+
+      (test-begin "Pattern variables")
+
+      (test-equal "Simple pattern variable"
+	'foo
+	(match 'foo	 
+	  (x #f)
+	  (,x x)))
+
+      (test-end)
+      
       
       (test-end))))
 

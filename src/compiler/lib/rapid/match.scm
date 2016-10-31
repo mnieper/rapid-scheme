@@ -59,6 +59,11 @@
 
     ((match-aux "receive-pattern" ((k ...) guard-expr body) and-let-clause*)
      (match-aux k ... (and-let-clause* guard-expr body)))
+
+    ((match-aux "pattern" expr ,var (k ...))
+     (match-aux k ... ((var #t)
+		       ((begin (set! var expr)
+			       #t)))))
     
     ((match-aux "pattern" expr literal (k ...))
      (match-aux k ... (((eq? expr 'literal)))))
