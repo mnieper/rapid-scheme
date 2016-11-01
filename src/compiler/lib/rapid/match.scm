@@ -27,12 +27,12 @@
 (define-syntax match-aux
   (syntax-rules (unquote -> guard)
     ((match-aux e clause*)
-     (let ((expr e))
+     (let loop ((expr e))
        (call-with-current-continuation
 	(lambda (return)
-	  (match-aux "match" expr return clause* ())))))
+	  (match-aux "match" loop expr return clause* ())))))
     
-    ((match-aux "match" expr return () ((and-let-clause* guard-expr body) ...))
+    ((match-aux "match" loop expr return () ((and-let-clause* guard-expr body) ...))
      (or (and-let* and-let-clause*
 	   (and guard-expr
 		(call-with-values
@@ -40,32 +40,92 @@
 		  return)))
 	 ...
 	 (if #f #f)))
-    ((match-aux "match" expr return (clause . clause*) compiled-clauses*)
-     (match-aux "clause" expr clause
-		("receive-clause" (expr return clause* compiled-clauses*))))
+    ((match-aux "match" loop expr return (clause . clause*) compiled-clauses*)
+     (match-aux "clause" loop expr clause
+		("receive-clause" (loop expr return clause* compiled-clauses*))))
 
-    ((match-aux "receive-clause" (expr return clause* (compiled-clause1 ...))
+    ((match-aux "receive-clause" (loop expr return clause* (compiled-clause1 ...))
 		compiled-clause2)
-     (match-aux "match" expr return clause* (compiled-clause1 ... compiled-clause2)))
+     (match-aux "match" loop expr return clause*
+		(compiled-clause1 ... compiled-clause2)))
 
-    ((match-aux "clause" expr (pattern (guard guard-expr) . body) (k ...))
-     (match-aux "guarded-clause" expr (pattern guard-expr body) (k ...)))
+    ((match-aux "clause" loop expr (pattern (guard guard-expr) . body) (k ...))
+     (match-aux "guarded-clause" loop expr (pattern guard-expr body) (k ...)))
 
-    ((match-aux "clause" expr (pattern . body) (k ...))
-     (match-aux "guarded-clause" expr (pattern #t body) (k ...)))
+    ((match-aux "clause" loop expr (pattern . body) (k ...))
+     (match-aux "guarded-clause" loop expr (pattern #t body) (k ...)))
 
-    ((match-aux "guarded-clause" expr (pattern guard-expr body) (k ...))
-     (match-aux "pattern" expr pattern ("receive-pattern" ((k ...) guard-expr body))))
+    ((match-aux "guarded-clause" loop expr (pattern guard-expr body) (k ...))
+     (match-aux "pattern" loop expr pattern
+		("receive-pattern" ((k ...) guard-expr body))))
 
     ((match-aux "receive-pattern" ((k ...) guard-expr body) and-let-clause*)
      (match-aux k ... (and-let-clause* guard-expr body)))
 
-    ((match-aux "pattern" expr ,var (k ...))
+    ((match-aux "pattern" loop expr ,(cata -> var ...) (k ...))
+     (match-aux "cata" loop expr cata (var ...) (k ...)))
+    
+    ((match-aux "pattern" loop expr ,(var ...) (k ...))
+     (match-aux "cata" loop expr loop (var ...) (k ...)))
+
+    ((match-aux "cata" loop expr cata (var ...) (k ...))
+     (match-aux "cata" loop expr cata (var ...) () (k ...)))
+
+    ((match-aux "cata" loop expr cata () ((var tmp) ...) (k ...))
+     (match-aux k ... ((var #t) ...
+		       ((begin (call-with-values (lambda () (cata expr))
+				 (lambda (tmp ...)
+				   (set! var tmp) ...))
+			       #t)))))
+
+    ((match-aux "cata" loop expr cata (var1 . var*) ((var tmp) ...) (k ...))
+     (match-aux "cata" loop expr cata var* ((var tmp) ... (var1 tmp1)) (k ...)))
+    
+    ((match-aux "pattern" loop expr ,var (k ...))
      (match-aux k ... ((var #t)
 		       ((begin (set! var expr)
 			       #t)))))
-    
-    ((match-aux "pattern" expr literal (k ...))
+
+    ((match-aux "pattern" loop expr (pattern ...) (k ...))
+     (match-aux "list-pattern" loop expr (pattern ...) () (k ...)))
+
+    ((match-aux "pattern" loop expr literal (k ...))
      (match-aux k ... (((eq? expr 'literal)))))
+
+    ((match-aux "list-pattern" loop expr () (and-let-clause ...) (k ...))
+     (match-aux k ... (and-let-clause ... ((null? expr)))))
+
+    ((match-aux "list-pattern" loop expr (pattern . pattern*)
+		(and-let-clause ...) (k ...))
+     (match-aux "pattern" loop e pattern
+		("receive-list-pattern" ((k ...) loop f pattern*
+					 (and-let-clause
+					  ...
+					  ((pair? expr))
+					  (e #t)
+					  ((begin (set! e (car expr))
+						  #t))
+					  (f #t)
+					  ((begin (set! f (cdr expr))
+						  #t)))))))
+
+    ((match-aux "list-pattern" loop expr pattern
+		and-let-clause* (k ...))
+     (match-aux "pattern" loop expr pattern
+		("receive-tail-pattern" ((k ...) and-let-clause*))))
+
+    ((match-aux "receive-tail-pattern" ((k ...) (and-let-clause ...))
+		and-let-clause*)
+     (match-aux k ... (and-let-clause ... . and-let-clause*))) 
+
+    ((match-aux "receive-list-pattern" ((k ...) loop expr pattern*
+					(and-let-clause ...))
+		and-let-clause*)
+     (match-aux "list-pattern" loop expr pattern*
+		(and-let-clause ... . and-let-clause*)
+		(k ...)))
+
      
+
+    
     ))

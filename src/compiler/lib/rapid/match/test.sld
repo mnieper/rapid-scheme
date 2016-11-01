@@ -38,6 +38,49 @@
 
       (test-end)
 
+      (test-begin "List matches")
+      
+      (test-assert "Match list"
+	(match '(1 2)
+	  ((,x ,y ,z) #f)
+	  ((,x ,y) (eq? x 1))))
+
+      (test-assert "Match empty list"
+	(match '()
+	  ((,x) #f)
+	  (() #t)))
+
+      ;; FIXME: Dotted tail and vars
+      #;(test-assert "Match dotted list"
+	(match '(1 2 3)
+	  ((1 . 3) #f)
+	  ((1 . ,w) (equal? w '(2 3)))))
+
+      (test-end)
+
+      (test-begin "Catamorphisms")
+
+      (test-equal "Simple recursion"
+	'foo
+	(match '(begin (bar foo))
+	  ((bar ,x) x)
+	  ((begin ,(x)) x)))
+
+      ; FIXME: see above
+      #;(test-equal "Splitting values"
+	'((a c e) (b d f))
+	(let-values
+	    ((result 
+	      (match '(a b c d e f)
+		(() (values '() '()))
+		((,x) (values `(,x) '()))
+		((,x ,y . ,(odds evens))
+		 (values (cons x odds)
+			 (cons y evens))))))
+	  result))
+      
+      (test-end)
+      
       (test-begin "Guard expressions")
 
       (test-assert "Static guard"
@@ -54,10 +97,9 @@
 	(match 'foo	 
 	  (x #f)
 	  (,x x)))
-
+      
       (test-end)
-      
-      
-      (test-end))))
+
+      (test-end "rapid match"))))
 
 	  
