@@ -26,6 +26,7 @@
 
 (define-syntax match-aux
   (syntax-rules (unquote -> guard)
+
     ((match-aux e clause*)
      (let loop ((expr e))
        (call-with-current-continuation
@@ -40,6 +41,7 @@
 		  return)))
 	 ...
 	 (if #f #f)))
+
     ((match-aux "match" loop expr return (clause . clause*) compiled-clauses*)
      (match-aux "clause" loop expr clause
 		("receive-clause" (loop expr return clause* compiled-clauses*))))
@@ -86,8 +88,8 @@
 		       ((begin (set! var expr)
 			       #t)))))
 
-    ((match-aux "pattern" loop expr (pattern ...) (k ...))
-     (match-aux "list-pattern" loop expr (pattern ...) () (k ...)))
+    ((match-aux "pattern" loop expr (pattern1 pattern2 ... . pattern*) (k ...))
+     (match-aux "list-pattern" loop expr (pattern1 pattern2 ... . pattern*) () (k ...)))
 
     ((match-aux "pattern" loop expr literal (k ...))
      (match-aux k ... (((eq? expr 'literal)))))
@@ -95,6 +97,11 @@
     ((match-aux "list-pattern" loop expr () (and-let-clause ...) (k ...))
      (match-aux k ... (and-let-clause ... ((null? expr)))))
 
+    ((match-aux "list-pattern" loop expr ,pattern
+		and-let-clause* (k ...))
+     (match-aux "pattern" loop expr ,pattern
+		("receive-tail-pattern" ((k ...) and-let-clause*))))
+    
     ((match-aux "list-pattern" loop expr (pattern . pattern*)
 		(and-let-clause ...) (k ...))
      (match-aux "pattern" loop e pattern

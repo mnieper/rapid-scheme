@@ -26,12 +26,14 @@
 
       (test-begin "Match literals")
 
-      (test-assert "Match number"
+      (test-equal "Match number"
+	2
 	(match 2
 	  (1 #f)
-	  (2 #t)))
+	  (2 2)))
 
-      (test-assert "Match symbol"
+      (test-equal "Match symbol"
+	#t
 	(match 'x
 	  (x #t)
 	  (y #f)))
@@ -40,21 +42,23 @@
 
       (test-begin "List matches")
       
-      (test-assert "Match list"
+      (test-equal "Match list"
+	1
 	(match '(1 2)
 	  ((,x ,y ,z) #f)
-	  ((,x ,y) (eq? x 1))))
+	  ((,x ,y) x)))
 
-      (test-assert "Match empty list"
+      (test-equal "Match empty list"
+	'empty
 	(match '()
 	  ((,x) #f)
-	  (() #t)))
+	  (() 'empty)))
 
-      ;; FIXME: Dotted tail and vars
-      #;(test-assert "Match dotted list"
+      (test-equal "Match dotted list"
+	'(2 3)
 	(match '(1 2 3)
 	  ((1 . 3) #f)
-	  ((1 . ,w) (equal? w '(2 3)))))
+	  ((1 . ,w) w)))
 
       (test-end)
 
@@ -66,8 +70,7 @@
 	  ((bar ,x) x)
 	  ((begin ,(x)) x)))
 
-      ; FIXME: see above
-      #;(test-equal "Splitting values"
+      (test-equal "Splitting values"
 	'((a c e) (b d f))
 	(let-values
 	    ((result 
@@ -83,10 +86,11 @@
       
       (test-begin "Guard expressions")
 
-      (test-assert "Static guard"
+      (test-equal "Static guard"
+	'x
 	(match 'x
 	  (x (guard #f) #f)
-	  (x (guard #t) #t)))      
+	  (x (guard #t) 'x)))      
 
       (test-end)
 
