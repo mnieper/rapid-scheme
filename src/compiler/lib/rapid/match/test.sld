@@ -45,6 +45,7 @@
       (test-equal "Match list"
 	1
 	(match '(1 2)
+	  ((,x) #f)
 	  ((,x ,y ,z) #f)
 	  ((,x ,y) x)))
 
@@ -101,6 +102,26 @@
 	(match 'foo	 
 	  (x #f)
 	  (,x x)))
+      
+      (test-end)
+
+      (test-begin "Ellipsis")
+
+      (test-equal "Simple ellipsis case"
+	'(foo bar)
+	(match '(qux foo bar baz)
+	  ((qux ,x ... bla) #f)
+	  ((qux ,x ... baz) x)))
+
+      (test-equal "Two variables before ellipsis"
+	'((foo bar) (1 2))
+	(match '(qux (foo 1) (bar 2) baz)
+	  ((qux (,x ,y) ... baz) `(,x ,y))))
+
+      (test-equal "More than one ellipsis"
+	'((foo 1) (bar 2))
+	(match '(qux (foo 1) (bar 2) baz)
+	  ((qux (,x ...) ... baz) x)))
       
       (test-end)
 
