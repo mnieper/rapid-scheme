@@ -43,22 +43,22 @@
     (error "unknown global symbol" symbol))))
 (define (global-symbol? symbol)
   (and (assq symbol global-symbols) #t))
-(define (for-each-global-symbol proc)
-  (for-each (lambda (entry)
-	      (proc (cdr entry)))
-	    (reverse global-symbols)))
+(define (map-global-symbol proc)
+  (map (lambda (entry)
+	 (proc (cdr entry)))
+       (reverse global-symbols)))
 
 (define (generate-global-symbols-file filename)
   (when (file-exists? filename)
     (delete-file filename))  
-  (with-output-to-file filename
-    (lambda ()
-      (for-each-global-symbol
-       (lambda (global-symbol)
-	 (let ((name (global-symbol-name global-symbol))
-	       (init (global-symbol-init global-symbol)))
-	   (write-directive "set" name ". - .Lrapid_gst")
-	   (write-directive "quad" init)))))))
+  (output-gas-assembly
+   filename
+   (map-global-symbol
+    (lambda (global-symbol)
+      (let ((name (global-symbol-name global-symbol))
+	    (init (global-symbol-init global-symbol)))
+	`(begin (set ,name ". - .Lrapid_gst")
+		(quad ,init)))))))
 
 (define-record-type <local-symbol>
   (make-local-symbol name index)
@@ -85,18 +85,18 @@
    ((assq symbol local-symbols) => (lambda (entry) (%local-symbol-index (cdr entry))))
    (else
     (error "unknown local symbol" symbol))))
-(define (for-each-local-symbol proc)
-  (for-each (lambda (entry)
+(define (map-local-symbol proc)
+  (map (lambda (entry)
 	      (proc (cdr entry)))
-	    (reverse local-symbols)))
+       (reverse local-symbols)))
 
 (define (generate-local-symbols-file filename)
   (when (file-exists? filename)
     (delete-file filename))  
-  (with-output-to-file filename
-    (lambda ()
-      (for-each-local-symbol
-       (lambda (local-symbol)
-	 (let ((name (local-symbol-name local-symbol)))
-	   (write-directive "set" name ". - .Lrapid_lst")
-	   (write-directive "zero" 8)))))))
+  (output-gas-assembly
+   filename
+   (map-local-symbol
+    (lambda (local-symbol)
+      (let ((name (local-symbol-name local-symbol)))
+	`(begin (set ,name ". - .Lrapid_lst")
+		(zero "8")))))))

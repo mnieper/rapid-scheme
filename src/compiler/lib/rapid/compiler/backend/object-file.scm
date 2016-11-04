@@ -35,80 +35,76 @@
 					 (error "unknown section flag" (car list))))
 				      (loop (cdr list)))))))
 
-;; TODO: Don't unpack all values
-;; TODO: Use match in GAS
-
-(define (write-section section)
+(define (compile-section section)
   (match section
     ((program-section ,name (flags ,flags ...) (align ,alignment) (progbits ,progbits)
 		      (globals ,globals ...) (relocs ,relocs ...))
-     (%write-section name flags alignment (bytevector-length progbits) progbits globals relocs))
+     (%compile-section name flags alignment (bytevector-length progbits) progbits globals relocs))
     
     ((text-section ,alignment ,progbits ,globals ,relocs)
-     (write-section
+     (compile-section
       `(program-section ".text" (flags 'alloc execinstr) ,alignment ,progbits
 			,globals ,relocs)))
 
     ((data-section ,alignment ,progbits ,globals ,relocs)
-     (write-section
+     (compile-section
       `(program-section ".data" (flags 'alloc write) ,alignment ,progbits
 			,globals ,relocs)))
 
     ((bss-section (align ,alignment) (size ,size) (globals ,globals) (relocs ,relocs))
-     (%write-section ".bss" '(alloc execinstr) alignment size #f globals relocs))
+     (%compile-section ".bss" '(alloc execinstr) alignment size #f globals relocs))
     (,_ (error "invalid section" section))))
 
+(define (%compile-section name flags alignment size progbits globals relocs)
 
-(define (%write-section name flags alignment size progbits globals relocs)
-
-  (define (write-global global)
+  (define (compile-global global)
     (match global
       ((,global-name ,offset)
-       (write-directive "global" global-name)
-       (write-directive "set"
-			global-name
-			(string-append name " + " (number->hex offset))))
+       `(begin
+	  (global ,global-name)
+	  (set ,global-name
+	       ,(string-append name " + " (number->hex offset)))))
       (,_ (error "invalid global" global))))
 
-  (define (write-reloc reloc)
+  (define (compile-reloc reloc)
     (match reloc
       ((,offset ,name ,symbol ,addend)
-       (write-directive "reloc"
-			(number->hex offset)
-			(symbol->name name)
-			(string-append symbol
-				       " + "
-				       (number->hex addend))))))
-  
-  (unless (and (zero? size)
-	       (null? globals))
-    (write-directive "section" name (list->flags flags)
-		     (if progbits
-			 "@progbits"
-			 "@nobits"))
-    (for-each write-global globals)
-    (for-each write-reloc relocs)
-    
-    (when (>= alignment 2)
-      (write-directive "balign" (number->string alignment)))
-    (if progbits
-	(do ((i 0 (+ i 1)))
-	    ((= i (bytevector-length progbits)))
-	  (write-directive "byte" (number->hex
-				   (bytevector-u8-ref progbits i))))
-	(write-directive "zero" size))))
+       `(reloc
+	 ,(number->hex offset)
+	 ,(symbol->name name)
+	 ,(string-append symbol
+			 " + "
+			 (number->hex addend))))))
+
+  `(begin
+     ,@(if (and (zero? size)
+		(null? globals))
+	   '()        
+	   `((section ,name ,(list->flags flags) ,(if progbits "@progbits" "@nobits"))
+	     ,@(map compile-global globals)
+	     ,@(map compile-reloc relocs)
+	     ,@(if (>= alignment 2)
+		   `((balign ,(number->string alignment)))
+		   '())
+	     ,@(if progbits
+		   (let loop ((i 0))
+		     (if (= i (bytevector-length progbits))
+			 '()
+			 `((byte ,(number->hex (bytevector-u8-ref progbits i)))
+			   . ,(loop (+ i 1)))))
+		   `((zero ,size)))))))
 
 ;;; Object files
 
 (define (output-object-file filename object-file)
-  (with-output-to-file filename (lambda () (write-object-file object-file))))
+  (let ((assembly (compile-object-file object-file)))
+    (output-gas-assembly filename assembly)))
 
-(define (write-object-file object-file)
-  (match object-file
-    ((object-file ,section* ...)
-     (for-each write-section section*))
-    (,_ (error "invalid object file" object-file)))
-  (write-directive "end"))
+(define (compile-object-file object-file)
+  `(,@(match object-file
+	((object-file ,section* ...) (map compile-section section*))
+	(,_ (error "invalid object file" object-file)))
+    (end)))
 
 
 

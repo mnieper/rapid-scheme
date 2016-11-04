@@ -23,7 +23,7 @@
 	  local-symbol-index)
   (import (scheme base)
 	  (scheme file)
-	  (rapid gas))
+	  (rapid compiler backend gas))
   (include "runtime.scm"
 	   "runtime.global-symbols.scm"
 	   "runtime.local-symbols.scm"))

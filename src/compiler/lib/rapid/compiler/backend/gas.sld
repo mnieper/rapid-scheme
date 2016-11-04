@@ -16,6 +16,9 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid compiler backend gas)
-  (export write-label write-directive write-instruction number->hex)
-  (import (scheme base))
+  (export output-gas-assembly
+	  number->hex)
+  (import (scheme base)
+	  (scheme file)
+	  (rapid match))
   (include "gas.scm"))
