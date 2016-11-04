@@ -30,9 +30,14 @@
 
 (define (main)
   (define module
-    (make-module (list (list 'proc code))
-		 (list (list 'msg (string->utf8 "Hello, World!\n")))
-		 (list (list 'var 42))))
+    (make-module
+     `(module
+       (procedures
+	(proc ,code))
+       (data
+	(msg ,(string->utf8 "Hello, World!\n")))
+       (variables
+	(var 42)))))
   (codegen-emit
    "bootstrap.s"
    `(program

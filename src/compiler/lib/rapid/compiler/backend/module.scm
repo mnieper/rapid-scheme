@@ -49,7 +49,17 @@
   (offsets module-offsets)
   (code module-code))
 
-(define (make-module procedures datums vars)
+(define (make-module module)
+ (match module
+   ((module
+     (procedures (,proc-name* ,proc-code*) ...)
+     (data (,data-name* ,data-bytes*) ...)
+     (variables (,var-name* ,var-init*) ...))
+    (compile-module (map list proc-name* proc-code*)
+   	  	    (map list data-name* data-bytes*)
+		    (map list var-name* var-init*)))))
+
+(define (compile-module procedures datums vars)
   (let ((start-label (make-synthetic-identifier 'start))
 	(end-label (make-synthetic-identifier 'end)))
     
