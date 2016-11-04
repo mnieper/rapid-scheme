@@ -15,65 +15,12 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;;; Globals
-
-(define-record-type <global>
-  (object-file-make-global name offset)
-  object-file-global?
-  (name global-name)
-  (offset global-offset))
-
-(define (write-global section global)
-  (write-directive "global" (global-name global))
-  (write-directive "set"
-		   (global-name global)
-		   (string-append (section-name section)
-				  " + "
-				  (number->hex (global-offset global)))))
-
-;;; Relocs
-
-(define-record-type <reloc>
-  (make-reloc offset name symbol addend)
-  object-file-reloc?
-  (offset reloc-offset)
-  (name reloc-name)
-  (symbol reloc-symbol)
-  (addend reloc-addend))
-
-(define (object-file-make-reloc offset name symbol addend)
-  (make-reloc offset (symbol->name name) symbol addend))
-
 (define (symbol->name symbol)
   (case symbol
     ((R_X86_64_64) "R_X86_64_64")
     ((R_X86_64_32S) "R_X86_64_32S")
     (else
      (error "unknown reloc name" symbol))))
-
-(define (write-reloc reloc)
-  (write-directive "reloc"
-		   (number->hex (reloc-offset reloc))
-		   (reloc-name reloc)
-		   (string-append (reloc-symbol reloc)
-				  " + "
-				  (number->hex (reloc-addend reloc)))))
-
-;;; Sections
-
-(define-record-type <object-file-section>
-  (make-section name flags alignment size progbits globals relocs)
-  object-file-section?
-  (name section-name)
-  (flags section-flags)
-  (alignment section-alignment object-file-section-set-alignment!)
-  (size section-size section-set-size!)
-  (progbits section-progbits section-set-progbits!)
-  (globals section-globals)
-  (relocs section-relocs))
-
-(define (object-file-make-section name flags alignment size progbits globals reloc)
-  (make-section name (list->flags flags) alignment size progbits globals reloc))
 
 (define (list->flags list)
   (string-append "\""
@@ -88,47 +35,80 @@
 					 (error "unknown section flag" (car list))))
 				      (loop (cdr list)))))))
 
-(define (object-file-make-program-section name flags alignment progbits globals relocs)
-  (object-file-make-section name flags
-			    alignment (bytevector-length progbits) progbits globals relocs))
-
-(define (object-file-make-text-section alignment progbits globals relocs)
-  (object-file-make-program-section ".text" '(alloc execinstr)
-			    alignment progbits globals relocs))
-
-(define (object-file-make-data-section alignment progbits globals relocs)
-  (object-file-make-program-section ".data" '(alloc write)
-				    alignment progbits globals relocs))
-
-(define (object-file-make-bss-section alignment size globals relocs)
-  (object-file-make-section ".bss" '(alloc execinstr)
-			    alignment size #f globals relocs))
-
+;; TODO: Don't unpack all values
+;; TODO: Use match in GAS
 
 (define (write-section section)
-  (unless (and (zero? (section-size section))
-	       (null? (section-globals section)))
-    (write-directive "section" (section-name section) (section-flags section)
-		     (if (section-progbits section)
+  (match section
+    ((program-section ,name (flags ,flags ...) (align ,alignment) (progbits ,progbits)
+		      (globals ,globals ...) (relocs ,relocs ...))
+     (%write-section name flags alignment (bytevector-length progbits) progbits globals relocs))
+    
+    ((text-section ,alignment ,progbits ,globals ,relocs)
+     (write-section
+      `(program-section ".text" (flags 'alloc execinstr) ,alignment ,progbits
+			,globals ,relocs)))
+
+    ((data-section ,alignment ,progbits ,globals ,relocs)
+     (write-section
+      `(program-section ".data" (flags 'alloc write) ,alignment ,progbits
+			,globals ,relocs)))
+
+    ((bss-section (align ,alignment) (size ,size) (globals ,globals) (relocs ,relocs))
+     (%write-section ".bss" '(alloc execinstr) alignment size #f globals relocs))
+    (,_ (error "invalid section" section))))
+
+
+(define (%write-section name flags alignment size progbits globals relocs)
+
+  (define (write-global global)
+    (match global
+      ((,global-name ,offset)
+       (write-directive "global" global-name)
+       (write-directive "set"
+			global-name
+			(string-append name " + " (number->hex offset))))
+      (,_ (error "invalid global" global))))
+
+  (define (write-reloc reloc)
+    (match reloc
+      ((,offset ,name ,symbol ,addend)
+       (write-directive "reloc"
+			(number->hex offset)
+			(symbol->name name)
+			(string-append symbol
+				       " + "
+				       (number->hex addend))))))
+  
+  (unless (and (zero? size)
+	       (null? globals))
+    (write-directive "section" name (list->flags flags)
+		     (if progbits
 			 "@progbits"
 			 "@nobits"))
-    (for-each (lambda (global) (write-global section global)) (section-globals section))
-    (for-each write-reloc (section-relocs section))
-    (when (>= (section-alignment section) 2)
-      (write-directive "balign" (number->string (section-alignment section))))
-    (let ((progbits (section-progbits section)))
-      (if progbits
-	  (do ((i 0 (+ i 1)))
-	      ((= i (bytevector-length progbits)))
-	    (write-directive "byte" (number->hex
-				     (bytevector-u8-ref progbits i))))
-	  (write-directive "zero" (number->string (section-size section)))))))
-  
+    (for-each write-global globals)
+    (for-each write-reloc relocs)
+    
+    (when (>= alignment 2)
+      (write-directive "balign" (number->string alignment)))
+    (if progbits
+	(do ((i 0 (+ i 1)))
+	    ((= i (bytevector-length progbits)))
+	  (write-directive "byte" (number->hex
+				   (bytevector-u8-ref progbits i))))
+	(write-directive "zero" size))))
+
 ;;; Object files
 
-(define (output-object-file filename sections)
-  (with-output-to-file filename (lambda () (write-object-file sections))))
+(define (output-object-file filename object-file)
+  (with-output-to-file filename (lambda () (write-object-file object-file))))
 
-(define (write-object-file sections)
-  (for-each write-section sections)
+(define (write-object-file object-file)
+  (match object-file
+    ((object-file ,section* ...)
+     (for-each write-section section*))
+    (,_ (error "invalid object file" object-file)))
   (write-directive "end"))
+
+
+

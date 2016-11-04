@@ -16,17 +16,9 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid compiler backend object-file)
-  (export object-file-make-section
-	  object-file-make-program-section
-	  object-file-make-text-section
-	  object-file-make-data-section
-	  object-file-make-bss-section
-	  output-object-file
-	  object-file-make-global
-	  object-file-global?
-	  object-file-make-reloc
-	  object-file-reloc?)
+  (export output-object-file)
   (import (scheme base)
 	  (scheme file)
+	  (rapid match)
 	  (rapid compiler backend gas))
   (include "object-file.scm"))

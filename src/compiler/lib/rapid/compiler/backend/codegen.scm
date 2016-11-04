@@ -23,25 +23,27 @@
       (+ (module-offset (module-reference-module reference))
 	 (module-reference-offset reference)))
     (define (entry-global)
-      (object-file-make-global "rapid_run" (reference-address entry)))
+      `("rapid_run" ,(reference-address entry)))
     (define (init->reloc init)
       (let ((var (car init))
 	    (reference (cadr init)))
-	(object-file-make-reloc (reference-address var)
-				'R_X86_64_64
-				"rapid_text"
-				(reference-address reference))))
-    (let ((globals (list (entry-global)))
-	  (relocs (map init->reloc inits))
-	  (progbits (make-bytevector size 0)))
+	`(,(reference-address var)
+	  R_X86_64_64
+	  "rapid_text"
+	  ,(reference-address reference))))
+    (let ((progbits (make-bytevector size 0)))
       (for-each
        (lambda (module)
 	 (bytevector-copy! progbits (module-offset module) (module-code module)))
        modules)
-      (let ((rapid-text-section
-	     (object-file-make-program-section "rapid_text" '(alloc write execinstr)
-					       8 progbits globals relocs)))
-	(output-object-file filename (list rapid-text-section))))))
+      (output-object-file
+       filename
+       `(object-file
+	 (program-section
+	  "rapid_text" (flags alloc write execinstr) (align 8)
+	  (progbits ,progbits)
+	  (globals ,(entry-global))
+	  (relocs ,@(map init->reloc inits))))))))
 
 (define (get-module-offsets modules)
   (let loop ((modules modules)
