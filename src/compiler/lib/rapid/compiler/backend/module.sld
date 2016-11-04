@@ -19,10 +19,7 @@
   (export make-module
 	  module?
 	  module-code
-	  module-reference?
-	  module-reference
-	  module-reference-module
-	  module-reference-offset)
+	  module-label-offset)
   (import (scheme base)
 	  (scheme cxr)
 	  (rapid imap)

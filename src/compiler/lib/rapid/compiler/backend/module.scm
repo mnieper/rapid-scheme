@@ -37,12 +37,6 @@
 
 ;;; Modules
 
-(define-record-type <module-reference>
-  (make-reference module offset)
-  module-reference?
-  (module module-reference-module)
-  (offset module-reference-offset))
-
 (define-record-type <module>
   (%make-module offsets code)
   module?
@@ -168,11 +162,11 @@
 					       (map car vars)))))
 	  (%make-module offsets code))))))
 
-(define (label-offset module label)
+(define (module-label-offset module label)
   (imap-ref (module-offsets module) label))
 
 (define (module-reference module label)
-  (make-reference module (label-offset module label)))
+  (make-reference module (module-label-offset module label)))
 
 (define (bytevector->assembly bytes)
   `(begin ,@(let loop ((i 0))

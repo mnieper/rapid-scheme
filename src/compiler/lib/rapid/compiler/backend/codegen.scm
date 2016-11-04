@@ -17,10 +17,14 @@
 
 (define (codegen-emit filename program)
   (match program
-    ((program (modules ,module* ...)
+    ((program (modules (,name* ,module*) ...)
 	      (inits (,var* ,reference*) ...)
 	      (entry ,entry))
-     (%codegen-emit filename module* (map list var* reference*) entry))
+     (%codegen-emit filename
+		    (map (lambda (name module)
+			   (list name (make-module module)))
+			 name* module*)
+		    (map list var* reference*) entry))
     (,_ (error "invalid program" program))))
 
 (define (%codegen-emit filename modules inits entry)
@@ -28,8 +32,9 @@
     (define (module-offset module)
       (imap-ref offsets module))
     (define (reference-address reference)
-      (+ (module-offset (module-reference-module reference))
-	 (module-reference-offset reference)))
+      (let ((module (cadr (assq (car reference) modules)))
+	    (offset (module-offset (car reference))))
+	(+ offset (module-label-offset module (cadr reference)))))
     (define (entry-global)
       `("rapid_run" ,(reference-address entry)))
     (define (init->reloc init)
@@ -42,7 +47,9 @@
     (let ((progbits (make-bytevector size 0)))
       (for-each
        (lambda (module)
-	 (bytevector-copy! progbits (module-offset module) (module-code module)))
+	 (bytevector-copy! progbits
+			   (module-offset (car module))
+			   (module-code (cadr module))))
        modules)
       (output-object-file
        filename
@@ -59,11 +66,12 @@
 	     (offsets (make-imap eq?)))
     (if (null? modules)
 	(values offsets offset)
-	(let ((module (car modules)))
+	(let ((name (caar modules))
+	      (module (cadar modules)))
 	  (let ((code (module-code module)))
 	    (loop (cdr modules)
 		  (+ offset (align (+ offset (bytevector-length code)) 16))
-		  (imap-replace offsets module offset)))))))
+		  (imap-replace offsets name offset)))))))
 
 (define (align integer alignment)
   (let*

@@ -29,21 +29,19 @@
     (call exit)))
 
 (define (main)
-  (define module
-    (make-module
-     `(module
-       (procedures
-	(proc ,code))
-       (data
-	(msg ,(string->utf8 "Hello, World!\n")))
-       (variables
-	(var 42)))))
   (codegen-emit
    "bootstrap.s"
    `(program
-     (modules ,module)
-     (inits (,(module-reference module 'var)
-	     ,(module-reference module 'msg)))
-     (entry ,(module-reference module 'proc)))))
+     (modules
+      (main
+       (module
+        (procedures
+   	 (proc ,code))
+	(data
+	 (msg ,(string->utf8 "Hello, World!\n")))
+	(variables
+	 (var 42))))) 
+     (inits ((main var) (main msg)))
+     (entry (main proc)))))
 
 (main)

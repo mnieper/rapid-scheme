@@ -18,6 +18,7 @@
 (define-library (rapid compiler backend codegen)
   (export codegen-emit)
   (import (scheme base)
+	  (scheme cxr)
 	  (rapid imap)
 	  (rapid match)
 	  (rapid compiler backend module)
