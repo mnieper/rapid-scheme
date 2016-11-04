@@ -340,44 +340,27 @@
   (or (label-difference? exp)))
 
 (define (assemble-statement assembler stmt offsets patches)
-  (cond
-   ((identifier? stmt)
-    (assemble-label assembler stmt offsets patches))
-   ((align-directive? stmt)
-    (assemble-align-directive assembler stmt offsets patches))
-   ((assembler-sequence? stmt)
-    (assemble-sequence assembler stmt offsets patches))
-   ((assembler-instruction? stmt)
-    (assemble-instruction assembler stmt offsets patches))
-   (else
-    (error "invalid assembler statement" stmt))))
-
-(define (align-directive? stmt)
-  (and (pair? stmt) (eq? (car stmt) 'align)))
-
-(define (align-directive-alignment stmt)
-  (cadr stmt))
-
-(define (assembler-sequence? stmt)
-  (and (pair? stmt) (eq? (car stmt) 'begin)))
-
-(define (assembler-sequence-statements stmt)
-  (cdr stmt))
-
-(define (assembler-instruction? stmt)
-  (pair? stmt))
+  (match stmt
+    (,label (guard (identifier? label))
+     (assemble-label assembler label offsets patches))
+    ((align ,alignment)
+     (assemble-align-directive assembler alignment offsets patches))
+    ((begin ,stmt* ...)
+     (assemble-sequence assembler stmt* offsets patches))
+    ((,mnemonic ,operand* ...)
+     (assemble-instruction assembler mnemonic operand* offsets patches))
+    (,_ (error "invalid assembler statement" stmt))))
 
 (define (assemble-label assembler label offsets patches)
   (let ((offsets (imap-replace offsets label (assembler-position assembler))))
     (values offsets patches)))
   
-(define (assemble-align-directive assembler directive offsets patches)
-  (let ((alignment (align-directive-alignment directive)))
-    (assembler-align! assembler alignment)
-    (values offsets patches)))
+(define (assemble-align-directive assembler alignment offsets patches)
+  (assembler-align! assembler alignment)
+  (values offsets patches))
 
-(define (assemble-sequence assembler sequence offsets patches)
-  (let loop ((stmts (assembler-sequence-statements sequence))
+(define (assemble-sequence assembler stmts offsets patches)
+  (let loop ((stmts stmts)
 	     (offsets offsets)
 	     (patches patches))
     (if (null? stmts)
@@ -386,7 +369,7 @@
 		      (assemble-statement assembler (car stmts) offsets patches)))
 	  (loop (cdr stmts) offsets patches)))))
 
-(define (assemble-instruction assembler inst offsets patches)
+(define (assemble-instruction assembler mnemonic operands offsets patches)
   (define code (make-code))
 
   (define after-label (make-synthetic-identifier 'after-inst))
@@ -457,8 +440,7 @@
       (when prefix
 	(emit-byte prefix))))
     
-  (let ((mnemonic (car inst))
-	(operands (map make-operand (cdr inst))))
+  (let ((operands (map make-operand operands)))
     (let ((instruction (get-instruction mnemonic operands)))
       (define opcode (instruction-opcode instruction))
 
