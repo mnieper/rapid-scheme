@@ -15,7 +15,19 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define (codegen-emit filename modules inits entry)
+
+;;; takes (code (module ...) (init var reference) ... (entry ...))
+
+
+(define (codegen-emit filename program)
+  (match program
+    ((program (modules ,module* ...)
+	      (inits (,var* ,reference*) ...)
+	      (entry ,entry))
+     (%codegen-emit filename module* (map list var* reference*) entry))
+    (,_ (error "invalid program" program))))
+
+(define (%codegen-emit filename modules inits entry)
   (let-values (((offsets size) (get-module-offsets modules)))
     (define (module-offset module)
       (imap-ref offsets module))

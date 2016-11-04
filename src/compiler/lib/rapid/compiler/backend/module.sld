@@ -26,6 +26,7 @@
   (import (scheme base)
 	  (scheme cxr)
 	  (rapid imap)
+	  (rapid match)
 	  (rapid compiler identifier)
 	  (rapid compiler backend assembler)
 	  (rapid compiler backend runtime))

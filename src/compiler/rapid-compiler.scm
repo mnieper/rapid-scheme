@@ -33,10 +33,12 @@
     (make-module (list (list 'proc code))
 		 (list (list 'msg (string->utf8 "Hello, World!\n")))
 		 (list (list 'var 42))))
-  (codegen-emit "bootstrap.s"
-		(list module)
-		(list (list (module-reference module 'var)
-			    (module-reference module 'msg)))
-		(module-reference module 'proc)))
+  (codegen-emit
+   "bootstrap.s"
+   `(program
+     (modules ,module)
+     (inits (,(module-reference module 'var)
+	     ,(module-reference module 'msg)))
+     (entry ,(module-reference module 'proc)))))
 
 (main)
