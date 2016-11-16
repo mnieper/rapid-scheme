@@ -17,7 +17,10 @@
 
 (define-instruction (byte imm8)            ib         )
 (define-instruction (callq reg/mem64)      #xFF / 2   )
+(define-instruction (cmpq reg/mem64 reg64) rex #x3B /r)
+(define-instruction (cmpq imm32 reg/mem64) rex #x81 / 7 id)
 (define-instruction (jmpq reg/mem64)       #xFF / 4   )
+(define-instruction (je rel32off)          #x0F #x84 cd)
 (define-instruction (jmp rel32off)         #xE9 cd    )
 (define-instruction (leaq mem reg64)   rex #x8D /r    )
 (define-instruction (movl imm32 reg32)     #xB8 +rd id)

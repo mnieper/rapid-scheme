@@ -23,6 +23,8 @@
 
 (define code
   '((goto (label start1))
+    (compare (reg 0) (reg 1))
+    (branch (cond =) (label start2))
     (halt)
     start1
     (assign 0 (local start2))
