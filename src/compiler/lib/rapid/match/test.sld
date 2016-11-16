@@ -122,6 +122,13 @@
 	'((foo 1) (bar 2))
 	(match '(qux (foo 1) (bar 2) baz)
 	  ((qux (,x ...) ... baz) x)))
+
+      (test-equal "Empty list"
+	'()
+	(match '(foo)
+	  ((foo (,x* ,y*) ...)
+	   (map list x* y*))
+	  (,_ #f)))
       
       (test-end)
 

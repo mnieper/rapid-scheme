@@ -22,10 +22,23 @@
 	(rapid compiler backend codegen))
 
 (define code
-  '((assign (reg 0) msg)
-    (assign (reg 1) stdout)
+  '((goto (label start1))
+    (halt)
+    start1
+    (assign 0 (local start2))
+    (goto (reg 0))
+    start2
+    ;; TODO: Better mnemonics!
+    (assign 3 (local v))
+    (assign 4 (local start3))
+    (set! 3 (const 0) (reg 4))
+    (goto (ref 3 (const 0)))
+    start3
+    (assign 0 (local msg))
+    (assign 1 (global stdout))
     (call fputs)
-    (assign (reg 0) 42)
+    (assign 0 (local var))
+    (assign 0 (op +) (ref 0 (const 0)) (const 2))
     (call exit)))
 
 (define (main)
@@ -40,8 +53,9 @@
 	(data
 	 (msg ,(string->utf8 "Hello, World!\n")))
 	(variables
-	 (var 42))))) 
-     (inits ((main var) (main msg)))
+	 (v 0)
+	 (var 42)))))
+     (inits #;((main var) (main msg)))
      (entry (main proc)))))
 
 (main)

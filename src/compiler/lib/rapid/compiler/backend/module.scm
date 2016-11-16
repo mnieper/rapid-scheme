@@ -15,25 +15,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;; Module language
-;;
-;; <input> : (reg <register-name>)
-;;         | (const <constant-value>) | (global <global-name>) | (ref <register-name> <offset>) | (byte-ref <register-name> <offset>) | (local <local-name>)
-;; <offset>: (reg <register-name>) | (const <constant-value>)
-;;
-;; (assign <register-name> <input>)
-;; (assign <register-name> (op <operation-name>) <input> ...)
-;; (perform (op <operation-name>) <input> ...)
-;; (test (op <operation-name) <input> ...)
-;; (branch (label <label>))
-;; (goto (label <label>))
-;; (goto (reg <register-name>))
-;; (goto (ref <register-name> <offset>))
-;; (call <global-name>)
-;; (set! <register name> <offset> <offset>)
-;; (byte-set! <register name> <offset> <offset>)
-;; (assign <register-name> (record ...))
-
 
 ;;; Modules
 
@@ -54,8 +35,8 @@
 		    (map list var-name* var-init*)))))
 
 (define (compile-module procedures datums vars)
-  (let ((start-label (make-synthetic-identifier 'start))
-	(end-label (make-synthetic-identifier 'end)))
+  (let ((start-label (make-synthetic-identifier 'module-start))
+	(end-label (make-synthetic-identifier 'module-end)))
     
     (define (compile-procedures procedures)
       `(begin ,@(map compile-procedure procedures)))
@@ -64,12 +45,14 @@
       `(begin ,@(map compile-datum datums)))
 
     (define (compile-vars vars)
+      ;; TODO: Add some link for GC. 
       `(begin ,@(map compile-var vars)))
 
     (define (compile-procedure procedure)
       (let ((label (car procedure))
 	    (stmts (cadr procedure)))
 	`(begin (align 8)
+		(quad (- ,label ,start-label)) ;; TODO: GC-FLAG
 		,label
 		,(compile-statements stmts))))
 
@@ -86,65 +69,7 @@
 	    (init (cadr var)))
 	`(begin (align 8)
 		,label
-		(quad ,init))))
-
-    (define (compile-statements stmts)
-      `(begin ,@(map compile-statement stmts)))
-
-    (define (compile-statement stmt)
-      (cond
-       ((label? stmt)
-	(compile-label stmt))
-       ((instruction? stmt)
-	(compile-instruction stmt))
-       (else
-	(error "invalid statement" stmt))))
-
-    (define (compile-instruction inst)
-      (case (instruction-name inst)
-	((call)
-	 (compile-call inst))
-	((assign)
-	 (compile-assignment inst))
-	((halt)
-	 (compile-halt inst))
-	(else (error "invalid instruction" inst))))
-
-    (define (compile-reference exp)
-      (cond
-       ((register? exp)
-	(get-machine-register (register-index exp)))
-       ((global? exp)
-	(global-symbol exp))
-       (else
-	(error "invalid reference" exp))))
-    
-    (define (compile-expression exp target)
-      (cond
-       ((register? exp)
-	`(movq ,(get-machine-register (register-index exp)) ,(compile-reference target)))
-       ((immediate? exp)
-	`(movq ,(immediate-value exp) ,(compile-reference target)))
-       ((global? exp)
-	(if (register? target)
-	    `(movq ,(global-symbol exp) ,(compile-reference target))
-	    `(begin (movq ,(global-symbol exp) rax)
-		    (movq rax ,(compile-reference target)))))
-       ((label? exp)
-	(let ((after-instruction-label (make-synthetic-identifier 'after-instruction-label)))	    
-	  (if (register? target)
-	      `(begin (leaq ((- ,exp ,after-instruction-label) rip) ,(compile-reference target))
-		      ,after-instruction-label)
-	      `(begin (leaq ((- ,exp ,after-instruction-label) rip) rax)
-		      ,after-instruction-label
-		      (movq rax ,(compile-reference target))))))
-       (else
-	(error "invalid expression" exp))))
-    
-    (define (compile-assignment inst)
-      (let ((target (assignment-target inst))
-	    (source (assignment-source inst)))
-	(compile-expression source target)))
+		(quad ,(immediate-value init)))))
 
     (let ((procedures-assembly (compile-procedures procedures))
 	  (datums-assembly (compile-datums datums))
@@ -161,12 +86,9 @@
 					       (map car datums)
 					       (map car vars)))))
 	  (%make-module offsets code))))))
-
+  
 (define (module-label-offset module label)
   (imap-ref (module-offsets module) label))
-
-(define (module-reference module label)
-  (make-reference module (module-label-offset module label)))
 
 (define (bytevector->assembly bytes)
   `(begin ,@(let loop ((i 0))
@@ -190,56 +112,123 @@
 (define (label? stmt)
   (identifier? stmt))
 
-(define (instruction? stmt)
-  (pair? stmt))
+(define (compile-statements stmts)
+  `(begin ,@(map compile-statement stmts)))
 
-(define (instruction-name inst)
-  (car inst))
+(define (compile-statement stmt)
+  (match stmt
+    (,label (guard (label? label)) (compile-label label))
+    ((call ,global-name) (compile-call global-name))
+    ((assign ,register-name (op ,operation) ,input* ...)
+     (compile-operation register-name operation input*))
+    ((assign ,register-name ,input) (compile-assignment register-name input))
+    ((set! ,base-name ,offset ,value) (compile-set! base-name offset value))
+    ((goto ,target) (compile-jump target))
+    ((halt) (compile-halt))
+    (,_ (error "invalid statement" stmt))))
 
-(define (instruction-operands inst)
-  (cdr inst))
+;; Module language
+;;
+;; <input> : (reg <register-name>)
+;;         | (const <constant-value>)
+;;         | (global <global-name>)
+;;         | (ref <register-name> <offset>)
+;;         | (byte-ref <register-name> <offset>)
+;;         | (local <local-name>)
+;; <offset>: (reg <register-name>) | (const <constant-value>)
+;;
+;; (assign <register-name> <input>)
+;; (assign <register-name> (op <operation-name>) <input> ...)
+;; (perform (op <operation-name>) <input> ...)
+;; (test (op <operation-name) <input> ...)
+;; (branch (label <label>))
+;; (goto (label <label>))
+;; (goto (reg <register-name>))
+;; (goto (ref <register-name> <offset>))
+;; (call <global-name>)
+;; (set! <register name> <offset> <offset>)
+;; (byte-set! <register name> <offset> <offset>)
+;; (assign <register-name> (record ...))
+
+(define (compile-jump target)
+  (match target
+    ((reg ,register-name)
+     `(jmpq ,(get-machine-register register-name)))
+    ((label ,label-name)
+     `(jmp ,label-name))
+    ((ref ,register-name ,offset)
+     `(jmpq ,(compile-reference register-name offset)))
+    (,_
+     (error "invalid goto target" target))))
+
+(define (compile-reference base-name offset)
+  (let ((base-register (get-machine-register base-name)))
+    (match offset
+      ((const ,constant-value)
+       `(,(* 8 constant-value) ,base-register))
+      ((reg ,index-register-name)
+       `(,base-register ,(get-machine-register index-register-name) 8)))))     
+
+(define (compile-expression register exp)
+  (match exp
+    ((const ,constant-value)
+     `(movq ,(immediate-value constant-value) ,register))
+    ((reg ,source-register-name)
+     `(movq ,(get-machine-register source-register-name) ,register))
+    ((local ,local-name)
+     `(leaq (,local-name rip) ,register))
+    ((global ,global-name)
+     `(movq ,(global-symbol global-name) ,register))
+    ((ref ,register-name ,offset)
+     `(movq ,(compile-reference register-name offset) ,register))
+    (,_
+     (error "invalid input" exp))))
+
+(define (compile-set! base-name offset value)
+  (let ((target (compile-reference base-name offset)))
+    (match value
+      ((reg ,register-name)
+       `(movq ,(get-machine-register register-name) ,target))
+      ((const ,constant-value)
+       `(movq ,(immediate-value constant-value) ,target)))))
+
+(define (compile-assignment register-name input)
+  (let ((register (get-machine-register register-name)))
+    (compile-expression register input)))
+    
+(define (compile-operation register-name operation input*)  
+  (let ((register (get-machine-register register-name)))
+    (case operation
+      ((+) (compile-addition register input*))
+      (else
+       (error "unknown operation" operation)))))
+  
+(define (compile-addition target input*)
+  (let ((input1 (car input*))
+	(input2 (cadr input*)))
+    `(begin ,(compile-expression (acc) input1)
+	    ,(compile-expression target input2)
+	    (leaq (-1 ,(acc) ,target) ,target))))
 
 (define (compile-label label)
   label)
 
-(define (call-instruction-callee inst)
-  (cadr inst))
+(define (compile-call callee)
+  (case callee
+    ((exit)
+     `(begin (sarq rdi)
+	     (callq ,(global-symbol 'exit))))
+    ((fputs)
+     `(callq ,(global-symbol 'fputs)))
+    (else
+     (error "unknown global procedure" callee))))
 
-(define (assignment-target inst)
-  (cadr inst))
-
-(define (assignment-source inst)
-  (caddr inst))
-
-(define (compile-call inst)
-  (let ((callee (call-instruction-callee inst)))
-    (case callee
-      ((exit)
-       `(begin (sarq rdi)
-	       (callq ,(global-symbol 'exit))))
-      ((fputs)
-       `(callq ,(global-symbol 'fputs)))
-      (else
-       (error "unknown procedure" callee)))))
-
-(define (compile-halt inst)
+(define (compile-halt)
   `(begin (movq 0 rdi)
 	  (callq ,(global-symbol 'exit))))
 
-(define (register? operand)
-  (and (pair? operand) (eq? (car operand) 'reg)))
-
-(define (immediate? operand)
-  (number? operand))
-
 (define (immediate-value imm)
   (+ (* 2 imm) 1))
-
-(define (register-index reg)
-  (cadr reg))
-
-(define (global? exp)
-  (global-symbol? exp))
 
 (define (label? exp)
   (identifier? exp))
@@ -247,3 +236,4 @@
 (define *machine-registers* #(rdi rsi rdx rcx r8 r9 rbx r12 r13 r14 r15 r10 r11))
 (define (get-machine-register index)
   (vector-ref *machine-registers* index))
+(define (acc) 'rax)

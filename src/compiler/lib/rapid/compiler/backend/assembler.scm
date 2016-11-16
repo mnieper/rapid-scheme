@@ -146,10 +146,13 @@
   (%make-operand
    (lambda (type)
      (case type
-       ((imm8 imm16 imm32 imm64 imm16/32 imm32/64) #t)
+       ((imm8 imm16 imm32 imm64 imm16/32 imm32/64 rel32off) #t)
        (else #f)))
    (lambda (code type)
-     (code-set-imm! code source))))
+     (case type
+       ((rel32off) (code-set-off! code source))
+       (else
+	(code-set-imm! code source))))))
 
 (define (make-register-operand source)
   (let ((register (get-register source)))
@@ -230,6 +233,7 @@
   code?
   (disp code-disp code-set-disp!)
   (imm code-imm code-set-imm!)
+  (off code-off code-set-off!)
   (reg code-reg code-set-reg!)
   (rm code-rm code-set-rm!)
   (rip code-rip code-set-rip!)
@@ -374,24 +378,19 @@
 
   (define after-label (make-synthetic-identifier 'after-inst))
 
-  (define (relative! size)
-    (let ((patch-label (make-synthetic-identifier 'patch)))    
-      (let ((patch (make-patch (assembler-position assembler)
-			       size
-			       (make-label-difference after-label patch-label))))
-	(set! patches (add-patch patches patch)))))
-			     
   (define (emit bytevector)
     (assembler-emit assembler bytevector))
 
   (define (emit-value value size)
-    (if (label-expression? value)
-	(let ((patch (make-patch (assembler-position assembler)
-				 size
-				 value)))
-	  (set! patches (add-patch patches patch))
-	  (emit (make-bytevector size 0)))
-	(emit (integer->bytevector value size))))
+    (if (identifier? value)
+	(emit-value `(- ,value ,after-label) size)
+	(if (label-expression? value)
+	    (let ((patch (make-patch (assembler-position assembler)
+				     size
+				     value)))
+	      (set! patches (add-patch patches patch))
+	      (emit (make-bytevector size 0)))
+	    (emit (integer->bytevector value size)))))
 
   (define (emit-byte int)
     (emit-value int 1))
@@ -468,8 +467,7 @@
 	      ((iq)
 	       (emit-quad (code-imm code)))
 	      ((cd)
-	       (relative! 4)
-	       (emit-long (code-imm code)))
+	       (emit-long (make-label-difference (code-off code) after-label)))
 	      ((/r)
 	       (emit-modrm-sib-disp)
 	       (loop opcode))
@@ -487,8 +485,8 @@
 		   (begin
 		     (emit-byte component)
 		     (loop opcode))))))))
-
-      (values offsets patches))))
+      (let ((offsets (imap-replace offsets after-label (assembler-position assembler))))
+	(values offsets patches)))))
 
 (define (add-patch patches patch)
   (cons patch patches))

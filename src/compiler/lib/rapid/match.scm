@@ -93,7 +93,9 @@
 		    (let-values ((v* (matcher* tail failure)))
 		      (let-values (((var ..1) (map-values (lambda (expr)
 							    (matcher expr failure))
-							  head)))
+							  head (length '(var ..1)))))
+			;; FIXME: head = '(). Was dann? brauche Anzahl => map-values beigeben
+			
 			(apply values var ..1 v*)))))))
     
     ((match-aux "pattern" loop (pattern1 pattern2 ..1 . pattern*) (k ..1))
@@ -136,11 +138,12 @@
 	    (loop (- i 1) (cdr end))
 	    (failure)))))
 
-(define (map-values proc lst)
-  (apply values
-	 (apply map list 
-		(map (lambda (obj)
-		       (let-values ((x* (proc obj)))
-			 x*))
-		     lst))))
-
+(define (map-values proc lst . len*)
+  (if (null? lst)
+      (apply values (make-list (car len*) '()))  
+      (apply values
+	     (apply map list 
+		    (map (lambda (obj)
+			   (let-values ((x* (proc obj)))
+			     x*))
+			 lst)))))
