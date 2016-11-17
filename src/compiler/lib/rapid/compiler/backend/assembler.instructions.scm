@@ -15,6 +15,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+(define-instruction (addq imm32 reg/mem64) rex #x81 / 0 id)
+(define-instruction (subq imm32 reg/mem64) rex #x81 / 5 id)
 (define-instruction (byte imm8)            ib         )
 (define-instruction (callq reg/mem64)      #xFF / 2   )
 (define-instruction (cmpq reg/mem64 reg64) rex #x3B /r)
@@ -30,6 +32,7 @@
 (define-instruction (nop)                  #x90       )
 (define-instruction (popq reg64)           #x58 +rq   )
 (define-instruction (pushq reg64)          #x50 +rq   )
+(define-instruction (pushq imm64)          #x68       )
 (define-instruction (quad imm64)           iq         )
 (define-instruction (ret)                  #xC3       )
 (define-instruction (ret imm16)            #xC2 iw    )

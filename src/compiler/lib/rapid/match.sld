@@ -20,3 +20,9 @@
   (import (scheme base)
 	  (rapid and-let))
   (include "match.scm"))
+
+;; Local Variables:
+;; eval: (put 'match 'scheme-indent-function 1)
+;; eval: (font-lock-add-keywords 'scheme-mode
+;;                               '(("(\\(match\\)\\>" 1 font-lock-keyword-face)))
+;; End:

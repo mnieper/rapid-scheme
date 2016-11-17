@@ -22,25 +22,25 @@
 	(rapid compiler backend codegen))
 
 (define code
-  '((goto (label start1))
-    (compare (reg 0) (reg 1))
-    (branch (cond =) (label start2))
+  '((jump start1)
+    (record ((var (sel 1) (sel 2) (off 3))) r6)
+    (branch r0 r1 (= start2))    
     (halt)
     start1
-    (assign 0 (local start2))
-    (goto (reg 0))
+    (assign start2 r0)
+    (jump r0)
     start2
-    ;; TODO: Better mnemonics!
-    (assign 3 (local v))
-    (assign 4 (local start3))
-    (set! 3 (const 0) (reg 4))
-    (goto (ref 3 (const 0)))
+    (offset 0 v r3)
+    (offset 0 start3 r4)
+    (store r3 r4 0)
+    (select 0 r3 r3)
+    (jump r3)
     start3
-    (assign 0 (local msg))
-    (assign 1 (global stdout))
+    (offset 0 msg r0)
+    (global-fetch stdout r1)
     (call fputs)
-    (assign 0 (local var))
-    (assign 0 (op +) (ref 0 (const 0)) (const 2))
+    (select 0 var r0)
+    (add r0 2 r0)
     (call exit)))
 
 (define (main)
