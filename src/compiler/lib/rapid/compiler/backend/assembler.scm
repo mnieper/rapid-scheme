@@ -314,18 +314,29 @@
   (let ((position (patch-position patch))
 	(size (patch-size patch))
 	(expression (patch-expression patch)))
-    (let ((value
-	   (cond
-	    ((label-difference? expression)
-	      (- (imap-ref offsets (label-difference-minuend expression))
-		 (imap-ref offsets (label-difference-subtrahend expression))))
-	     (else
-	      (error "invalid assembler expression" expression)))))
+    (let ((value (calculate-value expression offsets)))
       (bytevector-integer-set! code
 			       position
 			       (+ (bytevector-integer-ref code position size)
 				  value)
 			       size))))
+
+(define (calculate-value expression offsets)
+  (let loop ((expression expression))
+    (cond
+     ((label-difference? expression)
+      (- (loop (label-difference-minuend expression))
+	 (loop (label-difference-subtrahend expression))))
+     ((label-sum? expression)
+      (+ (loop (label-sum-augend expression))
+	 (loop (label-sum-addend expression))))
+     ((identifier? expression)
+      (imap-ref offsets expression))
+     ((integer? expression)
+      expression)
+     (else
+      (error "invalid assembler expression" expression)))))
+
 
 (define (make-label-difference minuend subtrahend)
   `(- ,minuend ,subtrahend))
@@ -334,6 +345,16 @@
   (and (pair? exp)
        (eq? (car exp) '-)))
 
+(define (label-sum? exp)
+  (and (pair? exp)
+       (eq? (car exp) '+)))
+
+(define (label-sum-augend exp)
+  (cadr exp))
+
+(define (label-sum-addend exp)
+  (caddr exp))
+
 (define (label-difference-minuend exp)
   (cadr exp))
 
@@ -341,7 +362,8 @@
   (caddr exp))
 
 (define (label-expression? exp)
-  (or (label-difference? exp)))
+  (or (label-difference? exp)
+      (label-sum? exp)))
 
 (define (assemble-statement assembler stmt offsets patches)
   (match stmt
@@ -382,15 +404,18 @@
     (assembler-emit assembler bytevector))
 
   (define (emit-value value size)
-    (if (identifier? value)
-	(emit-value `(- ,value ,after-label) size)
-	(if (label-expression? value)
-	    (let ((patch (make-patch (assembler-position assembler)
-				     size
-				     value)))
-	      (set! patches (add-patch patches patch))
-	      (emit (make-bytevector size 0)))
-	    (emit (integer->bytevector value size)))))
+    (cond
+     ((or (identifier? value)
+	  (label-sum? value))
+      (emit-value `(- ,value ,after-label) size))
+     ((label-difference? value)
+      (let ((patch (make-patch (assembler-position assembler)
+			       size
+			       value)))
+	(set! patches (add-patch patches patch))
+	(emit (make-bytevector size 0))))
+     (else
+      (emit (integer->bytevector value size)))))
 
   (define (emit-byte int)
     (emit-value int 1))

@@ -27,19 +27,19 @@
     (branch r0 r1 (= start2))    
     (halt)
     start1
-    (assign start2 r0)
+    (move start2 r0)
     (jump r0)
     start2
-    (offset 0 v r3)
-    (offset 0 start3 r4)
-    (store r3 r4 0)
-    (select 0 r3 r3)
+    (lea (0 v) r3)
+    (lea (0 start3) r4)
+    (store (0 r3) r4)
+    (load (0 r3) r3)
     (jump r3)
     start3
-    (offset 0 msg r0)
+    (lea (0 msg) r0)
     (global-fetch stdout r1)
     (call fputs)
-    (select 0 var r0)
+    (load (0 var) r0)
     (add r0 2 r0)
     (call exit)))
 

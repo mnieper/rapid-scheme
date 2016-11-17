@@ -122,12 +122,11 @@
     ((jump ,reg) (guard (register? reg)) (compile-jump/reg (get-machine-register reg)))
     ((jump ,label) (compile-jump/label label))
     ((record (,field* ...) ,reg) (compile-record field* (get-machine-register reg)))
-    ((select ,index ,record ,reg) (compile-select index record (get-machine-register reg)))
-    ((offset ,index ,record ,reg) (compile-offset index record (get-machine-register reg)))
-    ((fetch ,record ,reg ,index) (compile-fetch record (get-machine-register reg) index))
-    ((store ,record ,reg ,index) (compile-store record (get-machine-register reg) index))    
+    ((load (,index ,record) ,reg) (compile-load index record (get-machine-register reg)))
+    ((lea (,index ,record) ,reg) (compile-offset index record (get-machine-register reg)))
+    ((store (,index ,record) ,reg) (compile-store record (get-machine-register reg) index))    
     ((call ,global-name) (compile-call global-name))
-    ((assign ,operand ,reg) (compile-offset 0 operand (get-machine-register reg)))
+    ((move ,operand ,reg) (compile-offset 0 operand (get-machine-register reg)))
     ((add ,operand1 ,operand2 ,reg) (compile-add operand1 operand2 (get-machine-register reg)))
     ((branch ,input1 ,input2 ,clause* ...) (compile-branch input1 input2 clause*))
     ((global-fetch ,global ,reg) (compile-global-fetch global (get-machine-register reg)))
@@ -173,17 +172,13 @@
    (else
     `(leaq (,operand rip) ,register))))
 
-(define (compile-select index record register)
-  `(begin ,(compile-operand record (acc))
-	  (movq (,(* 8 index) ,(acc)) ,register)))
-
 (define (compile-offset index record register)
   (if (zero? index)
       (compile-operand record register)
       `(begin ,(compile-operand record (acc))
 	      (leaq (,(* 8 index) ,(acc)) ,register))))
 
-(define (compile-fetch record register index)
+(define (compile-load index record register)
   (cond
    ((get-machine-register record)
     => (lambda (source-register)
@@ -193,10 +188,9 @@
 	       `(movq (,source-register ,index-register 8) ,register)))))
    ((label? record)
     (if (integer? index)
-	;; FIXME: Implement addition to label in assembler
-	`(movq ((+ ,label ,(* 8 index)) rip) ,register)
+	`(movq ((+ ,record ,(* 8 index)) rip) ,register)
 	(let ((index-register (get-machine-register index)))
-	  `(begin (leaq (,label rip) ,(acc))
+	  `(begin (leaq (,record rip) ,(acc))
 		  (movq (,(acc) ,index-register 8) ,register)))))
    (else
     (error "cannot point to a record" record))))
@@ -211,9 +205,9 @@
 	       `(movq ,register (,source-register ,index-register 8))))))
    ((label? record)
     (if (integer? index)
-	`(movq ,register ((+ ,label ,(* 8 index)) rip))
+	`(movq ,register ((+ ,record ,(* 8 index)) rip))
 	(let ((index-register (get-machine-register index)))
-	  `(begin (leaq (,label rip) ,(acc))
+	  `(begin (leaq (,record rip) ,(acc))
 		  (movq ,register (,(acc) ,index-register 8))))))
    (else
     (error "cannot point to a record" record))))
