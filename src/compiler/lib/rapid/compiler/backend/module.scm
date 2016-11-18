@@ -137,7 +137,7 @@
     ((halt) (compile-halt))
     ((jump ,reg) (guard (register? reg)) (compile-jump/reg (get-machine-register reg)))
     ((jump ,label) (compile-jump/label label))
-    ((record (,field* ...) ,reg) (compile-record field* (get-machine-register reg)))
+    ((record ,field* ... ,reg) (compile-record field* (get-machine-register reg)))
     ((load (,index ,record) ,reg) (compile-load index record (get-machine-register reg)))
     ((lea (,index ,record) ,reg) (compile-offset index record (get-machine-register reg)))
     ((store (,index ,record) ,reg) (compile-store record (get-machine-register reg) index))    
@@ -168,7 +168,7 @@
 
 (define (compile-record-field field)
   (match field
-    ((,base (sel ,index*) ... (off ,offset))
+    ((,base ,index* ... ,offset)
      `(begin
 	,(compile-operand base (acc))
 	,@(map (lambda (index)

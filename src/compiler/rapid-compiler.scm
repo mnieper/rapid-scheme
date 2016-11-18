@@ -23,8 +23,8 @@
 
 (define code
   '((jump start1)
-    (record ((var (sel 1) (sel 2) (off 3))) r6)  ;; simplify access path
-    (branch r0 r1 (= start2))    
+    (record (var 1 2 3) r6)
+    (branch r0 r1 (= start2))
     (halt)
     start1
     (move start2 r0)
