@@ -16,17 +16,19 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-MODULE_COMPILER = $(SCHEME) module-compiler.scm
-
-TESTS = tests.scm simple_module
+COMPILER = $(SCHEME) compiler.scm
+LDADD = ../librapid/librapidscheme.la
 
 TEST_EXTENSIONS = .scm
+LOG_COMPILER = $(LIBTOOL) --mode=execute $(VALGRIND)
 SCM_LOG_COMPILER = $(SCHEME)
 
-check_PROGRAMS = simple_module
+check_PROGRAMS = simple
+simple_SOURCES = simple.s
 
-simple_module_SOURCES = simple_module.s
-simple_module_LDADD = ../librapid/librapidscheme.la
+TESTS = tests.scm $(check_PROGRAMS)
 
-simple_module.s: simple_module.scm module-compiler.scm
-	$(MODULE_COMPILER) simple_module.s < simple_module.scm
+.scm.s:
+	$(COMPILER) $@ < $<
+
+CLEANFILES = simple.s

@@ -17,15 +17,30 @@
 
 (define (codegen-emit filename program)
   (match program
-    ((program (modules (,name* ,module*) ...)
-	      (inits (,var* ,reference*) ...)
-	      (entry ,entry))
-     (%codegen-emit filename
-		    (map (lambda (name module)
-			   (list name (make-module module)))
-			 name* module*)
-		    (map list var* reference*) entry))
-    (,_ (error "invalid program" program))))
+    ((program ,declaration* ...)
+     (receive (modules inits entry)
+	 (let loop ((declaration* declaration*))
+	   (if (null? declaration*)
+	       (values '() '() #f)
+	       (receive (modules inits entry)
+		   (loop (cdr declaration*))		 
+		 (match (car declaration*)
+		   ((module ,name ,module-declaration* ...)
+		    (values (cons (list name (make-module `(module ,@module-declaration*)))
+				  modules)
+			    inits
+			    entry))
+		   ((init ,var ,reference)
+		    (values modules
+			    (cons (list var reference) inits)
+			    entry))
+		   ((entry (,module ,name))
+		    (values modules
+			    inits
+			    (list module name)))		  
+		   (,_ (error "invalid program declaration" (car declaration*)))))))
+       (%codegen-emit filename modules inits entry)))
+     (,_ (error "invalid program" program))))
 
 (define (%codegen-emit filename modules inits entry)
   (let-values (((offsets size) (get-module-offsets modules)))

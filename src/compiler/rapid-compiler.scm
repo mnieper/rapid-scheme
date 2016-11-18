@@ -23,7 +23,7 @@
 
 (define code
   '((jump start1)
-    (record ((var (sel 1) (sel 2) (off 3))) r6)
+    (record ((var (sel 1) (sel 2) (off 3))) r6)  ;; simplify access path
     (branch r0 r1 (= start2))    
     (halt)
     start1
@@ -47,17 +47,12 @@
   (codegen-emit
    "bootstrap.s"
    `(program
-     (modules
-      (main
-       (module
-        (procedures
-   	 (proc ,code))
-	(data
-	 (msg ,(string->utf8 "Hello, World!\n")))
-	(variables
-	 (v 0)
-	 (var 42)))))
-     (inits #;((main var) (main msg)))
-     (entry (main proc)))))
+     (entry (main proc))
+     (module main
+	     (procedure proc
+			,@code)
+	     (data msg ,(string->utf8 "Hello, World!\n"))
+	     (variable v 0)
+	     (variable var 42)))))
 
 (main)

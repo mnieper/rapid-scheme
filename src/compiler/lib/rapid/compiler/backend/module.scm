@@ -25,14 +25,30 @@
   (code module-code))
 
 (define (make-module module)
- (match module
-   ((module
-     (procedures (,proc-name* ,proc-code*) ...)
-     (data (,data-name* ,data-bytes*) ...)
-     (variables (,var-name* ,var-init*) ...))
-    (compile-module (map list proc-name* proc-code*)
-   	  	    (map list data-name* data-bytes*)
-		    (map list var-name* var-init*)))))
+  (match module
+    ((module ,declaration* ...)
+     (receive (procedures data variables)
+	 (let loop ((declaration* declaration*))
+	   (if (null? declaration*)
+	       (values '() '() '())
+	       (receive (procedures data variables)
+		   (loop (cdr declaration*))
+		 (match (car declaration*)
+		   ((procedure ,name ,code ...)
+		    (values (cons (list name code) procedures)
+			    data
+			    variables))
+		   ((data ,name ,bytes)
+		    (values procedures
+			    (cons (list name bytes) data)
+			    variables))
+		   ((variable ,name ,init)
+		    (values procedures
+			    data
+			    (cons (list name init) variables)))
+		   (,_ (error "invalid module declaration" (car declaration*)))))))
+       (compile-module procedures data variables)))	  
+    (,_ (error "invalid module" module))))
 
 (define (compile-module procedures datums vars)
   (let ((start-label (make-synthetic-identifier 'module-start))

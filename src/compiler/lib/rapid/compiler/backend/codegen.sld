@@ -19,6 +19,7 @@
   (export codegen-emit)
   (import (scheme base)
 	  (scheme cxr)
+	  (rapid receive)
 	  (rapid imap)
 	  (rapid match)
 	  (rapid compiler backend module)
