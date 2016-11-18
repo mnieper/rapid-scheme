@@ -134,6 +134,7 @@
 (define (compile-statement stmt)
   (match stmt
     (,label (guard (label? label)) (compile-label label))
+    ((alloc ,num ,size ,reg* ...) (compile-alloc num size (map get-machine-register reg*)))
     ((halt) (compile-halt))
     ((jump ,reg) (guard (register? reg)) (compile-jump/reg (get-machine-register reg)))
     ((jump ,label) (compile-jump/label label))
@@ -148,6 +149,17 @@
     ((global-fetch ,global ,reg) (compile-global-fetch global (get-machine-register reg)))
     (,_ (error "invalid statement" stmt))))
 
+(define (compile-alloc num size live-registers)
+  (let ((ok-label (make-synthetic-identifier 'ok))
+	(bytes (* 8 (+ (* 2 num) size))))
+    `(begin (movq ,(global-symbol 'locals) rax)
+	    (movq (fs ,(local-symbol 'heap-end) rax) rax)
+	    (addq rax ,bytes)
+	    (cmpq rax rsp)
+	    (jge ,ok-label)
+	    ;; DO GC
+	    ,ok-label)))
+	    
 (define (compile-global-fetch global register)
   `(movq ,(global-symbol global) ,register))
 

@@ -16,23 +16,29 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
+	.set	.Lheap_size, 0x1000000
+
 	.section	rapid_text, "awx"
 	.global	main
 	.type	main, @function
 main:
-	pushq	%rbp
-	leaq	.Lrapid_gst(%rip), %rbp
-	movq	.Lrapid_lst@gottpoff(%rip), %rax
-	movq	%rsp, %fs:.Lheap_start(%rax)
-	movq	%rax, .Llocals(%rbp)
-	movq	stdout(%rip), %rax
-	movq	%rax, .Lstdout(%rbp)
-	jmpq	*.Lrapid_run(%rbp)
+	pushq	%rbp		# Align stack to 16 bytes.
+	leaq	.Lrapid_gst(%rip), %rbp # Load absolute address of array of globals
+	movq	.Lrapid_lst@gottpoff(%rip), %rbx # Load absolute address of array of thread-locals
+	movq	%rsp, %fs:.Lheap_start(%rbx)	 # Store heap start
+	leaq	-.Lheap_size(%rsp),%rax		 # Calculate end of heap
+	movq	%rax, %fs:.Lheap_end(%rbx)	 # Store heap end
+	movq	%rbx, .Llocals(%rbp)		 # Store address of thread locals
+	movq	stdout(%rip), %rax		 # Load pointer to stdout
+	movq	%rax, .Lstdout(%rbp)		 # Store pointer as global
+	jmpq	*.Lrapid_run(%rbp)		 # Jump into trampoline
 
+	## Global variables that are accessed relative to %rpb
 	.balign	8
 .Lrapid_gst:
 	.include	"global-symbols.s"
 
+	## Thread local variables
 	.section	.tbss, "awT", @nobits
 	.balign	8
 .Lrapid_lst:
