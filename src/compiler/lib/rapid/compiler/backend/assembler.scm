@@ -475,8 +475,7 @@
 
       (when (eq? 'rex (car opcode))
 	(code-set-rex.w! code 1)
-	(set! opcode (cdr opcode)))	
-      (write-rex-prefix)
+	(set! opcode (cdr opcode)))
 
       (let loop ((opcode opcode))
 	(unless (null? opcode)
@@ -505,9 +504,13 @@
 	       (if (and (pair? opcode)
 			(memq (car opcode) '(+rb +rw +rd +rq)))
 		   (begin
+		     (code-set-rex.b! code (code-rex.r code))
+		     (code-set-rex.r! code #f)
+		     (write-rex-prefix)		     
 		     (emit-byte (+ component (code-reg code)))
 		     (loop (cdr opcode)))
 		   (begin
+		     (write-rex-prefix)		     
 		     (emit-byte component)
 		     (loop opcode))))))))
       (let ((offsets (imap-replace offsets after-label (assembler-position assembler))))

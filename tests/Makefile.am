@@ -23,8 +23,9 @@ TEST_EXTENSIONS = .scm
 LOG_COMPILER = $(LIBTOOL) --mode=execute $(VALGRIND)
 SCM_LOG_COMPILER = $(SCHEME)
 
-check_PROGRAMS = simple
+check_PROGRAMS = simple gauss
 simple_SOURCES = simple.s
+gauss_SOURCES = gauss.s
 
 TESTS = tests.scm $(check_PROGRAMS)
 

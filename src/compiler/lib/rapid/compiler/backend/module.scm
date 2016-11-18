@@ -139,10 +139,10 @@
     ((jump ,label) (compile-jump/label label))
     ((record ,field* ... ,reg) (compile-record field* (get-machine-register reg)))
     ((load (,index ,record) ,reg) (compile-load index record (get-machine-register reg)))
-    ((lea (,index ,record) ,reg) (compile-offset index record (get-machine-register reg)))
+    ((lea (,index ,record) ,reg) (compile-lea index record (get-machine-register reg)))
     ((store (,index ,record) ,reg) (compile-store record (get-machine-register reg) index))    
     ((call ,global-name) (compile-call global-name))
-    ((move ,operand ,reg) (compile-offset 0 operand (get-machine-register reg)))
+    ((move ,operand ,reg) (compile-lea 0 operand (get-machine-register reg)))
     ((add ,operand1 ,operand2 ,reg) (compile-add operand1 operand2 (get-machine-register reg)))
     ((branch ,input1 ,input2 ,clause* ...) (compile-branch input1 input2 clause*))
     ((global-fetch ,global ,reg) (compile-global-fetch global (get-machine-register reg)))
@@ -188,7 +188,7 @@
    (else
     `(leaq (,operand rip) ,register))))
 
-(define (compile-offset index record register)
+(define (compile-lea index record register)
   (if (zero? index)
       (compile-operand record register)
       `(begin ,(compile-operand record (acc))
