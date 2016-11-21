@@ -36,6 +36,9 @@ get_value_tag (RapidValue);
 static RapidField
 value_to_pointer (RapidValue value);
 
+static size_t
+value_to_offset (RapidValue value);
+
 static RapidField
 get_module_header (RapidField field);
 
@@ -91,6 +94,12 @@ value_to_pointer (RapidValue value)
   return (RapidField) (value | ~VALUE_TAG_MASK);
 }
 
+size_t
+value_to_offset (RapidValue value)
+{
+  return value >> 3;
+}
+
 RapidField
 get_module_header (RapidField field)
 {
@@ -100,7 +109,7 @@ get_module_header (RapidField field)
       case VALUE_TAG_NONE:
 	continue;
       case VALUE_TAG_LINK:
-	return (RapidField) 3;
+	return field + value_to_offset (*field);
       default:
 	return field;
       }
