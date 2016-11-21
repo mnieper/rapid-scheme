@@ -17,16 +17,20 @@
 # <http://www.gnu.org/licenses/>.
 
 COMPILER = $(SCHEME) compiler.scm
-LDADD = ../librapid/librapidscheme.la
+AM_CPPFLAGS = -I$(top_srcdir)/common
+LDADD = ../common/librapidcommon.la
 
 TEST_EXTENSIONS = .scm
 LOG_COMPILER = $(LIBTOOL) --mode=execute $(VALGRIND)
 SCM_LOG_COMPILER = $(SCHEME)
 
-check_PROGRAMS = simple gauss alloc
+check_PROGRAMS = simple gauss alloc gc
 simple_SOURCES = simple.s
 gauss_SOURCES = gauss.s
 alloc_SOURCES = alloc.s
+simple_LDADD = ../librapid/librapidscheme.la
+gauss_LDADD = ../librapid/librapidscheme.la
+alloc_LDADD = ../librapid/librapidscheme.la
 
 TESTS = tests.scm $(check_PROGRAMS)
 

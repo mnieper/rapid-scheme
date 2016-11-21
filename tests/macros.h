@@ -18,24 +18,27 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBRAPID_H_INCLUDED
-#define LIBRAPID_H_INCLUDED
+#ifndef MACROS_H_INCLUDED
+#define MACROS_H_INCLUDED
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#ifndef ASSERT_STREAM
+# define ASSERT_STREAM stderr
 #endif
 
-#include <stdint.h>
+#define ASSERT(expr)							\
+  do									\
+    {									\
+      if (!(expr))							\
+	{								\
+	  fprintf (ASSERT_STREAM, "%s:%d: assertion '%s' failed\n",	\
+		   __FILE__, __LINE__, #expr);				\
+	  fflush (ASSERT_STREAM);					\
+	  abort ();							\
+	}								\
+    }									\
+  while (0)
 
-typedef uintptr_t RapidValue;
-typedef RapidValue *RapidField;
-
-void
-rapid_gc_init (void);
-
-void
-rapid_gc (RapidField roots[], int root_num);
-
-
-
-#endif /* LIBRAPID_H_INCLUDED */
+#endif /* MACROS_H_INCLUDED */

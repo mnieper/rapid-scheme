@@ -18,24 +18,16 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBRAPID_H_INCLUDED
-#define LIBRAPID_H_INCLUDED
-
-#ifdef HAVE_CONFIG_H
+#if HAVE_CONFIG_H
 # include <config.h>
 #endif
 
-#include <stdint.h>
+#include "rapidcommon.h"
+#include "macros.h"
 
-typedef uintptr_t RapidValue;
-typedef RapidValue *RapidField;
-
-void
-rapid_gc_init (void);
-
-void
-rapid_gc (RapidField roots[], int root_num);
-
-
-
-#endif /* LIBRAPID_H_INCLUDED */
+int
+main (int argc, char *argv)
+{
+  rapid_gc_init ();
+  
+}

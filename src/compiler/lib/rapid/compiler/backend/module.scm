@@ -155,7 +155,7 @@
     (,_ (error "invalid statement" stmt))))
 
 (define (compile-alloc num size live-registers start-label)
-  ;; TODO: Handle large allocations, larger than stack size
+  ;; TODO: Handle large allocations larger than stack size
   (let ((ok-label (make-synthetic-identifier 'ok))
 	(resume-label (make-synthetic-identifier 'resume))
 	(bytes (* 8 (+ (* 2 num) size))))
@@ -169,7 +169,6 @@
 	    (addq ,bytes ,(acc))
 	    (cmpq ,(acc) rsp)
 	    (jae ,ok-label)
-	    ;;(leaq (,(- bytes) ,(acc)) rsp) ;; Set stack pointer to heap end
 	    ,@(if (even? (length live-registers))
 		  '((addq 8, %rsp))
 		  '())
@@ -186,8 +185,7 @@
 	    ,@(map (lambda (register)
 		     `(popq ,register))
 		   (reverse live-registers))
-
-	    ;; Set stacl pointer at the beginning of the short-term heap
+	    ;; Set stack pointer at the beginning of the short-term heap
 	    (movq ,(global-symbol 'locals) ,(acc))
 	    (movq ,(local-symbol 'heap-start (acc)) rsp)
 	    ,ok-label)))
@@ -208,7 +206,7 @@
 		  '())
 	    ,@(map compile-record-field (reverse fields))
 	    (movq rsp ,register)
-	    (pushq ,record-length)))) ;; FIXME: Add mark for GC
+	    (pushq ,(+ (* 8 (+ 1 record-length)) 4))))) ; 4 = VALUE_TAG_RECORD
 
 (define (compile-record-field field)
   ;; TODO: HAndle integer field

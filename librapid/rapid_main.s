@@ -23,7 +23,7 @@
 	.type	main, @function
 main:
 	pushq	%rbp
-	callq	rapid_init_gc
+	callq	rapid_gc_init
 	andq	$-0x10000,%rsp	# Align stack to 2^16 bytes
 	leaq	.Lrapid_gst(%rip), %rbp # Load absolute address of array of globals
 	movq	.Lrapid_lst@gottpoff(%rip), %rbx # Load absolute address of array of thread-locals
