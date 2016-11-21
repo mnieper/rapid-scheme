@@ -19,6 +19,7 @@
   (export assemble)
   (import (scheme base)
 	  (scheme cxr)
+	  (rapid receive)
 	  (rapid imap)
 	  (rapid compiler identifier)
 	  (rapid binary)

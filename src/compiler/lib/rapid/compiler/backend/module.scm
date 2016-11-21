@@ -70,7 +70,7 @@
 	`(begin (align 8)
 		(quad (- ,label ,start-label)) ;; TODO: GC-FLAG
 		,label
-		,(compile-statements stmts))))
+		,(compile-statements stmts start-label))))
 
     (define (compile-datum datum)
       (let ((label (car datum))
@@ -125,16 +125,21 @@
   (let ((index (global-symbol-index symbol)))
     `(,(* index 8) rbp))) 
 
+(define (local-symbol symbol base)
+  (let ((index (local-symbol-index symbol)))
+    `(fs ,(* index 8) ,base))) 
+
 (define (label? stmt)
   (identifier? stmt))
 
-(define (compile-statements stmts)
-  `(begin ,@(map compile-statement stmts)))
+(define (compile-statements stmts start-label)
+  `(begin ,@(map (lambda (stmt) (compile-statement stmt start-label)) stmts)))
 
-(define (compile-statement stmt)
+(define (compile-statement stmt start-label)
   (match stmt
     (,label (guard (label? label)) (compile-label label))
-    ((alloc ,num ,size ,reg* ...) (compile-alloc num size (map get-machine-register reg*)))
+    ((alloc ,num ,size ,reg* ...) (compile-alloc num size (map get-machine-register reg*)
+						 start-label))
     ((halt) (compile-halt))
     ((jump ,reg) (guard (register? reg)) (compile-jump/reg (get-machine-register reg)))
     ((jump ,label) (compile-jump/label label))
@@ -149,15 +154,32 @@
     ((global-fetch ,global ,reg) (compile-global-fetch global (get-machine-register reg)))
     (,_ (error "invalid statement" stmt))))
 
-(define (compile-alloc num size live-registers)
+(define (compile-alloc num size live-registers start-label)
+  ;; TODO: Handle large allocations, larger than stack size
   (let ((ok-label (make-synthetic-identifier 'ok))
 	(bytes (* 8 (+ (* 2 num) size))))
-    `(begin (movq ,(global-symbol 'locals) rax)
-	    (movq (fs ,(local-symbol 'heap-end) rax) rax)
-	    (addq rax ,bytes)
-	    (cmpq rax rsp)
-	    (jge ,ok-label)
-	    ;; DO GC
+
+    `(begin ,@(if (< bytes #x10000)
+		  `((cmpw ,bytes sp)
+		    (jae ,ok-label))
+		  '())
+	    (movq ,(global-symbol 'locals) ,(acc))
+	    (movq ,(local-symbol 'heap-end (acc)) ,(acc))
+	    (addq ,bytes ,(acc))
+	    (cmpq ,(acc) rsp)
+	    (jae ,ok-label)
+	    (leaq (,(- bytes) ,(acc)) rsp) ;; Set stack pointer to heap end
+	    ,@(map (lambda (register)
+		     `(pushq ,register))
+		   live-registers)
+	    (leaq (,start-label rip) ,(acc))
+	    (pushq ,(acc))
+	    (leaq (-8 rsp) rdi)
+	    (movq ,(length live-registers) rsi)
+	    (callq ,(global-symbol 'rapid-gc))
+	    ,@(map (lambda (register)
+		     `(popq ,register))
+		   (reverse live-registers))
 	    ,ok-label)))
 	    
 (define (compile-global-fetch global register)
@@ -179,6 +201,7 @@
 	    (pushq ,record-length)))) ;; FIXME: Add mark for GC
 
 (define (compile-record-field field)
+  ;; TODO: HAndle integer field
   (match field
     ((,base ,index* ... ,offset)
      `(begin
@@ -188,6 +211,7 @@
 	       index*)
 	(addq ,offset ,(acc))
 	(pushq ,(acc))))
+    (,value (guard (integer? value)) `(pushq ,(immediate-value value)))
     (,_ (error "invalid record field" field))))	             
 
 (define (compile-operand operand register)

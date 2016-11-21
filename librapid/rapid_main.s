@@ -16,13 +16,15 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-	.set	.Lheap_size, 0x1000000
+	.set	.Lheap_size, 0x100000
 
 	.section	rapid_text, "awx"
 	.global	main
 	.type	main, @function
 main:
-	pushq	%rbp		# Align stack to 16 bytes.
+	pushq	%rbp
+	callq	rapid_init_gc
+	andq	$-0x10000,%rsp	# Align stack to 2^16 bytes
 	leaq	.Lrapid_gst(%rip), %rbp # Load absolute address of array of globals
 	movq	.Lrapid_lst@gottpoff(%rip), %rbx # Load absolute address of array of thread-locals
 	movq	%rsp, %fs:.Lheap_start(%rbx)	 # Store heap start

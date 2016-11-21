@@ -177,7 +177,7 @@
 	  (error "unsupported operand type" type)))))))
 
 (define (make-memory-operand source)
-  (let-values (((base index scale disp) (get-sib+disp source)))
+  (let-values (((seg base index scale disp) (get-seg+sib+disp source)))
     (%make-operand
      (lambda (type)
        (case type
@@ -187,6 +187,7 @@
        (case type
 	 ((mem reg/mem64)
 	  (code-set-disp! code disp)
+	  (code-set-seg! code seg)
 	  (if (eq? base 'rip)
 	      (code-set-rip! code #t)
 	      (begin
@@ -198,24 +199,29 @@
 		(when index
 		  (code-set-rex.x! code (register-rex index)))))))))))
 
-(define (get-sib+disp source)
-  (let-values
-      (((disp source)
-	(if (register? (car source))
-	    (values #f source)
-	    (values (car source) (cdr source)))))
-    (case (length source)
-      ((0) (values #f #f 0 disp))
-      ((1) (values (get-register (list-ref source 0))
-		   #f 0 disp))
-      ((2) (values (get-register (list-ref source 0))
-		   (get-register (list-ref source 1))
-		   0 disp))
-      ((3) (values (get-register (list-ref source 0))
-		   (get-register (list-ref source 1))
-		   (get-scale (list-ref source 2)) disp))
-      (else
-       (error "invalid memory operand" source)))))
+(define (get-seg+sib+disp source)
+  (receive (seg source)
+      (case (car source)
+	((fs) (values prefix/fs (cdr source)))
+	(else (values #f source)))
+    (receive (disp source)
+	(cond
+	 ((register? (car source))
+	  (values #f source))
+	 (else 
+	  (values (car source) (cdr source))))
+      (case (length source)
+	((0) (values seg #f #f 0 disp))
+	((1) (values seg (get-register (list-ref source 0))
+		     #f 0 disp))
+	((2) (values seg (get-register (list-ref source 0))
+		     (get-register (list-ref source 1))
+		     0 disp))
+	((3) (values seg (get-register (list-ref source 0))
+		     (get-register (list-ref source 1))
+		     (get-scale (list-ref source 2)) disp))
+	(else
+	 (error "invalid memory operand" source))))))
 
 (define (get-scale scale)
   (case scale
@@ -229,7 +235,7 @@
 ;;; Code to be assembled
 
 (define-record-type <code>
-  (%make-code rm rip rex.w rex.r rex.x rex.b)
+  (%make-code rm rip seg rex.w rex.r rex.x rex.b)
   code?
   (disp code-disp code-set-disp!)
   (imm code-imm code-set-imm!)
@@ -240,13 +246,14 @@
   (base code-base code-set-base!)
   (index code-index code-set-index!)
   (scale code-scale code-set-scale!)
+  (seg code-seg code-set-seg!)
   (rex.w code-rex.w code-set-rex.w!)
   (rex.r code-rex.r code-set-rex.r!)
   (rex.x code-rex.x code-set-rex.x!)
   (rex.b code-rex.b code-set-rex.b!))
 
 (define (make-code)
-  (%make-code #f #f #f #f #f #f))
+  (%make-code #f #f #f #f #f #f #f))
 
 ;;; Patches
 (define-record-type <patch>
@@ -463,7 +470,7 @@
     (let ((prefix (get-rex-prefix)))
       (when prefix
 	(emit-byte prefix))))
-    
+
   (let ((operands (map make-operand operands)))
     (let ((instruction (get-instruction mnemonic operands)))
       (define opcode (instruction-opcode instruction))
@@ -473,10 +480,18 @@
 	 (operand-process! operand code type))
        operands (instruction-operand-types instruction))
 
+      (when (eq? 'data16 (car opcode))
+	(emit-byte prefix/operand-size)
+	(set! opcode (cdr opcode)))
+      
       (when (eq? 'rex (car opcode))
 	(code-set-rex.w! code 1)
 	(set! opcode (cdr opcode)))
 
+      (let ((seg (code-seg code)))
+	(when seg
+	  (emit-byte seg)))
+            
       (let loop ((opcode opcode))
 	(unless (null? opcode)
 	  (let* ((component (car opcode))

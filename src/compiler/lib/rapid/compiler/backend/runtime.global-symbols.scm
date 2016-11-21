@@ -17,6 +17,7 @@
 
 (define-global-symbol 'locals    0)
 (define-global-symbol 'rapid-run "rapid_run")
+(define-global-symbol 'rapid-gc  "rapid_gc")
 (define-global-symbol 'exit      "exit")
 (define-global-symbol 'fputs     "fputs")
 (define-global-symbol 'stdout    0)

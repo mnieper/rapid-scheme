@@ -33,4 +33,5 @@ TESTS = tests.scm $(check_PROGRAMS)
 .scm.s:
 	$(COMPILER) $@ < $<
 
-CLEANFILES = simple.s
+CLEANFILES = simple.s gauss.s alloc.s
+

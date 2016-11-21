@@ -1,0 +1,19 @@
+#+TITLE: Project Snowflake
+#+AUTHOR: Marc Nieper-Wißkirchen
+
+* Internal data structures
+
+** Module structure
+   
+| Offset | Size | Field  | Purpose                 | Comment                     |
+|--------+------+--------+-------------------------+-----------------------------|
+|    0x0 |    8 | size   | Size of module          | Always divisible by 8       |
+|--------+------+--------+-------------------------+-----------------------------|
+|    0x8 |    8 | varnum | Number of variables     |                             |  /* TAG? */
+|--------+------+--------+-------------------------+-----------------------------|
+|   0x10 |    8 |        | Offset to module header | The offset is marked by 010 |
+|--------+------+--------+-------------------------+-----------------------------|
+|   0x18 |      |        | Procedure entry         |                             |
+
+
+- Instead of offset, we can also have a simple header

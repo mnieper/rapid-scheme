@@ -20,7 +20,7 @@ GENERATE_GLOBAL_SYMBOLS = ../src/compiler/generate-global-symbols-file
 GENERATE_LOCAL_SYMBOLS = ../src/compiler/generate-local-symbols-file
 
 lib_LTLIBRARIES = librapidscheme.la
-librapidscheme_la_SOURCES = rapid_main.s
+librapidscheme_la_SOURCES = rapid_main.s rapid_gc.c
 librapidscheme_la_LIBADD = ../lib/libgnu.la
 
 global-symbols.s: ../src/compiler/lib/rapid/compiler/backend/runtime.global-symbols.scm
