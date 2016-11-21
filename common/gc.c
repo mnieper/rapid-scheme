@@ -51,6 +51,9 @@ forward_module (RapidField header);
 static void
 process_field (RapidField *field);
 
+static void
+process_module (RapidField module);
+
 static RapidField heap;
 static RapidField heap_free;
 
@@ -76,7 +79,7 @@ rapid_gc (RapidField roots[], int root_num)
   /* PROCESS CODE IN BINARY (need extra area; give this to rapid_gc_init) */
   for (RapidField module = heap; module < heap_free; module += get_module_size (module))
     {
-      process_field (&module);
+      process_module (module);
     }
 }
 
@@ -137,25 +140,8 @@ process_field (RapidField *field)
   *field = *field + (forwarded_module - header);
 }
 
-
-
-/* Garbage collection internals
- *
- * Pointers are aligned at 8 byte boundaries.
- * The lowest bit has to be cleared to 0 so that it is not mistaken as an integer.
- * Thus it leaves 2 bits to mark pointers: xy0
- *
- * Bit 000: ordinary pointer
- * Bit 010: pointer to head of module
- * Bit 100: head of vector
- * Bit 110: forwarded vector
- *
- * When object points to another object, scan until head of vector is found.
- * If this is forwarded, adjust pointer.  Otherwise, move whole vector (must move whole module).
- * => no special vector head... => vector just points to head
- */
-
-
-// we need a heap, which is going to be filled by the gc...
-// no need to copy...
-
+void
+process_module (RapidField module)
+{
+  /* TODO: Run through all ptrs inside module! */
+}
