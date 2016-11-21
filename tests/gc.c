@@ -21,6 +21,7 @@
 #if HAVE_CONFIG_H
 # include <config.h>
 #endif
+#include <stddef.h>
 
 #include "rapidcommon.h"
 #include "macros.h"
@@ -29,5 +30,6 @@ int
 main (int argc, char *argv)
 {
   rapid_gc_init ();
-  
+
+  rapid_gc (NULL, 0);
 }
