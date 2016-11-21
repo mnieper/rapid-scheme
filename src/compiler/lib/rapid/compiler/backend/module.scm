@@ -157,6 +157,7 @@
 (define (compile-alloc num size live-registers start-label)
   ;; TODO: Handle large allocations, larger than stack size
   (let ((ok-label (make-synthetic-identifier 'ok))
+	(resume-label (make-synthetic-identifier 'resume))
 	(bytes (* 8 (+ (* 2 num) size))))
 
     `(begin ,@(if (< bytes #x10000)
@@ -168,20 +169,29 @@
 	    (addq ,bytes ,(acc))
 	    (cmpq ,(acc) rsp)
 	    (jae ,ok-label)
-	    (leaq (,(- bytes) ,(acc)) rsp) ;; Set stack pointer to heap end
+	    ;;(leaq (,(- bytes) ,(acc)) rsp) ;; Set stack pointer to heap end
+	    ,@(if (even? (length live-registers))
+		  '((addq 8, %rsp))
+		  '())
 	    ,@(map (lambda (register)
 		     `(pushq ,register))
 		   live-registers)
 	    (leaq (,start-label rip) ,(acc))
 	    (pushq ,(acc))
-	    (leaq (-8 rsp) rdi)
-	    (movq ,(length live-registers) rsi)
-	    (callq ,(global-symbol 'rapid-gc))
+	    (movq rsp rdi)
+	    (movq ,(+ (length live-registers) 1) rsi)
+	    (leaq (,resume-label rip) rbx)
+	    (jmpq ,(global-symbol 'rapid-gc-wrapper))
+	    ,resume-label
 	    ,@(map (lambda (register)
 		     `(popq ,register))
 		   (reverse live-registers))
+
+	    ;; Set stacl pointer at the beginning of the short-term heap
+	    (movq ,(global-symbol 'locals) ,(acc))
+	    (movq ,(local-symbol 'heap-start (acc)) rsp)
 	    ,ok-label)))
-	    
+
 (define (compile-global-fetch global register)
   `(movq ,(global-symbol global) ,register))
 

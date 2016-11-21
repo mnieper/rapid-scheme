@@ -18,15 +18,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include <librapid.h>
 
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <sys/mman.h>
+
+#include <stdio.h>
 
 #include "error.h"
 
@@ -54,21 +53,11 @@
  */
 
 
-typedef uintptr_t Field;
-typedef Field *FieldPointer;
-
-struct root_stack {
-  FieldPointer return_address;
-  FieldPointer module_address;
-  FieldPointer registers[];
-};
-typedef struct root_stack *restrict RootStack;
-
 // we need a heap, which is going to be filled by the gc...
 // no need to copy...
 
-static FieldPointer *heap;
-static FieldPointer *heap_free;
+static RapidField heap;
+static RapidField heap_free;
 
 void
 rapid_init_gc (void)
@@ -82,20 +71,19 @@ rapid_init_gc (void)
   heap_free = heap;
 }
 
-
 static bool
-is_special_field (Field field_ptr)
+is_special_value (RapidValue value)
 {
-  return (field_ptr | FIELD_TAG_MASK) != 0;
+  return (value | FIELD_TAG_MASK) != 0;
 }
 
-static FieldPointer
-find_header(FieldPointer field_ptr)
+static RapidField
+find_header(RapidField field)
 {
-  FieldPointer p = field_ptr;
+  RapidField p = field;
   do {
     --p;
-  } while (!is_special_field (*p));
+  } while (!is_special_value (*p));
   switch (*p | FIELD_TAG_MASK)
     {
     case FIELD_LINK:
@@ -108,31 +96,28 @@ find_header(FieldPointer field_ptr)
 }
 
 static
-FieldPointer forward (FieldPointer header)
+RapidField forward (RapidField header)
 {
   return header;
 }
 
 static void
-process (FieldPointer *field_pointer)
+process (RapidField *field)
 {
-  FieldPointer header = find_header (*field_pointer);
-  FieldPointer forwarded_module = forward (header);  // does the copying
-  *field_pointer = forwarded_module + (header - *field_pointer);
+  RapidField header = find_header (*field);
+  RapidField forwarded_module = forward (header);  // does the copying
+  *field = forwarded_module + (header - *field);
 }
 
 void
-rapid_gc (RootStack stack, int register_num)
+rapid_gc (RapidField roots[], int root_num)
 {
-  process (&stack->module_address);
-  for (int i = 0; i < register_num; ++i)
+  for (int i = 0; i < root_num; ++i)
     {
-      process (&stack->registers[i]);
+      //process (&roots[i]);
     }
   // gehe code in elf binary durch
   // gehe code im heap durch (ist durch copying mehr geworden)
   
-  error (1, 0, "heap overflow");
+  // error (1, 0, "heap overflow");
 }
-
-

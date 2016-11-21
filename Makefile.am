@@ -18,4 +18,4 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = lib src/compiler librapid src/runtime doc tests tests/runtime contrib
+SUBDIRS = include lib src/compiler librapid src/runtime doc tests tests/runtime contrib

@@ -15,9 +15,9 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-global-symbol 'locals    0)
-(define-global-symbol 'rapid-run "rapid_run")
-(define-global-symbol 'rapid-gc  "rapid_gc")
-(define-global-symbol 'exit      "exit")
-(define-global-symbol 'fputs     "fputs")
-(define-global-symbol 'stdout    0)
+(define-global-symbol 'locals           0)
+(define-global-symbol 'rapid-run        "rapid_run")
+(define-global-symbol 'rapid-gc-wrapper "rapid_gc_wrapper")
+(define-global-symbol 'exit             "exit")
+(define-global-symbol 'fputs            "fputs")
+(define-global-symbol 'stdout           0)

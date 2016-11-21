@@ -16,20 +16,4 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-GENERATE_GLOBAL_SYMBOLS = ../src/compiler/generate-global-symbols-file
-GENERATE_LOCAL_SYMBOLS = ../src/compiler/generate-local-symbols-file
-
-lib_LTLIBRARIES = librapidscheme.la
-librapidscheme_la_SOURCES = rapid_main.s rapid_gc.c
-librapidscheme_la_LIBADD = ../lib/libgnu.la
-librapidscheme_la_CPPFLAGS = -I$(top_srcdir)/include
-
-global-symbols.s: ../src/compiler/lib/rapid/compiler/backend/runtime.global-symbols.scm
-	$(GENERATE_GLOBAL_SYMBOLS)
-
-local-symbols.s: ../src/compiler/lib/rapid/compiler/backend/runtime.local-symbols.scm
-	$(GENERATE_LOCAL_SYMBOLS)
-
-rapid_main.s: global-symbols.s local-symbols.s
-
-CLEANFILES = global-symbols.s local-symbols.s
+include_HEADERS = librapid.h

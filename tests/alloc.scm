@@ -2,7 +2,7 @@
  (entry (alloc main))
  (module alloc
      (procedure main
-		(move 1000 r0)
+		(move 100000 r0)
 		loop
 		(branch r0 0 (= exit))
 		(alloc 1 20 r0)

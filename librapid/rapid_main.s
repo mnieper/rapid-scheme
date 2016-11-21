@@ -35,6 +35,13 @@ main:
 	movq	%rax, .Lstdout(%rbp)		 # Store pointer as global
 	jmpq	*.Lrapid_run(%rbp)		 # Jump into trampoline
 
+rapid_gc_wrapper:
+	subq	(%rsp), %rbx
+	callq	rapid_gc
+	popq	%rax
+	addq	%rax, %rbx
+	jmpq	*%rbx
+
 	## Global variables that are accessed relative to %rpb
 	.balign	8
 .Lrapid_gst:
