@@ -105,7 +105,7 @@ rapid_gc (RapidValue roots[], int root_num)
 void
 rapid_gc_dump (const char *filename, RapidValue entry)
 {
-  bfd *abfd = bfd_openw (filename, NULL);
+  bfd *abfd = bfd_openw (filename, "elf64-x86-64");
   if (abfd == NULL)
     {
       bfd_perror ("cannot open object file for writing");
@@ -126,7 +126,46 @@ rapid_gc_dump (const char *filename, RapidValue entry)
       bfd_perror ("cannot create text section");
       exit (1);
     }
+  section->alignment_power = 4;
 
+  // TODO: compactify into extra buffer; change entry as needed!
+  size_t size = 0; /* DO SOME COMPACTING STARTING WITH ENTRY; THIS SHOULD SET SIZE */
+  
+  if (!bfd_set_section_size (abfd, section, size))
+    {
+      bfd_perror ("cannot set section size");
+      exit (1);
+    }
+
+  // TODO: Write rapid_run (based on entry) as entry point
+  asymbol *symbol = bfd_make_empty_symbol (abfd);
+  asymbol *ptrs[3];
+  symbol->name = "rapid_text_start";
+  symbol->section = section;
+  symbol->flags = BSF_GLOBAL;
+  symbol->value = 0;
+  ptrs[0] = symbol;
+  symbol = bfd_make_empty_symbol (abfd);
+  symbol->name = "rapid_text_end";
+  symbol->section = section;
+  symbol->flags = BSF_GLOBAL;
+  symbol->value = size;
+  ptrs[1] = symbol;
+  ptrs[2] = 0;
+  if (!bfd_set_symtab (abfd, ptrs, 2))
+    {
+      bfd_perror ("cannot set symbols");
+      exit (1);
+    }
+  
+  /* write contents 
+  if (!bfd_set_section_contents (abfd, section, contents, 0, size))
+    {
+      bfd_perror ("cannot write section");
+      exit (1);
+    }
+  */
+  
   if (!bfd_close (abfd))
     {
       bfd_perror ("finishing writing object file failed");
