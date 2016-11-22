@@ -55,9 +55,13 @@ gl_INIT
 AC_SUBST([SCHEME], ['$(abs_top_builddir)/src/compiler/scheme'])
 
 # Checks for libraries.
+AC_SEARCH_LIBS([bfd_openr], [bfd],
+			    [],
+			    [AC_MSG_ERROR([libbfd not found])],
+			    [])
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdlib.h])
+AC_CHECK_HEADERS([stdlib.h bfd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 

@@ -18,12 +18,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
+#include <bfd.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
-
-#include <stdio.h>
 
 #include "rapidcommon.h"
 #include "error.h"
@@ -78,6 +80,9 @@ rapid_gc_init (RapidField start, RapidField end)
 
   text_start = start;
   text_end = end;
+
+  bfd_init ();
+  bfd_set_error_program_name (program_invocation_name);
 }
 
 void
@@ -94,6 +99,38 @@ rapid_gc (RapidValue roots[], int root_num)
   for (RapidField module = heap; module < heap_free; module += get_module_size (module))
     {
       process_module (module);
+    }
+}
+
+void
+rapid_gc_dump (const char *filename, RapidValue entry)
+{
+  bfd *abfd = bfd_openw (filename, NULL);
+  if (abfd == NULL)
+    {
+      bfd_perror ("cannot open object file for writing");
+      exit (1);
+    }
+  
+  if (!bfd_set_format (abfd, bfd_object))
+    {
+      bfd_perror ("cannot set format of object file");
+      exit (1);
+    }
+  
+  asection *section = bfd_make_section_with_flags (abfd, "rapid_text",
+						   SEC_ALLOC | SEC_CODE | SEC_RELOC |
+						   SEC_HAS_CONTENTS);
+  if (section == NULL)
+    {
+      bfd_perror ("cannot create text section");
+      exit (1);
+    }
+
+  if (!bfd_close (abfd))
+    {
+      bfd_perror ("finishing writing object file failed");
+      exit (1);
     }
 }
 

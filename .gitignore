@@ -1,6 +1,7 @@
 /aclocal.m4
 /autom4te.cache
 /build-aux
+/configure.scan
 /config.h
 /config.h.in
 /config.status

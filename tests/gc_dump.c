@@ -18,32 +18,17 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RAPIDCOMMON_H_INCLUDED
-#define RAPIDCOMMON_H_INCLUDED
-
-#ifdef HAVE_CONFIG_H
+#if HAVE_CONFIG_H
 # include <config.h>
 #endif
-#include <stddef.h>
-#include <stdint.h>
 
-#define VALUE_TAG_MASK    7
-#define VALUE_TAG_NONE    0
-#define VALUE_TAG_SCALAR  1
-#define VALUE_TAG_LINK    2
-#define VALUE_TAG_RECORD  4
-#define VALUE_TAG_FORWARD 6
+#include "rapidcommon.h"
+#include "macros.h"
 
-typedef intptr_t RapidValue;
-typedef RapidValue *RapidField;
+int main (int argc, char *argv)
+{
+  rapid_gc_init (NULL, NULL);
 
-void
-rapid_gc_init (RapidField text_start, RapidField text_end);
 
-void
-rapid_gc (RapidValue roots[], int root_num);
-
-void
-rapid_gc_dump (const char *filename, RapidValue entry);
-
-#endif /* LIBCOMMON_H_INCLUDED */
+  rapid_gc_dump ("tmp.o", 1);
+}

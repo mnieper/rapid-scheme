@@ -24,7 +24,7 @@ TEST_EXTENSIONS = .scm
 LOG_COMPILER = $(LIBTOOL) --mode=execute $(VALGRIND)
 SCM_LOG_COMPILER = $(SCHEME)
 
-check_PROGRAMS = simple gauss alloc gc
+check_PROGRAMS = simple gauss alloc gc gc_dump
 simple_SOURCES = simple.s
 gauss_SOURCES = gauss.s
 alloc_SOURCES = alloc.s
