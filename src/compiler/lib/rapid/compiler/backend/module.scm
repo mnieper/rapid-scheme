@@ -66,17 +66,21 @@
 
     (define (compile-procedure procedure)
       (let ((label (car procedure))
+	    (link-label (make-synthetic-identifier 'link))
 	    (stmts (cadr procedure)))
 	`(begin (align 8)
-		(quad (- ,label ,start-label)) ;; TODO: GC-FLAG
+		,link-label
+		(quad (- (+ ,start-label 2) ,link-label)) ;; 2 = VALUE_TAG_LINK
 		,label
-		,(compile-statements stmts start-label))))
+		,(compile-statements stmts label))))
 
     (define (compile-datum datum)
       (let ((label (car datum))
+	    (link-label (make-synthetic-identifier 'link))
 	    (bytes (cadr datum)))
 	`(begin (align 8)
-		(quad (- ,label ,start-label)) ;; GC-FLAG
+		,link-label
+		(quad (- (+ ,start-label 2) ,link-label)) ;; 2 = VALUE_TAG_LINK
 		,label
 		,(bytevector->assembly bytes))))
 
@@ -89,20 +93,24 @@
 
     (let ((procedures-assembly (compile-procedures procedures))
 	  (datums-assembly (compile-datums datums))
-	  (vars-assembly (compile-vars vars)))
+	  (vars-assembly (compile-vars vars))
+	  (link-label (make-synthetic-identifier 'link)))
       (let-values (((code offsets)
-		    (assemble `(begin ,start-label
+		    (assemble `(begin (align 16)
+				      ,start-label
 				      (quad (- ,end-label ,start-label))
 				      (quad ,(* 8 (length vars)))
 				      ,procedures-assembly
 				      ,datums-assembly
+				      ,link-label
+				      (quad (- (+ ,start-label 2) ,link-label))
 				      ,vars-assembly
 				      ,end-label))))
 	(let ((offsets (filter offsets (append (map car procedures)
 					       (map car datums)
 					       (map car vars)))))
 	  (%make-module offsets code))))))
-  
+
 (define (module-label-offset module label)
   (imap-ref (module-offsets module) label))
 

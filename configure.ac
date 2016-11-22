@@ -44,7 +44,7 @@ AC_CONFIG_FILES([
 ])
 
 # Checks for programs.
-AC_PROG_CC
+AC_PROG_CC([gcc])
 gl_EARLY
 AC_PROG_CC_STDC
 AM_PROG_AS

@@ -24,10 +24,12 @@
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
+#include <stddef.h>
 #include <stdint.h>
 
 #define VALUE_TAG_MASK    7
 #define VALUE_TAG_NONE    0
+#define VALUE_TAG_SCALAR  1
 #define VALUE_TAG_LINK    2
 #define VALUE_TAG_RECORD  4
 #define VALUE_TAG_FORWARD 6
@@ -36,9 +38,9 @@ typedef intptr_t RapidValue;
 typedef RapidValue *RapidField;
 
 void
-rapid_gc_init (void);
+rapid_gc_init (RapidField text_start, RapidField text_end);
 
 void
-rapid_gc (RapidField roots[], int root_num);
+rapid_gc (RapidValue roots[], int root_num);
 
 #endif /* LIBCOMMON_H_INCLUDED */
