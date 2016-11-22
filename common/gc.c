@@ -64,7 +64,7 @@ process_module (RapidField module);
 
 static RapidField heap;
 static RapidField heap_free;
-static RapidField text_start;
+static RapidField text_start;  /* FIXME: They aren't needed anymore, are they? */
 static RapidField text_end;
 
 void
@@ -92,10 +92,6 @@ rapid_gc (RapidValue roots[], int root_num)
     {
       process_field (&roots[i]);
     }
-  for (RapidField module = text_start; module < text_end; module += get_module_size (module))
-    {
-      process_module (module);
-    }
   for (RapidField module = heap; module < heap_free; module += get_module_size (module))
     {
       process_module (module);
@@ -117,6 +113,12 @@ rapid_gc_dump (const char *filename, RapidValue entry)
       bfd_perror ("cannot set format of object file");
       exit (1);
     }
+
+  if (!bfd_set_arch_mach (abfd, bfd_arch_i386, bfd_mach_x86_64))
+    {
+      bfd_perror ("cannot set arch");
+      exit (1);
+    }
   
   asection *section = bfd_make_section_with_flags (abfd, "rapid_text",
 						   SEC_ALLOC | SEC_CODE | SEC_RELOC |
@@ -128,6 +130,10 @@ rapid_gc_dump (const char *filename, RapidValue entry)
     }
   section->alignment_power = 4;
 
+  // Now we can try to do a compactification.
+  // We need a full gc. Into another buffer.
+  // Will it work? What will be left?
+  
   // TODO: compactify into extra buffer; change entry as needed!
   size_t size = 0; /* DO SOME COMPACTING STARTING WITH ENTRY; THIS SHOULD SET SIZE */
   
@@ -228,8 +234,6 @@ get_module_size (RapidField field)
 RapidField
 forward_module (RapidField header)
 {
-  if (header >= text_start && header < text_end)
-    return header;
   if (header >= heap && header < heap_free)
     return header;
   
