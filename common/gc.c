@@ -28,7 +28,11 @@
 
 #include "rapidcommon.h"
 #include "error.h"
+#include "obstack.h"
 #include "xalloc.h"
+
+#define obstack_chunk_alloc xmalloc
+#define obstack_chunk_free free
 
 #define HEAP_SIZE 1ULL << 30
 
@@ -139,7 +143,8 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
     {
       process_module (module);
     }
-
+  RapidField end = module;
+  
   size_t size = (module - heap) * sizeof (RapidValue);
     
   // FIXME: missing: relocating information!!!
@@ -198,36 +203,74 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
       bfd_perror ("cannot set section size");
       exit (1);
     }
+
+  struct obstack reloc_stack;
   
-  // Relocating information:
-  // Run through all modules in heap
-  // Run through all vars
-  // If var isn't scalar => add reloc info
+  obstack_init (&reloc_stack);
+
+  unsigned int reloc_count = 0;
+  asymbol *section_symbol = bfd_make_empty_symbol (abfd);
+  section_symbol->section = section;
+  section_symbol->flags = BSF_SECTION_SYM;
+
+  for (module = heap; module < end; module += get_module_size (module))
+    {
+      RapidField p;
+      size_t var_num;
+      if (get_value_tag (*module) == VALUE_TAG_RECORD)
+	{
+	  p = module + 1;
+	  var_num = record_to_num (*module) - 1;
+	}
+      else
+	{
+	  var_num = module[1] >> 3;
+	  p = module + (module[0] >> 3 - var_num);
+	}
+
+      for (size_t i = 0; i < var_num; ++i)
+	{
+	  RapidField q = p + i;
+	  RapidValue v = *q;
+	  if (is_scalar_value (v))
+	    {
+	      continue;
+	    }
+	  reloc_count++;
+	  arelent relent = {
+	    .sym_ptr_ptr = &section_symbol,
+	    .address = (q - heap) * sizeof (RapidValue),
+	    .addend = (((RapidField) v) - heap) * sizeof (RapidValue),
+	    .howto = bfd_reloc_type_lookup (abfd, BFD_RELOC_64)
+	  };
+	  
+	  obstack_grow (&reloc_stack, &relent, sizeof (arelent));
+	}
+    }
+  bfd_set_reloc (abfd, section, obstack_finish (&reloc_stack), reloc_count);  
+  obstack_free (&reloc_stack, NULL);
+  
+ 
   
   if (!bfd_set_section_contents (abfd, section, heap, 0, size))
     {
       bfd_perror ("cannot write section");
       exit (1);
     }
-  
-  asymbol *s = bfd_make_empty_symbol (abfd);
-  s->section = section;
-  s->flags = BSF_SECTION_SYM;
 
+  /*
   arelent *relent = XNMALLOC (1, arelent);
-  relent->sym_ptr_ptr = &s; /* On which it is based */
-  relent->address = 65; /* Where the reloc has to happen */
+  relent->sym_ptr_ptr = &s;
+  relent->address = 65; 
   relent->addend = 10;
   relent->howto = bfd_reloc_type_lookup (abfd, BFD_RELOC_64);
-  bfd_set_reloc (abfd, section, &relent, 1);
-
+  */
+    
   if (!bfd_close (abfd))
     {
       bfd_perror ("finishing writing object file failed");
       exit (1);
     }
-
-  free (relent);
 }
 
 bool
