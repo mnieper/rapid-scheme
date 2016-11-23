@@ -28,6 +28,8 @@ check_PROGRAMS = simple gauss alloc gc gc_dump
 simple_SOURCES = simple.s
 gauss_SOURCES = gauss.s
 alloc_SOURCES = alloc.s
+gc_SOURCES = gc.c gc_util.c
+gc_dump_SOURCES = gc_dump.c gc_util.c
 simple_LDADD = ../librapid/librapidscheme.la
 gauss_LDADD = ../librapid/librapidscheme.la
 alloc_LDADD = ../librapid/librapidscheme.la
@@ -38,4 +40,3 @@ TESTS = tests.scm $(check_PROGRAMS)
 	$(COMPILER) $@ < $<
 
 CLEANFILES = simple.s gauss.s alloc.s
-

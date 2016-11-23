@@ -24,6 +24,7 @@
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -43,7 +44,7 @@ rapid_gc_init (RapidField text_start, RapidField text_end);
 void
 rapid_gc (RapidValue roots[], int root_num);
 
-void
-rapid_gc_dump (const char *filename, RapidValue entry);
+bool
+rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidField entry);
 
 #endif /* LIBCOMMON_H_INCLUDED */

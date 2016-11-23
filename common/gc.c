@@ -22,13 +22,13 @@
 
 #include <bfd.h>
 #include <errno.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 
 #include "rapidcommon.h"
 #include "error.h"
+#include "xalloc.h"
 
 #define HEAP_SIZE 1ULL << 30
 
@@ -62,6 +62,12 @@ process_field (RapidValue *value);
 static void
 process_module (RapidField module);
 
+static void
+init_heap (void);
+
+static void
+free_heap (RapidField heap);
+
 static RapidField heap;
 static RapidField heap_free;
 static RapidField text_start;  /* FIXME: They aren't needed anymore, are they? */
@@ -70,14 +76,8 @@ static RapidField text_end;
 void
 rapid_gc_init (RapidField start, RapidField end)
 {
-  heap = mmap (NULL, HEAP_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE,
-	       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  if (heap == MAP_FAILED)
-    {
-      error (1, errno, "could not initialize heap");
-    }
-  heap_free = heap;
-
+  init_heap ();
+  
   text_start = start;
   text_end = end;
 
@@ -98,8 +98,8 @@ rapid_gc (RapidValue roots[], int root_num)
     }
 }
 
-void
-rapid_gc_dump (const char *filename, RapidValue entry)
+bool
+rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidField entry)
 {
   bfd *abfd = bfd_openw (filename, "elf64-x86-64");
   if (abfd == NULL)
@@ -130,22 +130,43 @@ rapid_gc_dump (const char *filename, RapidValue entry)
     }
   section->alignment_power = 4;
 
-  // Now we can try to do a compactification.
-  // We need a full gc. Into another buffer.
-  // Will it work? What will be left?
-  
-  // TODO: compactify into extra buffer; change entry as needed!
-  size_t size = 0; /* DO SOME COMPACTING STARTING WITH ENTRY; THIS SHOULD SET SIZE */
-  
-  if (!bfd_set_section_size (abfd, section, size))
+  RapidField old_heap = heap;
+  init_heap ();
+
+  process_field ((RapidValue *) &entry);
+  RapidField module;
+  for (module = heap; module < heap_free; module += get_module_size (module))
     {
-      bfd_perror ("cannot set section size");
-      exit (1);
+      process_module (module);
     }
 
-  // TODO: Write rapid_run (based on entry) as entry point
+  size_t size = (module - heap) * sizeof (RapidValue);
+    
+  // FIXME: missing: relocating information!!!
+  // TODO: refactor code: for example: GC code before output to file
+  
+  for (int i = 0; i < root_num; ++i)
+    {
+      process_field (&roots[i]);
+    }
+  for (; module < heap_free; module += get_module_size (module))
+    {
+      process_module (module);
+    }
+  
+  free_heap (old_heap);
+  
+  asymbol *symbols[2];
+  symbols[0] = bfd_make_empty_symbol (abfd);
+  symbols[0]->name = "rapid_run";
+  symbols[0]->section = section;
+  symbols[0]->flags = BSF_GLOBAL;
+  symbols[0]->value = (entry - heap) * sizeof (RapidValue);
+  symbols[1] = (asymbol *) NULL;
+  
+  /*
   asymbol *symbol = bfd_make_empty_symbol (abfd);
-  asymbol *ptrs[3];
+  asymbol *ptrs[4];
   symbol->name = "rapid_text_start";
   symbol->section = section;
   symbol->flags = BSF_GLOBAL;
@@ -157,26 +178,56 @@ rapid_gc_dump (const char *filename, RapidValue entry)
   symbol->flags = BSF_GLOBAL;
   symbol->value = size;
   ptrs[1] = symbol;
-  ptrs[2] = 0;
-  if (!bfd_set_symtab (abfd, ptrs, 2))
+  symbol = bfd_make_empty_symbol (abfd);
+  symbol->name = "rapid_run";
+  symbol->section = section;
+  symbol->flags = BSF_GLOBAL;
+  symbol->value = (entry - heap) * sizeof (RapidValue);
+  ptrs[2] = symbol;
+  ptrs[3] = 0;
+  */
+
+  if (!bfd_set_symtab (abfd, symbols, 1))
     {
       bfd_perror ("cannot set symbols");
       exit (1);
     }
+
+  if (!bfd_set_section_size (abfd, section, size))
+    {
+      bfd_perror ("cannot set section size");
+      exit (1);
+    }
   
-  /* write contents 
-  if (!bfd_set_section_contents (abfd, section, contents, 0, size))
+  // Relocating information:
+  // Run through all modules in heap
+  // Run through all vars
+  // If var isn't scalar => add reloc info
+  
+  if (!bfd_set_section_contents (abfd, section, heap, 0, size))
     {
       bfd_perror ("cannot write section");
       exit (1);
     }
-  */
   
+  asymbol *s = bfd_make_empty_symbol (abfd);
+  s->section = section;
+  s->flags = BSF_SECTION_SYM;
+
+  arelent *relent = XNMALLOC (1, arelent);
+  relent->sym_ptr_ptr = &s; /* On which it is based */
+  relent->address = 65; /* Where the reloc has to happen */
+  relent->addend = 10;
+  relent->howto = bfd_reloc_type_lookup (abfd, BFD_RELOC_64);
+  bfd_set_reloc (abfd, section, &relent, 1);
+
   if (!bfd_close (abfd))
     {
       bfd_perror ("finishing writing object file failed");
       exit (1);
     }
+
+  free (relent);
 }
 
 bool
@@ -281,4 +332,22 @@ process_module (RapidField module)
     {
       process_field (&p[i]);
     }
+}
+
+void
+init_heap (void)
+{
+  heap = mmap (NULL, HEAP_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE,
+	       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  if (heap == MAP_FAILED)
+    {
+      error (1, errno, "could not initialize heap");
+    }
+  heap_free = heap;
+}
+
+void
+free_heap (RapidField heap)
+{
+  munmap (heap, HEAP_SIZE);
 }

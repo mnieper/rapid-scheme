@@ -18,19 +18,57 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#if HAVE_CONFIG_H
-# include <config.h>
-#endif
-
 #include "gc_util.h"
-#include "rapidcommon.h"
-#include "macros.h"
 
-int main (int argc, char *argv)
+static RapidValue stack[10000];
+static size_t stack_free = 0;
+
+
+RapidValue
+box (int i)
 {
-  rapid_gc_init (NULL, NULL);
+  return (i << 1) | VALUE_TAG_SCALAR;
+}
 
-  RapidValue p = cons (box (1), box (2));
-  
-  rapid_gc_dump (NULL, 0, "gc_dump_obj.o", (RapidField) p);
+int
+unbox (RapidValue value)
+{
+  return value >> 1;
+}
+
+RapidField
+alloc_record (size_t size)
+{
+  stack[stack_free++] = 8 * (size + 1) + VALUE_TAG_RECORD;
+  RapidField p = &stack[stack_free];
+  stack_free += (size & ~1) + 1;
+  return p;
+}
+
+RapidValue
+cons (RapidValue car, RapidValue cdr)
+{
+  RapidField p = alloc_record (2);
+  p[0] = car;
+  p[1] = cdr;
+  return (RapidValue) p;
+}
+
+RapidValue
+car (RapidValue pair)
+{
+  return ((RapidField) pair)[0];
+}		   
+
+RapidValue
+cdr (RapidValue pair)
+{
+  return ((RapidField) pair)[1];
+}
+
+void
+gc (RapidValue *root)
+{
+  rapid_gc (root, 1);
+  stack_free = 0;
 }

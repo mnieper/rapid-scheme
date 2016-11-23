@@ -18,19 +18,30 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#if HAVE_CONFIG_H
-# include <config.h>
-#endif
+#ifndef GC_UTIL_H_INCLUDED
+#define GC_UTIL_H_INCLUDED
 
-#include "gc_util.h"
 #include "rapidcommon.h"
-#include "macros.h"
 
-int main (int argc, char *argv)
-{
-  rapid_gc_init (NULL, NULL);
+void
+gc (RapidValue *root);
 
-  RapidValue p = cons (box (1), box (2));
-  
-  rapid_gc_dump (NULL, 0, "gc_dump_obj.o", (RapidField) p);
-}
+RapidField
+alloc_record (size_t size);
+
+RapidValue
+cons (RapidValue car, RapidValue cdr);
+
+RapidValue
+car (RapidValue pair);
+
+RapidValue
+cdr (RapidValue pair);
+
+RapidValue
+box (int i);
+
+int
+unbox (RapidValue value);
+
+#endif /* GC_UTIL_H_INCLUDED */

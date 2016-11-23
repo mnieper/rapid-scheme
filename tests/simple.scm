@@ -2,4 +2,6 @@
  (entry (main proc))
  (module main
   	 (procedure proc
-		    (halt))))
+		    (halt))
+	 (variable x 0))
+ (init (main x) (main proc)))

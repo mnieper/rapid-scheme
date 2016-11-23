@@ -27,12 +27,16 @@
 
 
 # Specification in the form of a command-line invocation:
-#   gnulib-tool --import --local-dir=gl --lib=libgnu --source-base=lib --m4-base=m4 --doc-base=doc --tests-base=tests --aux-dir=build-aux --no-conditional-dependencies --libtool --macro-prefix=gl gitlog-to-changelog
+#   gnulib-tool --import --local-dir=gl --lib=libgnu --source-base=lib --m4-base=m4 --doc-base=doc --tests-base=tests --aux-dir=build-aux --no-conditional-dependencies --libtool --macro-prefix=gl error gitlog-to-changelog obstack valgrind-tests xalloc
 
 # Specification in the form of a few gnulib-tool.m4 macro invocations:
 gl_LOCAL_DIR([gl])
 gl_MODULES([
+  error
   gitlog-to-changelog
+  obstack
+  valgrind-tests
+  xalloc
 ])
 gl_AVOID([])
 gl_SOURCE_BASE([lib])

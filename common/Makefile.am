@@ -16,5 +16,7 @@
 # along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
+AM_CPPFLAGS = -I$(top_srcdir)/lib -I$(build_srcdir)/lib
+
 noinst_LTLIBRARIES = librapidcommon.la
 librapidcommon_la_SOURCES = rapidcommon.h gc.c
