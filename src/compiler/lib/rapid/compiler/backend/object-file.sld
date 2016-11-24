@@ -20,5 +20,6 @@
   (import (scheme base)
 	  (scheme file)
 	  (rapid match)
+	  (rapid binary)
 	  (rapid compiler backend gas))
   (include "object-file.scm"))

@@ -38,6 +38,8 @@
        (write-directive "balign" expression))
       ((byte ,expression* ...)
        (apply write-directive "byte" expression*))
+      ((quad ,expression* ...)
+       (apply write-directive "quad" expression*))
       ((end)
        (write-directive "end"))
       ((begin ,stmt* ...)

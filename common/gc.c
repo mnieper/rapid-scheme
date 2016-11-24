@@ -147,7 +147,6 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
   
   size_t size = (module - heap) * sizeof (RapidValue);
     
-  // FIXME: missing: relocating information!!!
   // TODO: refactor code: for example: GC code before output to file
   
   for (int i = 0; i < root_num; ++i)
@@ -204,7 +203,7 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
       exit (1);
     }
 
-  struct obstack reloc_stack;
+  struct obstack reloc_stack = {};
   
   obstack_init (&reloc_stack);
 
@@ -247,10 +246,17 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
 	  obstack_grow (&reloc_stack, &relent, sizeof (arelent));
 	}
     }
+
+  arelent *relents = obstack_finish (&reloc_stack);
+
+  for (int i = 0; i < reloc_count; ++i)
+    {
+      obstack_ptr_grow (&reloc_stack, &relents[i]);
+    }
+  
   bfd_set_reloc (abfd, section, obstack_finish (&reloc_stack), reloc_count);  
   obstack_free (&reloc_stack, NULL);
   
- 
   
   if (!bfd_set_section_contents (abfd, section, heap, 0, size))
     {
@@ -288,7 +294,7 @@ get_value_tag (RapidValue value)
 RapidField
 value_to_pointer (RapidValue value)
 {
-  return (RapidField) (value | ~VALUE_TAG_MASK);
+  return (RapidField) (value & ~VALUE_TAG_MASK);
 }
 
 ptrdiff_t

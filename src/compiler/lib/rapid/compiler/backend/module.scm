@@ -38,9 +38,14 @@
 		    (values (cons (list name code) procedures)
 			    data
 			    variables))
-		   ((data ,name ,bytes)
+		   ((datum ,name ,bytes)
 		    (values procedures
-			    (cons (list name bytes) data)
+			    (cons (list name (if (string? bytes)
+						 (bytevector-append
+						  (string->utf8 bytes)
+						  #u8(0))
+						 bytes))
+				  data)
 			    variables))
 		   ((variable ,name ,init)
 		    (values procedures
@@ -102,6 +107,7 @@
 				      (quad ,(* 8 (length vars)))
 				      ,procedures-assembly
 				      ,datums-assembly
+				      (align 8)
 				      ,link-label
 				      (quad (- (+ ,start-label 2) ,link-label))
 				      ,vars-assembly
@@ -160,6 +166,9 @@
     ((add ,operand1 ,operand2 ,reg) (compile-add operand1 operand2 (get-machine-register reg)))
     ((branch ,input1 ,input2 ,clause* ...) (compile-branch input1 input2 clause*))
     ((global-fetch ,global ,reg) (compile-global-fetch global (get-machine-register reg)))
+    ((dump ,filename ,entry ,reg* ...) (compile-dump filename entry
+						     (map get-machine-register reg*)
+						     start-label))
     (,_ (error "invalid statement" stmt))))
 
 (define (compile-alloc num size live-registers start-label)
@@ -178,7 +187,7 @@
 	    (cmpq ,(acc) rsp)
 	    (jae ,ok-label)
 	    ,@(if (even? (length live-registers))
-		  '((addq 8, %rsp))
+		  '((addq 8 rsp))
 		  '())
 	    ,@(map (lambda (register)
 		     `(pushq ,register))
@@ -197,6 +206,31 @@
 	    (movq ,(global-symbol 'locals) ,(acc))
 	    (movq ,(local-symbol 'heap-start (acc)) rsp)
 	    ,ok-label)))
+
+(define (compile-dump filename entry live-registers start-label)
+  (let ((resume-label (make-synthetic-identifier 'resume)))
+    `(begin ,@(if (even? (length live-registers))
+		  '((addq 8 rsp))
+		  '())
+	    ,@(map (lambda (register)
+		     `(pushq ,register))
+		   live-registers)
+	    (leaq (,start-label rip) ,(acc))
+	    (pushq ,(acc))
+	    ,(compile-operand filename (acc))
+	    (pushq ,(acc))
+	    ,(compile-operand entry 'rcx)
+	    (popq rdx)
+	    (movq rsp rdi) ;; we can move this to gc-dump-wrapper
+	    (movq ,(+ (length live-registers) 1) rsi)
+	    (leaq (,resume-label rip) rbx)
+	    (jmpq ,(global-symbol 'rapid-gc-dump-wrapper))
+	    ,resume-label
+	    ,@(map (lambda (register)
+		     `(popq ,register))
+		   (reverse live-registers))
+	    (movq ,(global-symbol 'locals) ,(acc))
+	    (movq ,(local-symbol 'heap-start (acc)) rsp))))
 
 (define (compile-global-fetch global register)
   `(movq ,(global-symbol global) ,register))

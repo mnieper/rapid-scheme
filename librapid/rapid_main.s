@@ -44,6 +44,13 @@ rapid_gc_wrapper:
 	addq	%rax, %rbx
 	jmpq	*%rbx
 
+rapid_gc_dump_wrapper:
+	subq	(%rsp), %rbx
+	callq	rapid_gc_dump
+	popq	%rax
+	addq	%rax, %rbx
+	jmpq	*%rbx	
+	
 	## Global variables that are accessed relative to %rpb
 	.balign	8
 .Lrapid_gst:

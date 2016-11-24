@@ -51,7 +51,7 @@
      (module main
 	     (procedure proc
 			,@code)
-	     (data msg ,(string->utf8 "Hello, World!\n"))
+	     (datum msg "Hello, World!\n")
 	     (variable v 0)
 	     (variable var 42)))))
 

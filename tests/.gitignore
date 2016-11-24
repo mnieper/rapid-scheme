@@ -1,5 +1,7 @@
 /alloc.s
 /alloc
+/dump.s
+/dump
 /gauss.s
 /gauss
 /simple.s

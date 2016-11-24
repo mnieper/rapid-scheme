@@ -88,10 +88,15 @@
 		   '())
 	     ,@(if progbits
 		   (let loop ((i 0))
-		     (if (= i (bytevector-length progbits))
-			 '()
-			 `((byte ,(number->hex (bytevector-u8-ref progbits i)))
-			   . ,(loop (+ i 1)))))
+		     (cond
+		      ((= i (bytevector-length progbits))
+		       '())
+		      ((<= i (- (bytevector-length progbits) 8))
+		       `((quad ,(number->hex (bytevector-integer-ref progbits i 8)))
+			 . ,(loop (+ i 8))))
+		      (else
+		       `((byte ,(number->hex (bytevector-u8-ref progbits i)))
+			 . ,(loop (+ i 1))))))
 		   `((zero ,size)))))))
 
 ;;; Object files
@@ -105,6 +110,3 @@
 	((object-file ,section* ...) (map compile-section section*))
 	(,_ (error "invalid object file" object-file)))
     (end)))
-
-
-
