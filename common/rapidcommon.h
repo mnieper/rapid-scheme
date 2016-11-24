@@ -39,7 +39,7 @@ typedef intptr_t RapidValue;
 typedef RapidValue *RapidField;
 
 void
-rapid_gc_init (RapidField text_start, RapidField text_end);
+rapid_gc_init ();
 
 void
 rapid_gc (RapidValue roots[], int root_num);

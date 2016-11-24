@@ -23,8 +23,6 @@
 	.type	main, @function
 main:
 	pushq	%rbp
-	movabs 	$rapid_text_start, %rdi
-	movabs	$rapid_text_end, %rsi
 	callq	rapid_gc_init
 	andq	$-0x10000,%rsp	# Align stack to 2^16 bytes
 	leaq	.Lrapid_gst(%rip), %rbp # Load absolute address of array of globals

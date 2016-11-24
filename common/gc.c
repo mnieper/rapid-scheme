@@ -74,17 +74,12 @@ free_heap (RapidField heap);
 
 static RapidField heap;
 static RapidField heap_free;
-static RapidField text_start;  /* FIXME: They aren't needed anymore, are they? */
-static RapidField text_end;
 
 void
-rapid_gc_init (RapidField start, RapidField end)
+rapid_gc_init ()
 {
   init_heap ();
-  
-  text_start = start;
-  text_end = end;
-
+ 
   bfd_init ();
   bfd_set_error_program_name (program_invocation_name);
 }

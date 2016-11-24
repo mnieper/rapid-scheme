@@ -52,10 +52,6 @@
 	(+ offset (module-label-offset module (cadr reference)))))
     (define (entry-global)
       `("rapid_run" ,(reference-address entry)))
-    (define (start-global)
-      `("rapid_text_start" 0))
-    (define (end-global size)
-      `("rapid_text_end" ,(align size 16)))
     (define (init->reloc init)
       (let ((var (car init))
 	    (reference (cadr init)))
@@ -76,9 +72,7 @@
 	 (program-section
 	  "rapid_text" (flags alloc write execinstr) (align 16)
 	  (progbits ,progbits)
-	  (globals ,(entry-global)
-		   ,(start-global)
-		   ,(end-global (bytevector-length progbits)))
+	  (globals ,(entry-global))
 	  (relocs ,@(map init->reloc inits))))))))
 
 (define (get-module-offsets modules)
