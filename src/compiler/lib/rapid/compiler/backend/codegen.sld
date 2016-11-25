@@ -22,6 +22,7 @@
 	  (rapid receive)
 	  (rapid imap)
 	  (rapid match)
+	  (rapid binary)
 	  (rapid compiler backend module)
 	  (rapid compiler backend object-file))
   (include "codegen.scm"))

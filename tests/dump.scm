@@ -16,7 +16,7 @@
 	      ok
 	      (halt))   
    (datum filename "dump_obj.o")
-   (variable entry 0)
+   (variable entry 1)
    (variable magic 42)
    (variable ptr 0))
  (init (main entry) (main next)))

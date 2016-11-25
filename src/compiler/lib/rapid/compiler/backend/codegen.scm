@@ -66,6 +66,11 @@
 			   (module-offset (car module))
 			   (module-code (cadr module))))
        modules)
+      (for-each
+       (lambda (init)
+	 (let ((var (car init)))
+	   (bytevector-integer-set! progbits (reference-address var) 0 8)))
+       inits)      
       (output-object-file
        filename
        `(object-file

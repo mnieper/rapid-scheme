@@ -47,4 +47,5 @@ dump_obj.o: dump
 .scm.s:
 	$(COMPILER) $@ < $<
 
-CLEANFILES = simple.s gauss.s alloc.s
+CLEANFILES = simple.s gauss.s alloc.s dump.s
+

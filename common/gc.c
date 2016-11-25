@@ -20,6 +20,7 @@
 
 #define _GNU_SOURCE
 
+#include <assert.h>
 #include <bfd.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -175,6 +176,14 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
       exit (1);
     }
 
+
+  if (!bfd_set_section_contents (abfd, section, heap, 0, size))
+    {
+      bfd_perror ("cannot write section");
+      exit (1);
+    }
+
+ 
   struct obstack reloc_stack = {};
   
   obstack_init (&reloc_stack);
@@ -216,6 +225,10 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
 	  };
 	  
 	  obstack_grow (&reloc_stack, &relent, sizeof (arelent));
+
+	  RapidValue z = 0;
+	  assert (bfd_set_section_contents (abfd, section, &z,
+					    (q - heap) * sizeof (RapidValue), 8));
 	}
     }
 
@@ -228,11 +241,6 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
   
   bfd_set_reloc (abfd, section, obstack_finish (&reloc_stack), reloc_count);  
     
-  if (!bfd_set_section_contents (abfd, section, heap, 0, size))
-    {
-      bfd_perror ("cannot write section");
-      exit (1);
-    }
 
   if (!bfd_close (abfd))
     {
