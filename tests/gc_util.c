@@ -36,11 +36,11 @@ unbox (RapidValue value)
   return value >> 1;
 }
 
-RapidField
+RapidValue *
 alloc_record (size_t size)
 {
   stack[stack_free++] = 8 * (size + 1) + VALUE_TAG_RECORD;
-  RapidField p = &stack[stack_free];
+  RapidValue *p = &stack[stack_free];
   stack_free += (size & ~1) + 1;
   return p;
 }
@@ -48,7 +48,7 @@ alloc_record (size_t size)
 RapidValue
 cons (RapidValue car, RapidValue cdr)
 {
-  RapidField p = alloc_record (2);
+  RapidValue *p = alloc_record (2);
   p[0] = car;
   p[1] = cdr;
   return (RapidValue) p;
@@ -57,13 +57,13 @@ cons (RapidValue car, RapidValue cdr)
 RapidValue
 car (RapidValue pair)
 {
-  return ((RapidField) pair)[0];
+  return ((RapidValue *) pair)[0];
 }		   
 
 RapidValue
 cdr (RapidValue pair)
 {
-  return ((RapidField) pair)[1];
+  return ((RapidValue *) pair)[1];
 }
 
 void

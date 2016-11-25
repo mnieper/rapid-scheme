@@ -36,6 +36,12 @@
 #define obstack_chunk_free free
 
 #define HEAP_SIZE 1ULL << 30
+#define THRESHOLD 1ULL << 20
+
+typedef RapidValue *RapidField;
+
+static void
+heapify (RapidValue roots[], int root_num);
 
 static bool
 is_scalar_value (RapidValue value);
@@ -61,6 +67,9 @@ get_module_size (RapidField field);
 static RapidField
 forward_module (RapidField header);
 
+static size_t
+get_var_count (RapidValue *module, RapidValue **vars);
+
 static void
 process_field (RapidValue *value);
 
@@ -72,6 +81,18 @@ init_heap (void);
 
 static void
 free_heap (RapidField heap);
+
+static RapidValue *
+switch_heap (void);
+
+static size_t
+get_free_space ();
+
+static void
+write_object_file (RapidValue *start, RapidValue *end, const char *filename, RapidValue *entry);
+
+static void
+clear_section_quad (bfd *abfd, asection *section, file_ptr offset);
 
 static RapidField heap;
 static RapidField heap_free;
@@ -88,167 +109,36 @@ rapid_gc_init ()
 void
 rapid_gc (RapidValue roots[], int root_num)
 {
-  for (int i = 0; i < root_num; ++i)
-    {
-      process_field (&roots[i]);
-    }
-  for (RapidField module = heap; module < heap_free; module += get_module_size (module))
-    {
-      process_module (module);
-    }
+  RapidValue *old_heap = (get_free_space () < THRESHOLD) ? switch_heap () : NULL;
+  heapify (roots, root_num);
+  if (old_heap != NULL)
+    free_heap (old_heap);
 }
 
 bool
 rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidField entry)
 {
-  bfd *abfd = bfd_openw (filename, "elf64-x86-64");
-  if (abfd == NULL)
-    {
-      bfd_perror ("cannot open object file for writing");
-      exit (1);
-    }
-  
-  if (!bfd_set_format (abfd, bfd_object))
-    {
-      bfd_perror ("cannot set format of object file");
-      exit (1);
-    }
+  RapidValue *old_heap = switch_heap ();
+  heapify ((RapidValue *) &entry, 1);
+  RapidValue *end = heap_free;
 
-  if (!bfd_set_arch_mach (abfd, bfd_arch_i386, bfd_mach_x86_64))
-    {
-      bfd_perror ("cannot set arch");
-      exit (1);
-    }
-  
-  asection *section = bfd_make_section_with_flags (abfd, "rapid_text",
-						   SEC_ALLOC | SEC_CODE | SEC_RELOC |
-						   SEC_HAS_CONTENTS);
-  if (section == NULL)
-    {
-      bfd_perror ("cannot create text section");
-      exit (1);
-    }
-  section->alignment_power = 4;
+  heapify (roots, root_num);
+  free_heap (old_heap);
 
-  RapidField old_heap = heap;
-  init_heap ();
+  write_object_file (heap, end, filename, entry);
+}
 
-  process_field ((RapidValue *) &entry);
-  RapidField module;
-  for (module = heap; module < heap_free; module += get_module_size (module))
-    {
-      process_module (module);
-    }
-  RapidField end = module;
-  
-  size_t size = (module - heap) * sizeof (RapidValue);
-    
-  // TODO: refactor code: for example: GC code before output to file
-  
+void
+heapify (RapidValue roots[], int root_num)
+{  
   for (int i = 0; i < root_num; ++i)
     {
       process_field (&roots[i]);
     }
-  for (; module < heap_free; module += get_module_size (module))
+  for (RapidValue *module = heap; module < heap_free; module += get_module_size (module))
     {
       process_module (module);
     }
-  
-  free_heap (old_heap);
-  
-  asymbol *symbols[2];
-  symbols[0] = bfd_make_empty_symbol (abfd);
-  symbols[0]->name = "rapid_run";
-  symbols[0]->section = section;
-  symbols[0]->flags = BSF_GLOBAL;
-  symbols[0]->value = (entry - heap) * sizeof (RapidValue);
-  symbols[1] = (asymbol *) NULL;
-  
-  if (!bfd_set_symtab (abfd, symbols, 1))
-    {
-      bfd_perror ("cannot set symbols");
-      exit (1);
-    }
-
-  if (!bfd_set_section_size (abfd, section, size))
-    {
-      bfd_perror ("cannot set section size");
-      exit (1);
-    }
-
-
-  if (!bfd_set_section_contents (abfd, section, heap, 0, size))
-    {
-      bfd_perror ("cannot write section");
-      exit (1);
-    }
-
- 
-  struct obstack reloc_stack = {};
-  
-  obstack_init (&reloc_stack);
-
-  unsigned int reloc_count = 0;
-  asymbol *section_symbol = bfd_make_empty_symbol (abfd);
-  section_symbol->section = section;
-  section_symbol->flags = BSF_SECTION_SYM;
-
-  for (module = heap; module < end; module += get_module_size (module))
-    {
-      RapidField p;
-      size_t var_num;
-      if (get_value_tag (*module) == VALUE_TAG_RECORD)
-	{
-	  p = module + 1;
-	  var_num = record_to_num (*module) - 1;
-	}
-      else
-	{
-	  var_num = module[1] >> 3;
-	  p = module + ((module[0] >> 3) - var_num);
-	}
-
-      for (size_t i = 0; i < var_num; ++i)
-	{
-	  RapidField q = p + i;
-	  RapidValue v = *q;
-	  if (is_scalar_value (v))
-	    {
-	      continue;
-	    }
-	  reloc_count++;
-	  arelent relent = {
-	    .sym_ptr_ptr = &section_symbol,
-	    .address = (q - heap) * sizeof (RapidValue),
-	    .addend = (((RapidField) v) - heap) * sizeof (RapidValue),
-	    .howto = bfd_reloc_type_lookup (abfd, BFD_RELOC_64)
-	  };
-	  
-	  obstack_grow (&reloc_stack, &relent, sizeof (arelent));
-
-	  RapidValue z = 0;
-	  assert (bfd_set_section_contents (abfd, section, &z,
-					    (q - heap) * sizeof (RapidValue), 8));
-	}
-    }
-
-  arelent *relents = obstack_finish (&reloc_stack);
-
-  for (int i = 0; i < reloc_count; ++i)
-    {
-      obstack_ptr_grow (&reloc_stack, &relents[i]);
-    }
-  
-  bfd_set_reloc (abfd, section, obstack_finish (&reloc_stack), reloc_count);  
-    
-
-  if (!bfd_close (abfd))
-    {
-      bfd_perror ("finishing writing object file failed");
-      exit (1);
-    }
-
-  obstack_free (&reloc_stack, NULL);
 }
 
 bool
@@ -321,6 +211,19 @@ forward_module (RapidField header)
   return header;
 }
 
+size_t
+get_var_count (RapidValue *module, RapidValue **vars)
+{
+  if (get_value_tag (*module) == VALUE_TAG_RECORD)
+    {
+      *vars = module + 1;
+      return record_to_num (*module) - 1;
+    }
+  size_t var_count = module[1] >> 3;
+  *vars = module + ((module[0] >> 3) - var_count);
+  return var_count;
+}
+
 void
 process_field (RapidValue *value)
 {
@@ -335,23 +238,12 @@ process_field (RapidValue *value)
 void
 process_module (RapidField module)
 {
-  size_t var_num;
-  RapidField p;
-
-  if (get_value_tag (*module) == VALUE_TAG_RECORD)
-    {
-      p = module + 1;
-      var_num = record_to_num (*module) - 1;
-    }
-  else
-    {
-      var_num = module[1] >> 3;
-      p = module + ((module[0] >> 3) - var_num);
-    }
+  RapidValue *vars;
+  size_t var_num = get_var_count (module, &vars);
 
   for (size_t i = 0; i < var_num; ++i)
     {
-      process_field (&p[i]);
+      process_field (&vars[i]);
     }
 }
 
@@ -361,14 +253,105 @@ init_heap (void)
   heap = mmap (NULL, HEAP_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE,
 	       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   if (heap == MAP_FAILED)
-    {
-      error (1, errno, "could not initialize heap");
-    }
+    error (1, errno, "could not initialize heap");
   heap_free = heap;
+}
+
+RapidValue *
+switch_heap (void)
+{
+  RapidValue *old_heap = heap;
+  init_heap ();
+  return old_heap;
 }
 
 void
 free_heap (RapidField heap)
 {
   munmap (heap, HEAP_SIZE);
+}
+
+size_t
+get_free_space ()
+{
+  return HEAP_SIZE - ((RapidValue) heap_free - (RapidValue) heap);
+}
+
+void
+write_object_file (RapidValue *start, RapidValue *end, const char *filename, RapidValue *entry)
+{
+  size_t size = (end - start) << 3;
+  struct obstack reloc_stack = {};
+  bfd *abfd;
+  asection *section;
+  asymbol *symbols[2];
+  
+  obstack_init (&reloc_stack);
+
+  assert ((abfd = bfd_openw (filename, "elf64-x86-64")) != NULL);
+  assert (bfd_set_format (abfd, bfd_object));
+  assert (bfd_set_arch_mach (abfd, bfd_arch_i386, bfd_mach_x86_64));
+  assert ((section = bfd_make_section_with_flags (abfd, "rapid_text",
+						 SEC_ALLOC | SEC_CODE | SEC_RELOC |
+						  SEC_HAS_CONTENTS)) != NULL);
+  section->alignment_power = 4;
+
+  symbols[0] = bfd_make_empty_symbol (abfd);
+  symbols[0]->name = "rapid_run";
+  symbols[0]->section = section;
+  symbols[0]->flags = BSF_GLOBAL;
+  symbols[0]->value = (entry - heap) << 3;
+  symbols[1] = (asymbol *) NULL;
+  assert (bfd_set_symtab (abfd, symbols, 1));
+  assert (bfd_set_section_size (abfd, section, size));
+  assert (bfd_set_section_contents (abfd, section, heap, 0, size));
+ 
+  unsigned int reloc_count = 0;
+  asymbol *section_symbol = bfd_make_empty_symbol (abfd);
+  section_symbol->section = section;
+  section_symbol->flags = BSF_SECTION_SYM;
+
+  for (RapidValue *module = start; module < end; module += get_module_size (module))
+    {
+      RapidValue *vars;
+      size_t var_count = get_var_count (module, &vars);
+
+      for (size_t i = 0; i < var_count; ++i)
+	{
+	  RapidField q = vars + i;
+	  RapidValue v = *q;
+	  if (is_scalar_value (v))
+	    continue;
+
+	  reloc_count++;
+	  arelent relent = {
+	    .sym_ptr_ptr = &section_symbol,
+	    .address = (q - heap) * sizeof (RapidValue),
+	    .addend = (((RapidField) v) - heap) * sizeof (RapidValue),
+	    .howto = bfd_reloc_type_lookup (abfd, BFD_RELOC_64)
+	  };
+	  
+	  obstack_grow (&reloc_stack, &relent, sizeof (arelent));
+	  clear_section_quad (abfd, section, (q - heap) << 3);
+	}
+    }
+
+  arelent *relents = obstack_finish (&reloc_stack);
+
+  for (int i = 0; i < reloc_count; ++i)
+    {
+      obstack_ptr_grow (&reloc_stack, &relents[i]);
+    }
+  
+  bfd_set_reloc (abfd, section, obstack_finish (&reloc_stack), reloc_count);
+  assert (bfd_close (abfd));
+
+  obstack_free (&reloc_stack, NULL);  
+}
+
+void
+clear_section_quad (bfd *abfd, asection *section, file_ptr offset)
+{
+  static RapidValue zero = 0;
+  assert (bfd_set_section_contents (abfd, section, &zero, offset, sizeof (RapidValue)));
 }

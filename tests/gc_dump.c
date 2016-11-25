@@ -32,5 +32,5 @@ int main (int argc, char *argv)
 
   RapidValue p = cons (box (1), box (2));
   
-  rapid_gc_dump (NULL, 0, "gc_dump_obj.o", (RapidField) p);
+  rapid_gc_dump (NULL, 0, "gc_dump_obj.o", (RapidValue *) p);
 }

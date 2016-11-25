@@ -36,7 +36,6 @@
 #define VALUE_TAG_FORWARD 6
 
 typedef intptr_t RapidValue;
-typedef RapidValue *RapidField;
 
 void
 rapid_gc_init ();
@@ -45,6 +44,6 @@ void
 rapid_gc (RapidValue roots[], int root_num);
 
 bool
-rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidField entry);
+rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidValue *entry);
 
 #endif /* LIBCOMMON_H_INCLUDED */

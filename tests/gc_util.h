@@ -26,7 +26,7 @@
 void
 gc (RapidValue *root);
 
-RapidField
+RapidValue *
 alloc_record (size_t size);
 
 RapidValue
