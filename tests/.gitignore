@@ -2,6 +2,7 @@
 /alloc
 /dump.s
 /dump
+/dump_obj
 /gauss.s
 /gauss
 /simple.s

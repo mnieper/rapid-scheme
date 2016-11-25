@@ -163,29 +163,6 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
   symbols[0]->value = (entry - heap) * sizeof (RapidValue);
   symbols[1] = (asymbol *) NULL;
   
-  /*
-  asymbol *symbol = bfd_make_empty_symbol (abfd);
-  asymbol *ptrs[4];
-  symbol->name = "rapid_text_start";
-  symbol->section = section;
-  symbol->flags = BSF_GLOBAL;
-  symbol->value = 0;
-  ptrs[0] = symbol;
-  symbol = bfd_make_empty_symbol (abfd);
-  symbol->name = "rapid_text_end";
-  symbol->section = section;
-  symbol->flags = BSF_GLOBAL;
-  symbol->value = size;
-  ptrs[1] = symbol;
-  symbol = bfd_make_empty_symbol (abfd);
-  symbol->name = "rapid_run";
-  symbol->section = section;
-  symbol->flags = BSF_GLOBAL;
-  symbol->value = (entry - heap) * sizeof (RapidValue);
-  ptrs[2] = symbol;
-  ptrs[3] = 0;
-  */
-
   if (!bfd_set_symtab (abfd, symbols, 1))
     {
       bfd_perror ("cannot set symbols");
@@ -219,7 +196,7 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
       else
 	{
 	  var_num = module[1] >> 3;
-	  p = module + (module[0] >> 3 - var_num);
+	  p = module + ((module[0] >> 3) - var_num);
 	}
 
       for (size_t i = 0; i < var_num; ++i)
@@ -250,28 +227,20 @@ rapid_gc_dump (RapidValue roots[], int root_num, const char *filename, RapidFiel
     }
   
   bfd_set_reloc (abfd, section, obstack_finish (&reloc_stack), reloc_count);  
-  obstack_free (&reloc_stack, NULL);
-  
-  
+    
   if (!bfd_set_section_contents (abfd, section, heap, 0, size))
     {
       bfd_perror ("cannot write section");
       exit (1);
     }
 
-  /*
-  arelent *relent = XNMALLOC (1, arelent);
-  relent->sym_ptr_ptr = &s;
-  relent->address = 65; 
-  relent->addend = 10;
-  relent->howto = bfd_reloc_type_lookup (abfd, BFD_RELOC_64);
-  */
-    
   if (!bfd_close (abfd))
     {
       bfd_perror ("finishing writing object file failed");
       exit (1);
     }
+
+  obstack_free (&reloc_stack, NULL);
 }
 
 bool
@@ -317,7 +286,7 @@ get_module_header (RapidField field)
       default:
 	return field;
       }
-  } while (0);
+  } while (1);
 }
 
 size_t
@@ -369,7 +338,7 @@ process_module (RapidField module)
   else
     {
       var_num = module[1] >> 3;
-      p = module + (module[0] >> 3 - var_num);
+      p = module + ((module[0] >> 3) - var_num);
     }
 
   for (size_t i = 0; i < var_num; ++i)

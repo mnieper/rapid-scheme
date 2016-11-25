@@ -24,7 +24,8 @@ TEST_EXTENSIONS = .scm
 LOG_COMPILER = $(LIBTOOL) --mode=execute $(VALGRIND)
 SCM_LOG_COMPILER = $(SCHEME)
 
-check_PROGRAMS = simple gauss alloc dump gc gc_dump
+#check_SCRIPTS = dumptest.sh
+check_PROGRAMS = simple gauss alloc dump gc gc_dump dump_obj
 simple_SOURCES = simple.s
 gauss_SOURCES = gauss.s
 alloc_SOURCES = alloc.s
@@ -36,7 +37,12 @@ gauss_LDADD = ../librapid/librapidscheme.la
 alloc_LDADD = ../librapid/librapidscheme.la
 dump_LDADD = ../librapid/librapidscheme.la
 
+dump_obj_LDADD = ../librapid/librapidscheme.la
+
 TESTS = tests.scm $(check_PROGRAMS)
+
+dump_obj.o: dump
+	./dump
 
 .scm.s:
 	$(COMPILER) $@ < $<
