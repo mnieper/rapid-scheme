@@ -80,3 +80,13 @@
 	    (scheme write)
 	    (rapid box))
     (include "test.scm"))
+
+;; Local Variables:
+;; eval: (put 'test-assert 'scheme-indent-function 1)
+;; eval: (put 'test-eqv 'scheme-indent-function 1)
+;; eval: (put 'test-equal 'scheme-indent-function 1)
+;; eval: (font-lock-add-keywords 'scheme-mode
+;;                               '(("(\\(test-assert\\)\\>" 1 font-lock-keyword-face)
+;;                                 ("(\\(test-eqv\\)\\>" 1 font-lock-keyword-face)
+;;                                 ("(\\(test-equal\\)\\>" 1 font-lock-keyword-face)))
+;; End:

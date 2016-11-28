@@ -15,11 +15,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module)
-  (export generate-module)
+(define-library (rapid compiler mark-free-variables)
+  (export mark-free-variables)
   (import (scheme base)
 	  (rapid receive)
 	  (rapid match)
-	  (rapid compiler mark-free-variables)
-	  (rapid compiler backend module))
-  (include "generate-module.scm"))
+	  (rapid iset)
+	  (rapid compiler identifier))
+  (include "mark-free-variables.scm"))

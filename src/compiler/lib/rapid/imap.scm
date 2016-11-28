@@ -24,6 +24,8 @@
 (define (make-imap compare)
   (%make-imap compare '()))
 
+;; XXX: This does not define an immutable map because tail is modified
+;; by set-cdr! below!
 (define imap-ref
   (case-lambda
     ((map key)

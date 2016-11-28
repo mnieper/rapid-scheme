@@ -15,11 +15,14 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module)
-  (export generate-module)
-  (import (scheme base)
-	  (rapid receive)
-	  (rapid match)
-	  (rapid compiler mark-free-variables)
-	  (rapid compiler backend module))
-  (include "generate-module.scm"))
+(define-library (rapid iset)
+  (export iset
+	  iset?
+	  iset-empty?
+	  iset-member?
+	  iset-adjoin
+	  iset-delete
+	  iset->list
+	  iset-union)
+  (import (scheme base))
+  (include "iset.scm"))
