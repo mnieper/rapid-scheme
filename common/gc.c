@@ -38,6 +38,8 @@
 #define HEAP_SIZE 1ULL << 30
 #define THRESHOLD 1ULL << 20
 
+
+// TODO: Remove RapidField.  View heap as large array of RapidValue's.
 typedef RapidValue *RapidField;
 
 static void

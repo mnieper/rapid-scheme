@@ -391,3 +391,8 @@
    ((assq register *machine-registers*) => cadr)
    (else #f)))
 
+(define (get-caller-save-registers)
+  #(r0 r1 r2 r3 r4 r5 r6 r7))
+
+(define (get-callee-save-registers)
+  #(v0 v1 v2 v3 v4))

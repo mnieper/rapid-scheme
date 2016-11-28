@@ -15,19 +15,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler backend module)
-  (export make-module
-	  module?
-	  module-code
-	  module-label-offset
-	  get-caller-save-registers
-	  get-callee-save-registers)
+(define-library (rapid compiler generate-module)
+  (export generate-module)
   (import (scheme base)
-	  (scheme cxr)
 	  (rapid receive)
-	  (rapid imap)
 	  (rapid match)
-	  (rapid compiler identifier)
-	  (rapid compiler backend assembler)
-	  (rapid compiler backend runtime))
-  (include "module.scm"))
+	  (rapid compiler backend module))
+  (include "generate-module.scm"))

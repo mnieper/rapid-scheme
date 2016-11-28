@@ -17,3 +17,79 @@
 
 
 - Instead of offset, we can also have a simple header
+
+* Closure conversion
+
+
+- erstes Argument ist immer Closure
+- zweites Continuation
+- WIE VIELE?
+- Weitere Werte?
+
+- callee-save registers v0 ... vn werden der continuation übergeben.
+- multiple values bei continuation?
+
+
+- flat closures
+
+- je nach letrec-vorkommen
+
+
+
+
+Every (escaping) function has a maximal number of arguments.  A
+number of them are reserved for the continuation and parameters
+to the continuation (=> callee-saved registers).  The other
+registers are for the closure parameter and the arguments.  Idea:
+Some arguments are passed in registers.  The rest is passed as
+a list. The same goes for the continuation.
+
+
+So, let N be the number of caller-save registers R0 ... R_N-1 and M be the
+number of callee-save registers V0 ... V_M-1.
+
+R0           = Closure
+R1           = Continuation
+R2           = Argument-List
+V0 ... V_M-1 = Passed to continuation
+
+The continuation takes
+
+R0           = Argument-List
+V0 ... V_M-1 = Passed arguments
+
+
+
+
+----
+
+
+Alternatively: Function take more formal arguments; including the minimum argument count;
+  the rest is put on the stack (!) Goes for the cont as well.
+How many arguments should the continuation then take?
+
+
+Q: External function: what kind of closure? How to detect whether it is a closure = procedure?
+
+
+
+** Pointer Tags
+
+- Negative Pointer/Integer
+
+-00 : link field
+-02 : record count field
+-04 : forwarded pointer
+-06 : FREE
+
+- Positive Pointer/Integer
+
+-00 : Ordinary pointer
+-02 : Pointer to pair
+-04 : Closure pointer
+-06 : Bytevector pointer
+
+
+====> this should work
+
+- have to rewrite virtual machine for these types (and to check types, etc.)
