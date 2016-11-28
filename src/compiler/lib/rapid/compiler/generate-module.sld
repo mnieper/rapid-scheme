@@ -20,6 +20,8 @@
   (import (scheme base)
 	  (rapid receive)
 	  (rapid match)
+	  (rapid imap)
+	  (rapid compiler identifier)
 	  (rapid compiler mark-free-variables)
 	  (rapid compiler backend module))
   (include "generate-module.scm"))

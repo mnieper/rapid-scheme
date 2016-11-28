@@ -24,9 +24,8 @@
       ,@(cddr caller-save-registers)))) ; Proper arguments
 
 (define (generate-module definitions)
-  ;; TODO: match definitions one by one
   (match definitions
-    (((define (,name* ,formal**) ,body*) ...)
+    (((define (,name* ,formal** ...) ,body*) ...)
      (receive (procedures literals globals)
 	 (let loop ((names name*) (formal** formal**) (body* body*))
 	   (if (null? names)
@@ -36,43 +35,60 @@
 		 (let ((name (car names)) (formals (car formal**)) (body (car body*)))
 		   (receive (code literals globals)
 		       (generate-procedure formals body names literals globals)
-		     (values (cons `(,name ,code) procedures)
+		     (values (cons `(procedure ,name ,@code) procedures)
 			     literals
 			     globals))))))	       
        `(module ,@procedures ,@literals ,@globals)))
     (,_ (error "invalid definitions" definitions))))
 
-
-;; what is a procedure?
-;;
-;; (P u1 u2 u3 u4 c)   => leaf
-;; (let ((a (+ 0 9 0)))
-;;   (
-
-
 (define (generate-procedure formals body names literals globals)
-  (let ((register-map (map (lambda (formal register)
-			     (list formal register))
-			   formals *argument-registers*)))
-    ;; need to know registers that are in use... HOW?
-    ;; compile subexpression. It tells us which are free and how many records are alloc'd.
-    ;; we need to know which vars are free ...
-    ;; how? where to mark the free variables? (where they are bound!!!)
-    (values 'TODO 'TODO 'TODO)))
+  (receive (marked-body free-variables)
+      (mark-free-variables body formals)
+    (let ((register-map
+	   (apply make-imap eq?
+		  (let loop ((formals formals)
+			     (registers *argument-registers*))
+		    (if (null? formals)
+			'()
+			(cons (car formals)
+			      (cons (car registers)
+				    (loop (cdr formals) (cdr registers)))))))))
+      (receive (code literals globals record-count record-size)
+	  (generate-expression body register-map names literals globals)
+	(let ((live-registers
+	       (map (lambda (free-variable)
+		      (imap-ref register-map free-variable))
+		    free-variables)))
+	  (values `((alloc ,record-count ,record-size ,@live-registers)
+		    ,@code)
+		  literals globals))))))
 
-  
-  ;; during generation of the procedure
-  ;; registers are chosen so that a table registers->locals is generated
-  
-  
-#;(define (mark-free-vars exp vars)
-  (receive (exp free-vars)
-      (let loop ((exp exp))
-	(match exp
-	  ()))
-    exp)) ;; or exp & free-vars (to see which are needed at procedure entry...)
-      
 
+;; returns a module expression/statement
+;; and literals / globals / record-count / record-size
+(define (generate-expression exp register-map names literals globals)
+  (match exp
+    (,x (guard (identifier? x))   ;; TODO: NAMES LITERALS GLOBALS?
+     (values (imap-ref register-map x) literals globals 0 0))
+    (,x (guard (integer? x))
+     (values x literals globals 0 0))
+    ((if ,(x xl xg xc xs) ,(y yl yg yc ys) ,(z zl zg zc zs))
+     (let ((consequent-label (make-synthetic-identifier 'consequent))
+	   (after-if-label (make-synthetic-identifier 'after-if)))
+       (values
+	`(begin (branch ,x 0 (= ,consequent-label))
+		,z
+		(jump ,after-if-label)
+		,consequent-label
+		,y
+		,after-if-label)
+	;; Problem: vvv how often do we count literals?
+	'TODO #;(join-literals xl yl zl) (join-globals xg yg zg) (+ xc yc zc) (+ xs ys zs))))
+    
+	
+     
+    (,_ (error "invalid expression" exp))))
 
-;; TODO: Write procedure that marks free vars
-
+(define (join-globals . globals*)
+  ;; FIXME
+  (apply append globals*))

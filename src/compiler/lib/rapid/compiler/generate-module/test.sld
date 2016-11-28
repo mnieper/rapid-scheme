@@ -24,9 +24,8 @@
     (define (run-tests)
       (test-begin "rapid compiler generate-module")
 
-      (test-assert "generate-module"
+      (test-assert "generate-module"	
 	(generate-module
-	 '((define (f x) (let ((y (= x 0)))
-			   (if y 1 x))))))
+	 '((define (f x y z) (if x y z)))))
       
       (test-end))))

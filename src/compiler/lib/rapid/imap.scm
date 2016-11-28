@@ -21,8 +21,11 @@
   (compare imap-compare)
   (alist imap-alist imap-set-alist!))
 
-(define (make-imap compare)
-  (%make-imap compare '()))
+(define (make-imap compare . items)
+  (let loop ((items items))
+    (if (null? items)  
+	(%make-imap compare '())
+	(imap-replace (loop (cddr items)) (car items) (cadr items)))))
 
 ;; XXX: This does not define an immutable map because tail is modified
 ;; by set-cdr! below!

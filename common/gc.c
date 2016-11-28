@@ -146,7 +146,7 @@ heapify (RapidValue roots[], int root_num)
 bool
 is_scalar_value (RapidValue value)
 {
-  return (value & VALUE_TAG_SCALAR) || (value << 16 >> 16 != value);
+  return (value == 0) || (value & VALUE_TAG_SCALAR) || (value << 16 >> 16 != value);
 }
 
 int
