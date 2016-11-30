@@ -59,6 +59,13 @@
 	    (elements (iset-elements set)))
 	(make-iset compare (cdr elements)))))
 
+(define (iset-fold proc nil set)
+  (let loop ((elements (iset-elements set))
+	     (seed nil))
+    (if (null? elements)
+	seed
+	(loop (cdr elements) (proc (car elements) seed)))))
+
 (define (iset->list set)
   (iset-elements set))
 

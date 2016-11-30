@@ -22,6 +22,7 @@
 	  iset-member?
 	  iset-adjoin
 	  iset-delete
+	  iset-fold
 	  iset->list
 	  iset-union)
   (import (scheme base))
