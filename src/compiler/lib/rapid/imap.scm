@@ -21,6 +21,8 @@
   (compare imap-compare)
   (alist imap-alist imap-set-alist!))
 
+(define imap->alist imap-alist)
+
 (define (make-imap compare . items)
   (let loop ((items items))
     (if (null? items)  

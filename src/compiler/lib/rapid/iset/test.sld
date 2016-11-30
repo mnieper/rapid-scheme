@@ -39,10 +39,14 @@
       (test-assert "iset-member?: non-member"
 	(not (iset-member? (iset equal? 'a 'b 'c) 2)))
 
+      (test-equal "iset-fold"
+	'(1 2 3)
+	(iset-fold cons '() (iset equal? 1 2 3)))
+      
       (test-equal "iset->list"
 	'(3 2 1)
 	(iset->list (iset equal? 1 2 3)))
-      
+
       (test-equal "iset-adjoin"
 	'(2 3 1)
 	(iset->list (iset-adjoin (iset-adjoin (iset equal? 1 2) 3) 2)))

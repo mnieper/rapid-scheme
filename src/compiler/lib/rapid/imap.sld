@@ -20,7 +20,8 @@
 	  imap?
 	  imap-ref
 	  imap-ref/default
-	  imap-replace)
+	  imap-replace
+	  imap->alist)
   (import (scheme base)
 	  (scheme case-lambda))
   (include "imap.scm"))

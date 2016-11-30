@@ -20,6 +20,7 @@
   (import (scheme base)
 	  (rapid receive)
 	  (rapid match)
+	  (rapid iset)
 	  (rapid imap)
 	  (rapid compiler identifier)
 	  (rapid compiler mark-free-variables)
