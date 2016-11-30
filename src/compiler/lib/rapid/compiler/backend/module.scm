@@ -156,12 +156,13 @@
 						 start-label))
     ((halt) (compile-halt))
     ((jump ,reg) (guard (register? reg)) (compile-jump/reg (get-machine-register reg)))
+    ((jump (,label)) (compile-jump/indirect label))
     ((jump ,label) (compile-jump/label label))
     ((record ,field* ... ,reg) (compile-record field* (get-machine-register reg)))
     ((load (,index ,record) ,reg) (compile-load index record (get-machine-register reg)))
     ((lea (,index ,record) ,reg) (compile-lea index record (get-machine-register reg)))
     ((store (,index ,record) ,reg) (compile-store record (get-machine-register reg) index))    
-    ((call ,global-name) (compile-call global-name))
+    ((call ,global-name ,reg* ...) (compile-call global-name (map get-machine-register reg*)))
     ((move ,operand ,reg) (compile-lea 0 operand (get-machine-register reg)))
     ((add ,operand1 ,operand2 ,reg) (compile-add operand1 operand2 (get-machine-register reg)))
     ((branch ,input1 ,input2 ,clause* ...) (compile-branch input1 input2 clause*))
@@ -238,6 +239,9 @@
 (define (compile-jump/reg register)
   `(jmpq ,register))
 
+(define (compile-jump/indirect label)
+  `(jmpq (,label rip)))
+
 (define (compile-jump/label label)
   `(jmp ,label))
 
@@ -272,7 +276,13 @@
     => (lambda (source-register)
 	 `(movq ,source-register ,register)))
    (else
-    `(leaq (,operand rip) ,register))))
+    (match operand
+      ((,label)
+       `(movq (,label rip) ,register))
+      ((,index ,label)
+       `(movq ((+ ,label ,(* 8 index)) rip) ,register))
+      (,operand
+       `(leaq (,operand rip) ,register))))))
 
 (define (compile-lea index record register)
   (if (zero? index)
@@ -342,7 +352,8 @@
 (define (compile-label label)
   label)
 
-(define (compile-call callee)
+(define (compile-call callee . registers)
+  ;; TODO: push and pop registers that are caller-save registers
   (case callee
     ((exit)
      `(begin (sarq rdi)
