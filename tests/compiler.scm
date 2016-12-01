@@ -16,13 +16,24 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (import (scheme base)
+	(scheme cxr)
 	(scheme read)
 	(scheme process-context)
+	(rapid compiler generate-module)
 	(rapid compiler backend codegen))
 
+(define (generate-program code)
+  `(program
+    (entry (main main))
+    (module main
+	    ,@(cdr (generate-module (cdr code))))))
+
 (define (main)
-  (let ((output-file-name (list-ref (command-line) 1))
-	(code (read)))
-    (codegen-emit output-file-name code)))
+  (let* ((code (read))
+	 (code (if (eq? 'define (caadr code))
+		   (generate-program code)
+		   code)))	
+    (let ((output-file-name (list-ref (command-line) 1)))
+      (codegen-emit output-file-name code))))
 
 (main)

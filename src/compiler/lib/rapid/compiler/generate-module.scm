@@ -16,12 +16,8 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define *argument-registers*
-  (let ((caller-save-registers (vector->list (get-caller-save-registers)))
-	(callee-save-registers (vector->list (get-callee-save-registers))))
-    `(,(car caller-save-registers)      ; Closure
-      ,(cadr caller-save-registers)     ; Continuation
-      ,@callee-save-registers           ; Continuation parameters
-      ,@(cddr caller-save-registers)))) ; Proper arguments
+  (append (vector->list (get-callee-save-registers))
+	  (vector->list (get-caller-save-registers))))
 
 (define (generate-module definitions)
   (match definitions
@@ -150,17 +146,63 @@
 				   (else x)))
       (,x (guard (integer? x)) x)
       (,x (guard (literal? x)) `(,(imap-ref literals x)))
-      ;; TODO: Literal
+      ((halt) '((halt)))
       ((if ,(test) ,(consequent) ,(alternate))
        (let ((consequent-label (make-synthetic-identifier 'consequent))
 	     (after-if-label (make-synthetic-identifier 'after-if)))
-	 `(begin (branch ,test 0 (= ,consequent-label))
-		 ,alternate
-		 (jump ,after-if-label)
-		 ,consequent-label
-		 ,consequent
-		 ,after-if-label)))
+	 `((branch ,test 0 (= ,consequent-label))
+	   ,alternate
+	   (jump ,after-if-label)
+	   ,consequent-label
+	   ,consequent
+	   ,after-if-label)))
+      ((,(operator) ,(operand*) ...)
+       `(,@(multiple-move operand* *argument-registers*)
+	 (jump ,operator)))
       (,_ (error "invalid expression" exp)))))
+
+#|
+#;(define (multiple-move operands registers)
+  (let ((targets
+	 ;; targets is a map from operands to sets of registers
+	 (let loop ((targets (imap equal?)) (operands operands) (registers registers))
+	   (cond
+	    ((null? operands)
+	     targets)
+	    #;((equal? (car operands) (car registers))
+	     (loop targets (cdr operands) (cdr registers)))
+	    (else	     
+	     (loop (imap-replace targets
+				 (car operand)
+				 (iset-adjoin (imap-ref/default targets
+								(car operand)
+								(iset eq?))
+					      (car registers)))
+		     (cdr operands)
+		     (cdr registers)))))))
+    (let loop ((operands operands))
+      (if (null? operands)
+	  '()
+	  (let ((operand (car operands)))
+	    (let loop2 ((component (list operand)))
+	      
+
+
+    (let loop ((operands operands) (map map)) ;; map maps: which operand goes into which register
+					; problem: an operand may go into more than one reg
+					; thus a map cannot be used anymore
+      (if (null? operands)
+	  '()
+	  (let ((operand (car operands))
+		(register (car registers)))
+	    (cond
+	     ((equal? operand register)
+	      (loop (cdr operands)))
+	     ((imap-ref/default operands register #f)
+	      => (
+	    
+	    ...)))))))))))
+|#
 
 (define (literal? obj)
   ;; TODO
