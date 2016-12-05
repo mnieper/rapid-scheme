@@ -15,90 +15,76 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define *argument-registers*
-  (append (vector->list (get-callee-save-registers))
-	  (vector->list (get-caller-save-registers))))
+(define (generate-module definitions env)
+  (let ((literals (get-literals* definitions env))
+	(globals (get-globals* definitions env)))
+    (let ((procedures (generate-procedures definitions env literals globals)))
+      `(module ,@procedures
+	       ,@(generate-literals literals)
+	       ,@(generate-globals globals)))))
 
-(define (generate-module definitions)
+(define (generate-procedures definitions env literals globals)
+  (map (lambda (definition)
+	 (generate-procedure definition env literals globals))
+       definitions))
+
+(define (generate-procedure definition env literals globals)
+  (match definition
+    ((define (,name ,formal* ...) ,body)
+     (let ((record-count (get-record-count body))
+	   (record-size (get-record-size body))
+	   (body (generate-body body)))
+       `(procedure ,name
+		   (alloc ,record-count ,record-size (get-registers name env))
+		   ,@body)))))
+
+(define (generate-body body env literals globals)
+  (let ((generate-expression
+	 (lambda (exp)
+	   (generate-expression exp env literals globals))))				        
+  (match body
+    ((if ,(test) ,(consequent) ,(alternate))
+     (let ((consequent-label (make-synthetic-identifier 'consequent))
+	   (after-if-label (make-synthetic-identifier 'after-if)))
+       `((branch ,test 0 (= ,consequent-label))
+	 ,alternate
+	 (jump ,after-if-label)
+	 ,consequent-label
+	 ,consequent
+	 ,after-if-label)))
+    ((,operator ,(generate-expression -> operand*) ...)
+     (let ((target-registers (get-registers operator env)))
+       (let ((operator (generate-expression operator)))
+	 `(,@(multiple-move operand* target-registers)
+	   (jump ,operator))))))))
+
+(define (generate-expression exp env literals globals)
+  (cond
+   ((number? exp) exp)
+   ((literal-label exp literals))
+   ((global-label exp globals))
+   ((get-register exp env))))
+
+(define (get-globals* definitions env)
   (match definitions
     (((define (,name* ,formal** ...) ,body*) ...)
-     (let ((names (apply iset eq? name*)))     
-       (let ((globals
-	      (make-global-map
-	       (apply iset-union
-		      (map (lambda (formals body)
-			     (extract-globals body
-					      (iset-union (apply iset eq? formals)
-							  names)))
-			   formal** body*))))
-	     (literals
-	      (make-literal-map
-	       (apply iset-union
-		      (map extract-literals body*)))))
-	 (let ((procedures
-		(map (lambda (formals body)
-		       (generate-procedure formals body names globals literals))
-		     formal** body*)))
-	   `(module ,@(map (lambda (name procedure)
-			     `(procedure ,name ,@procedure))
-			   name* procedures)
-		    ,@(map (lambda (entry)
-			     `(datum ,(cdr entry) ,(car entry)))
-			   literals)
-	            ,@(map (lambda (entry)
-			     `(variable ,(cdr entry) ,(car entry)))
-			   globals))))))
+     (let ((names (apply iset eq? name*)))  
+       (let ((globals (apply iset-union
+			     (map (lambda (formals body)
+				    (get-globals body
+						 (iset-union (apply iset eq? formals)
+							     names)))
+				  formal** body*))))
+	 (make-global-map globals))))
     (,_ (error "invalid definitions" definitions))))
 
-(define (extract-globals exp locals)
-  (match exp
-    (,x (guard (identifier? x)) (if (iset-member? locals x)
-				    (iset eq?)
-				    (iset eq? x)))
-    (,x (guard (literal? x)) (iset eq?))
-    ((let ((,var (,operator ,(operand*) ...))) ,body)
-     (let ((body (extract-globals body (iset-adjoin locals var))))
-       (apply iset-union body operand*)))
-    ((if ,(test) ,(consequent) ,(alternate))
-     (apply iset-union test consequent alternate))
-    ((,(operator) ,(operand*) ...)
-     (apply iset-union operator operand*))
-    (,_ (error "invalid expression" exp))))
-
-(define (extract-literals exp)
-  (match exp
-    (,x (guard (identifier? x)) (iset equal?))
-    (,x (guard (integer? x)) (iset equal?))
-    (,x (guard (literal? x)) (iset equal? x))
-    ((let ((,var (,operator ,(operand*) ...))) ,(body))
-     (apply iset-union body operand*))
-    ((if ,(test) ,(consequent) ,(alternate))
-     (iset-union test consequent alternate))
-    ((,(operator) ,(operand*) ...)
-     (apply iset-union operator operand*))
-    (,_ (error "invalid expression" exp))))
-
-(define (extract-record-count exp)
-  (match exp
-    (,x (guard (identifier? x)) 0)
-    (,x (guard (literal? x)) 0)
-    ((let ((,var (make-record ,operand* ...))) ,(body))
-     (+ 1 body))
-    ((if ,test ,(consequent) ,(alternate))
-     (+ consequent alternate))
-    ((,operator ,operand* ...) 0)
-    (,_ (error "invalid expression" exp))))
-
-(define (extract-record-size exp)
-  (match exp
-    (,x (guard (identifier? x)) 0)
-    (,x (guard (literal? x)) 0)
-    ((let ((,var (make-record ,operand* ...))) ,(body))
-     (+ (length operand*) body))
-    ((if ,test ,(consequent) ,(alternate))
-     (+ consequent alternate))
-    ((,operator ,operand* ...) 0)
-    (,_ (error "invalid expression" exp))))
+(define (get-literals* definitions env)
+  (match definitions
+    (((define (,name* ,formal** ...) ,body*) ...)
+     (let ((literals (apply iset-union
+			    (map get-literals body*))))
+       (make-literal-map literals)))
+    (,_ (error "invalid definitions" definitions))))
 
 (define (make-global-map globals)
   (iset-fold (lambda (global map)
@@ -109,10 +95,75 @@
 (define (make-literal-map literals)
   (iset-fold (lambda (literal map)
 	       (imap-replace map literal (make-synthetic-identifier 'literal)))
-	     (make-imap eq?)
+	     (make-imap equal?)
 	     literals))
 
-(define (generate-procedure formals body names globals literals)
+(define (global-label global globals)
+  (imap-ref globals global))
+
+(define (literal-label literal literals)
+  (imap-ref literals literal))
+
+(define (get-globals exp locals)
+  (match exp
+    (,x (guard (identifier? x)) (if (iset-member? locals x)
+				    (iset eq?)
+				    (iset eq? x)))
+    (,x (guard (literal? x)) (iset eq?))
+    ((receive (,var* ...) (,operator ,(operand*) ...) ,body)
+     (let ((body (get-globals body (iset-union locals (apply iset eq? var*)))))
+       (apply iset-union body operand*)))
+    ((if ,(test) ,(consequent) ,(alternate))
+     (apply iset-union test consequent alternate))
+    ((,(operator) ,(operand*) ...)
+     (apply iset-union operator operand*))
+    (,_ (error "invalid expression" exp))))
+
+(define (get-literals exp)
+  (match exp
+    (,x (guard (identifier? x)) (iset equal?))
+    (,x (guard (integer? x)) (iset equal?))
+    (,x (guard (literal? x)) (iset equal? x))
+    ((receive (,var* ...) (,operator ,(operand*) ...) ,(body))
+     (apply iset-union body operand*))
+    ((if ,(test) ,(consequent) ,(alternate))
+     (iset-union test consequent alternate))
+    ((,(operator) ,(operand*) ...)
+     (apply iset-union operator operand*))
+    (,_ (error "invalid expression" exp))))
+
+(define (get-record-count exp)
+  (match exp
+    (,x (guard (identifier? x)) 0)
+    (,x (guard (literal? x)) 0)
+    ((receive (,var) (make-record ,operand* ...) ,(body))
+     (+ 1 body))
+    ((receive (,var* ...) (,operator ,operand* ...) ,(body))
+     body)
+    ((if ,test ,(consequent) ,(alternate))
+     (+ consequent alternate))
+    ((,operator ,operand* ...) 0)
+    (,_ (error "invalid expression" exp))))
+
+(define (get-record-size exp)
+  (match exp
+    (,x (guard (identifier? x)) 0)
+    (,x (guard (literal? x)) 0)
+    ((receive (,var) (make-record ,operand* ...) ,(body))
+     (+ (length operand*) body))
+    ((receive (,var* ...) (,operator ,operand* ...) ,(body))
+     body)
+    ((if ,test ,(consequent) ,(alternate))
+     (+ consequent alternate))
+    ((,operator ,operand* ...) 0)
+    (,_ (error "invalid expression" exp))))
+
+(define (multiple-move sources targets)
+  'FIXME
+  )
+
+
+#;(define (generate-body formals body names globals literals)
   (let ((record-count (extract-record-count body))
 	(record-size (extract-record-size body)))
     (receive (marked-body free-variables)
@@ -135,7 +186,7 @@
 	  `((alloc ,record-count ,record-size ,@live-registers)
 	    ,@code))))))
 
-(define (generate-expression exp register-map globals literals)
+#;(define (generate-expression exp register-map globals literals)
   (let loop ((exp exp) (register-map register-map))  
     (match exp
       (,x (guard (identifier? x)) (cond
@@ -203,8 +254,3 @@
 	    
 	    ...)))))))))))
 |#
-
-(define (literal? obj)
-  ;; TODO
-  (or (number? obj)
-      (string? obj)))

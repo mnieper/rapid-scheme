@@ -17,11 +17,13 @@
 
 (define-library (rapid imap)
   (export make-imap
+	  imap
 	  imap?
 	  imap-ref
 	  imap-ref/default
 	  imap-replace
-	  imap->alist)
+	  imap->alist
+	  imap-for-each)
   (import (scheme base)
 	  (scheme case-lambda))
   (include "imap.scm"))

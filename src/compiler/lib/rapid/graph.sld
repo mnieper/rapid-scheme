@@ -15,18 +15,9 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module test)
-  (export run-tests)
+(define-library (rapid graph)
+  (export graph-scc)
   (import (scheme base)
-	  (rapid test)
-	  (rapid compiler generate-module))
-  (begin
-    (define (run-tests)
-      (test-begin "rapid compiler generate-module")
-
-      ;; TODO: Insert environment; write compile-environment module
-      #;(test-assert "generate-module"	
-	(generate-module
-	 '((define (f x y z) (if x y z)))))
-      
-      (test-end))))
+	  (rapid box)
+	  (rapid imap))
+  (include "graph.scm"))

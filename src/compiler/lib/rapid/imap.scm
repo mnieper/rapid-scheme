@@ -29,6 +29,8 @@
 	(%make-imap compare '())
 	(imap-replace (loop (cddr items)) (car items) (cadr items)))))
 
+(define imap make-imap) ;; FIXME: Remove references to make-imap
+
 ;; XXX: This does not define an immutable map because tail is modified
 ;; by set-cdr! below!
 (define imap-ref
@@ -68,3 +70,8 @@
     (define (success old-value)
       (%make-imap compare (cons (cons key value) (cdr (imap-alist map)))))
     (imap-ref map key failure success)))
+
+(define (imap-for-each proc map)
+  (for-each (lambda (entry)
+	      (proc (car entry) (cdr entry)))
+	    (imap-alist map)))

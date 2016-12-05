@@ -15,18 +15,42 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module test)
+(define-library (rapid graph test)
   (export run-tests)
   (import (scheme base)
 	  (rapid test)
-	  (rapid compiler generate-module))
+	  (rapid graph))
   (begin
     (define (run-tests)
-      (test-begin "rapid compiler generate-module")
+      (test-begin "Graph")
 
-      ;; TODO: Insert environment; write compile-environment module
-      #;(test-assert "generate-module"	
-	(generate-module
-	 '((define (f x y z) (if x y z)))))
-      
+      (test-equal "Fixing Letrec (reloaded) 1"
+		  '((t) (g) (s) (r) (f) (q))
+		  (let ((graph
+			 '((t g s)
+			   (g s r)
+			   (s r f)
+			   (r f q)
+			   (f q)
+			   (q))))
+		    (graph-scc graph eq?)))
+
+      (test-equal "Fixing Letrec (reloaded) 2"
+		  '((t) (f) (e o))
+		  (let ((graph
+			 '((t f)
+			   (f e)
+			   (e o)
+			   (o e))))	      
+		    (graph-scc graph eq?)))
+
+      (test-equal "Fixing Letrec (reloaded) 3"
+		  '((t) (f) (y x))
+		  (let ((graph
+			 '((t f y)
+			   (f y x)
+			   (y x)
+			   (x y))))
+		    (graph-scc graph eq?)))
+
       (test-end))))
