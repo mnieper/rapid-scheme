@@ -1,5 +1,5 @@
 (program
- (entry (main proc))
+ (entry proc)
  (module main
   	 (procedure proc
 		    (jump (x)))

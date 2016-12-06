@@ -1,5 +1,5 @@
 (program
- (entry (alloc main))
+ (entry main)
  (module alloc
      (procedure main
 		(move 100000 r0)

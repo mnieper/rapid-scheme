@@ -32,9 +32,9 @@
 		    (values (cons (list name (make-module `(module ,@module-declaration*)))
 				  modules)
 			    entry))
-		   ((entry (,module ,name))
+		   ((entry ,name)
 		    (values modules
-			    (list module name)))		  
+			    name))
 		   (,_ (error "invalid program declaration" (car declaration*)))))))
        (%codegen-emit filename modules entry)))
     (,_ (error "invalid program" program))))
@@ -57,9 +57,9 @@
 		  (loop2 (imap-replace map (car module-labels) (caar modules))
 			 (cdr module-labels)))))))
     (define (find-module label)
-      (imap-ref module-map label))    
+      (imap-ref module-map label))
     (define (entry-global)
-      `("rapid_run" ,(reference-address entry)))
+      `("rapid_run" ,(reference-address (list (find-module entry) entry))))
     ;; TODO: Rewrite the following code
     (define inits
       (let loop1 ((modules modules))

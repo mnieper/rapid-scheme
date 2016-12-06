@@ -1,5 +1,5 @@
 (program
- (entry (gauss main))
+ (entry main)
  (module gauss
 	 (procedure main
 		    (move 0 v0)
