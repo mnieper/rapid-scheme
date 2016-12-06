@@ -15,19 +15,24 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module test)
-  (export run-tests)
-  (import (scheme base)
-	  (rapid test)
-	  (rapid compiler environment)
-	  (rapid compiler generate-module))
-  (begin
-    (define (run-tests)
-      (test-begin "rapid compiler generate-module")
-
-      (test-assert "generate-module"	
-	(generate-module
-	 '((define (f x y z) (if x y z)))
-	 (make-environment)))
-      
-      (test-end))))
+(define (sort sequence less?)
+  (let sort ((sequence sequence))
+    (let ((n (quotient (length sequence) 2)))
+      (if (zero? n)
+	  sequence
+	  (receive (left right)
+	      (let loop ((sequence sequence) (n n))
+		(if (zero? n)
+		    (values '() sequence)
+		    (receive (left right) (loop (cdr sequence) (- n 1))
+		      (values (cons (car sequence) left) right))))
+	    (let match ((left (sort left)) (right (sort right)))
+	      (cond
+	       ((null? left)
+		right)
+	       ((null? right)
+		left)
+	       ((less? (car left) (car right))
+		(cons (car left) (match (cdr left) right)))
+	       (else
+		(cons (car right) (match left (cdr right)))))))))))

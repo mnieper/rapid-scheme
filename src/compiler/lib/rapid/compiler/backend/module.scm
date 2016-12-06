@@ -164,6 +164,7 @@
     ((store (,index ,record) ,reg) (compile-store record (get-machine-register reg) index))    
     ((call ,global-name ,reg* ...) (compile-call global-name (map get-machine-register reg*)))
     ((move ,operand ,reg) (compile-lea 0 operand (get-machine-register reg)))
+    ((xchg ,reg* ...) (compile-xchg (map get-machine-register reg*)))
     ((add ,operand1 ,operand2 ,reg) (compile-add operand1 operand2 (get-machine-register reg)))
     ((branch ,input1 ,input2 ,clause* ...) (compile-branch input1 input2 clause*))
     ((global-fetch ,global ,reg) (compile-global-fetch global (get-machine-register reg)))
@@ -289,6 +290,20 @@
       (compile-operand record register)
       `(begin ,(compile-operand record (acc))
 	      (leaq (,(* 8 index) ,(acc)) ,register))))
+
+(define (compile-xchg registers)
+  `(begin
+     (cond
+      ((null? (cdr registers))
+       '())
+      ((null? (cddr registers))
+       `((xchgq (car registers) ,(cadr registers))))
+      (else
+       (let ((registers (reverse (cons ,(acc) registers))))
+	 `((movq ,(car registers) ,(acc))
+	   ,@(map (lambda (source target)
+		    (movq ,source ,target))
+		  (cdr registers) registers)))))))
 
 (define (compile-load index record register)
   (cond

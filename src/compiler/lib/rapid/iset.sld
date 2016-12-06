@@ -23,6 +23,7 @@
 	  iset-adjoin
 	  iset-delete
 	  iset-fold
+	  iset-filter
 	  iset->list
 	  iset-union)
   (import (scheme base))

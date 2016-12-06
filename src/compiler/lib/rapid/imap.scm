@@ -21,7 +21,8 @@
   (compare imap-compare)
   (alist imap-alist imap-set-alist!))
 
-(define imap->alist imap-alist)
+(define (imap->alist map)
+  (list-copy (imap-alist map)))
 
 (define (make-imap compare . items)
   (let loop ((items items))

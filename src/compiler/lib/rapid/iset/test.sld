@@ -42,6 +42,10 @@
       (test-equal "iset-fold"
 	'(1 2 3)
 	(iset-fold cons '() (iset equal? 1 2 3)))
+
+      (test-equal "iset-filter"
+	'(5 3 1)
+	(iset->list (iset-filter odd? (iset equal? 1 2 3 4 5))))
       
       (test-equal "iset->list"
 	'(3 2 1)

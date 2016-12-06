@@ -15,19 +15,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module test)
+(define-library (rapid sort test)
   (export run-tests)
   (import (scheme base)
 	  (rapid test)
-	  (rapid compiler environment)
-	  (rapid compiler generate-module))
+	  (rapid sort))
   (begin
     (define (run-tests)
-      (test-begin "rapid compiler generate-module")
+      (test-begin "Sorting")
 
-      (test-assert "generate-module"	
-	(generate-module
-	 '((define (f x y z) (if x y z)))
-	 (make-environment)))
+      (test-equal "sort"
+	'(1 2 3 4 5 6 7 8 9)
+	(sort '(1 3 5 7 9 8 6 4 2) <))
       
       (test-end))))

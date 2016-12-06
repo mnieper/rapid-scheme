@@ -66,6 +66,18 @@
 	seed
 	(loop (cdr elements) (proc (car elements) seed)))))
 
+(define (iset-filter pred set)
+  (make-iset
+   (iset-comparator set)
+   (let loop ((elements (iset-elements set)))
+     (cond
+      ((null? elements)
+       '())
+      ((pred (car elements))
+       (cons (car elements) (loop (cdr elements))))
+      (else
+       (loop (cdr elements)))))))
+
 (define (iset->list set)
   (iset-elements set))
 

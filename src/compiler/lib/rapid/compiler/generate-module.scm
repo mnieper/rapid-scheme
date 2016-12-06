@@ -23,6 +23,20 @@
 	       ,@(generate-literals literals)
 	       ,@(generate-globals globals)))))
 
+(define (generate-literals literals)
+  (map (lambda (entry)
+	 (let ((literal (car entry))
+	       (name (cdr entry)))
+	   `(datum ,name ,literal))) ;; TODO: Maybe we have to encode the literal
+       (imap->alist literals)))
+
+(define (generate-globals globals)
+  (map (lambda (entry)
+	 (let ((global (car entry))
+	       (name (cdr entry)))
+	   `(variable ,name ,global)))
+       (imap->alist globals)))
+
 (define (generate-procedures definitions env literals globals)
   (map (lambda (definition)
 	 (generate-procedure definition env literals globals))
@@ -33,9 +47,9 @@
     ((define (,name ,formal* ...) ,body)
      (let ((record-count (get-record-count body))
 	   (record-size (get-record-size body))
-	   (body (generate-body body)))
+	   (body (generate-body body env literals globals)))
        `(procedure ,name
-		   (alloc ,record-count ,record-size (get-registers name env))
+		   (alloc ,record-count ,record-size (get-argument-registers name env))
 		   ,@body)))))
 
 (define (generate-body body env literals globals)
@@ -53,9 +67,9 @@
 	 ,consequent
 	 ,after-if-label)))
     ((,operator ,(generate-expression -> operand*) ...)
-     (let ((target-registers (get-registers operator env)))
+     (let ((target-registers (get-argument-registers operator env)))
        (let ((operator (generate-expression operator)))
-	 `(,@(multiple-move operand* target-registers)
+	 `(,@(parallel-move* operand* target-registers)
 	   (jump ,operator))))))))
 
 (define (generate-expression exp env literals globals)
@@ -63,7 +77,9 @@
    ((number? exp) exp)
    ((literal-label exp literals))
    ((global-label exp globals))
-   ((get-register exp env))))
+   ((get-variable-location exp env))
+   (else
+    (error "invalid expression" exp))))
 
 (define (get-globals* definitions env)
   (match definitions
@@ -158,11 +174,6 @@
     ((,operator ,operand* ...) 0)
     (,_ (error "invalid expression" exp))))
 
-(define (multiple-move sources targets)
-  'FIXME
-  )
-
-
 #;(define (generate-body formals body names globals literals)
   (let ((record-count (extract-record-count body))
 	(record-size (extract-record-size body)))
@@ -254,3 +265,9 @@
 	    
 	    ...)))))))))))
 |#
+
+
+(define (literal? obj)
+  ;; FIXME
+  (pair? obj)
+  (string? obj))

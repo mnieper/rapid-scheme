@@ -15,19 +15,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module test)
-  (export run-tests)
-  (import (scheme base)
-	  (rapid test)
-	  (rapid compiler environment)
-	  (rapid compiler generate-module))
-  (begin
-    (define (run-tests)
-      (test-begin "rapid compiler generate-module")
-
-      (test-assert "generate-module"	
-	(generate-module
-	 '((define (f x y z) (if x y z)))
-	 (make-environment)))
-      
-      (test-end))))
+(define-library (rapid compiler parallel-move)
+  (export parallel-move*)
+  (import (scheme base)   (scheme write)
+	  (rapid sort)
+	  (rapid graph)
+	  (rapid iset)
+	  (rapid imap))
+  (include "parallel-move.scm"))
