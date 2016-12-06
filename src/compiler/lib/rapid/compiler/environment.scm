@@ -16,13 +16,19 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-record-type <environment>
-  (%make-environment variable-locations argument-registers)
+  (%make-environment variable-locations
+		     argument-registers
+		     escaping-procedures
+		     continuation-procedures)
   environment?
   (variable-locations environment-variable-locations environment-set-variable-locations!)
-  (argument-registers environment-argument-registers environment-set-argument-registers!))
+  (argument-registers environment-argument-registers environment-set-argument-registers!)
+  (escaping-procedures environment-escaping-procedures environment-set-escaping-procedures!)
+  (continuation-procedures environment-continuation-procedures
+			   environment-set-continuation-procedures!))
 
 (define (make-environment)
-  (%make-environment (imap eq?) (imap eq?)))
+  (%make-environment (imap eq?) (imap eq?) (imap eq?) (imap eq?)))
 
 (define (set-variable-location! variable location env)
   (environment-set-variable-locations! env
@@ -41,3 +47,21 @@
 
 (define (get-argument-registers proc env)
   (imap-ref/default (environment-argument-registers env) proc #f))
+
+(define (mark-escaping! proc env)
+  (environment-set-escaping-procedures! env
+					(imap-replace (environment-escaping-procedures env)
+						      proc
+						      #t)))
+
+(define (mark-continuation! proc env)
+  (environment-set-continuation-procedures! env
+					    (imap-replace (environment-continuation-procedures env)
+							  proc
+							  #t)))
+
+(define (escaping-procedure? proc env)
+  (imap-ref/default (environment-escaping-procedures env) proc #f))
+
+(define (continuation-procedure? proc env)
+  (imap-ref/default (environment-continuation-procedures env) proc #f))

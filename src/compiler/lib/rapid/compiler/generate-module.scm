@@ -27,7 +27,7 @@
   (map (lambda (entry)
 	 (let ((literal (car entry))
 	       (name (cdr entry)))
-	   `(datum ,name ,literal))) ;; TODO: Maybe we have to encode the literal
+	   `(datum ,name ,literal))) ;; TODO: Maybe we have to encode the literal (e.g. pairs)
        (imap->alist literals)))
 
 (define (generate-globals globals)
@@ -49,28 +49,29 @@
 	   (record-size (get-record-size body))
 	   (body (generate-body body env literals globals)))
        `(procedure ,name
-		   (alloc ,record-count ,record-size (get-argument-registers name env))
+		   (alloc ,record-count ,record-size ,(get-argument-registers name env))
 		   ,@body)))))
 
 (define (generate-body body env literals globals)
   (let ((generate-expression
 	 (lambda (exp)
-	   (generate-expression exp env literals globals))))				        
-  (match body
-    ((if ,(test) ,(consequent) ,(alternate))
-     (let ((consequent-label (make-synthetic-identifier 'consequent))
-	   (after-if-label (make-synthetic-identifier 'after-if)))
-       `((branch ,test 0 (= ,consequent-label))
-	 ,alternate
-	 (jump ,after-if-label)
-	 ,consequent-label
-	 ,consequent
-	 ,after-if-label)))
-    ((,operator ,(generate-expression -> operand*) ...)
-     (let ((target-registers (get-argument-registers operator env)))
-       (let ((operator (generate-expression operator)))
-	 `(,@(parallel-move* operand* target-registers)
-	   (jump ,operator))))))))
+	   (generate-expression exp env literals globals))))  
+    (match body
+      ((if ,(generate-expression -> test) ,(consequent) ,(alternate))
+       (let ((consequent-label (make-synthetic-identifier 'consequent))
+	     (after-if-label (make-synthetic-identifier 'after-if)))
+	 `((branch ,test 0 (= ,consequent-label))
+	   ,alternate
+	   (jump ,after-if-label)
+	   ,consequent-label
+	   ,consequent
+	   ,after-if-label)))
+      ((,operator ,(generate-expression -> operand*) ...)
+       (let ((target-registers (get-argument-registers operator env)))
+	 (let ((operator (generate-expression operator)))
+	   `(,@(parallel-move* operand* target-registers)
+	     (jump ,operator)))))
+      (,_ (error "invalid body" body)))))
 
 (define (generate-expression exp env literals globals)
   (cond
@@ -115,10 +116,10 @@
 	     literals))
 
 (define (global-label global globals)
-  (imap-ref globals global))
+  (imap-ref/default globals global #f))
 
 (define (literal-label literal literals)
-  (imap-ref literals literal))
+  (imap-ref/default literals literal #f))
 
 (define (get-globals exp locals)
   (match exp
@@ -222,49 +223,6 @@
        `(,@(multiple-move operand* *argument-registers*)
 	 (jump ,operator)))
       (,_ (error "invalid expression" exp)))))
-
-#|
-#;(define (multiple-move operands registers)
-  (let ((targets
-	 ;; targets is a map from operands to sets of registers
-	 (let loop ((targets (imap equal?)) (operands operands) (registers registers))
-	   (cond
-	    ((null? operands)
-	     targets)
-	    #;((equal? (car operands) (car registers))
-	     (loop targets (cdr operands) (cdr registers)))
-	    (else	     
-	     (loop (imap-replace targets
-				 (car operand)
-				 (iset-adjoin (imap-ref/default targets
-								(car operand)
-								(iset eq?))
-					      (car registers)))
-		     (cdr operands)
-		     (cdr registers)))))))
-    (let loop ((operands operands))
-      (if (null? operands)
-	  '()
-	  (let ((operand (car operands)))
-	    (let loop2 ((component (list operand)))
-	      
-
-
-    (let loop ((operands operands) (map map)) ;; map maps: which operand goes into which register
-					; problem: an operand may go into more than one reg
-					; thus a map cannot be used anymore
-      (if (null? operands)
-	  '()
-	  (let ((operand (car operands))
-		(register (car registers)))
-	    (cond
-	     ((equal? operand register)
-	      (loop (cdr operands)))
-	     ((imap-ref/default operands register #f)
-	      => (
-	    
-	    ...)))))))))))
-|#
 
 
 (define (literal? obj)

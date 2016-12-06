@@ -24,7 +24,7 @@ TEST_EXTENSIONS = .scm
 LOG_COMPILER = $(LIBTOOL) --mode=execute $(VALGRIND)
 SCM_LOG_COMPILER = $(SCHEME)
 
-check_PROGRAMS = simple gauss alloc dump gc gc_dump dump_obj # FIXME: add hello_world
+check_PROGRAMS = simple gauss alloc dump gc gc_dump dump_obj hello-world
 simple_SOURCES = simple.s
 gauss_SOURCES = gauss.s
 alloc_SOURCES = alloc.s
