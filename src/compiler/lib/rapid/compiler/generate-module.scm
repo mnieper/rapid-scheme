@@ -80,7 +80,7 @@
    ((global-label exp globals))
    ((get-variable-location exp env))
    (else
-    (error "invalid expression" exp))))
+    (error "invalid expression" exp)))) ;;; XXX: what is with next?
 
 (define (get-globals* definitions env)
   (match definitions

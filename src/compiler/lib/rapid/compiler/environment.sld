@@ -20,7 +20,12 @@
 	  set-variable-location!
 	  set-argument-registers!
 	  get-variable-location
-	  get-argument-registers)
+	  get-argument-registers
+	  escaping-procedure?
+	  continuation-procedure?
+	  store-procedure-definition!
+	  procedure-definition)
   (import (scheme base)
+	  (rapid match)
 	  (rapid imap))
   (include "environment.scm"))

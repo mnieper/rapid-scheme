@@ -57,7 +57,8 @@
   (if (iset-member? set obj)
       (let ((compare (iset-comparator set))
 	    (elements (iset-elements set)))
-	(make-iset compare (cdr elements)))))
+	(make-iset compare (cdr elements)))
+      set))
 
 (define (iset-fold proc nil set)
   (let loop ((elements (iset-elements set))

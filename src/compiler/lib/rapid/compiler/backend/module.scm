@@ -293,17 +293,30 @@
 
 (define (compile-xchg registers)
   `(begin
-     (cond
-      ((null? (cdr registers))
-       '())
-      ((null? (cddr registers))
-       `((xchgq (car registers) ,(cadr registers))))
-      (else
-       (let ((registers (reverse (cons ,(acc) registers))))
-	 `((movq ,(car registers) ,(acc))
-	   ,@(map (lambda (source target)
-		    (movq ,source ,target))
-		  (cdr registers) registers)))))))
+     ,(cond
+       ((null? (cdr registers))
+	'())
+       ((null? (cddr registers))
+	`((xchgq ,(car registers) ,(cadr registers))))
+       (else
+	(let ((registers (reverse (cons (acc) registers))))
+	  `((movq ,(car registers) ,(acc))
+	    ,@(map (lambda (source target)
+		     `(movq ,source ,target))
+		   (cdr registers) registers)))))))
+
+;; XXX: Below is an (untested) version that does not use the accumulator.
+#;(define (compile-xchg registers)
+  `(begin
+     ,@(if (null? (cdr registers))
+	   '()
+	   (let ((reg0 (car registers)))
+	     (let loop ((registers (cdr registers)))
+	       (if (null? registers)
+		   '()
+		   `((xchgq reg0 (car registers))
+		     ,@(loop (cdr registers)))))))))
+
 
 (define (compile-load index record register)
   (cond

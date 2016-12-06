@@ -19,15 +19,19 @@
 	(scheme cxr)
 	(scheme read)
 	(scheme process-context)
+	(rapid compiler environment)
+	(rapid compiler assign-registers)
 	(rapid compiler generate-module)
 	(rapid compiler backend codegen))
 
 (define (generate-program code)
-  `(program
-    (entry (main main))
-    (module main
-	    ,@(cdr (generate-module (cdr code))))))
-
+  (let ((environment (make-environment)))
+    (assign-registers! (cdr code) environment)
+    `(program
+      (entry (main main))
+      (module main
+	      ,@(cdr (generate-module (cdr code) environment))))))
+  
 (define (main)
   (let* ((code (read))
 	 (code (if (eq? 'define (caadr code))

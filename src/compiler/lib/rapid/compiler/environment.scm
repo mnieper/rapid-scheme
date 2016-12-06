@@ -19,16 +19,18 @@
   (%make-environment variable-locations
 		     argument-registers
 		     escaping-procedures
-		     continuation-procedures)
+		     continuation-procedures
+		     procedure-definitions)
   environment?
   (variable-locations environment-variable-locations environment-set-variable-locations!)
   (argument-registers environment-argument-registers environment-set-argument-registers!)
   (escaping-procedures environment-escaping-procedures environment-set-escaping-procedures!)
   (continuation-procedures environment-continuation-procedures
-			   environment-set-continuation-procedures!))
+			   environment-set-continuation-procedures!)
+  (procedure-definitions environment-procedure-definitions environment-set-procedure-definitions!))
 
 (define (make-environment)
-  (%make-environment (imap eq?) (imap eq?) (imap eq?) (imap eq?)))
+  (%make-environment (imap eq?) (imap eq?) (imap eq?) (imap eq?) (imap eq?)))
 
 (define (set-variable-location! variable location env)
   (environment-set-variable-locations! env
@@ -65,3 +67,17 @@
 
 (define (continuation-procedure? proc env)
   (imap-ref/default (environment-continuation-procedures env) proc #f))
+
+(define (store-procedure-definition! definition env)
+  (let ((name
+	 (match definition
+	   ((define (,name ,formal* ...) ,body)
+	    name)
+	   (,_ (error "invalid procedure definition" definition)))))
+    (environment-set-procedure-definitions! env
+					    (imap-replace (environment-procedure-definitions env)
+							  name
+							  definition))))
+
+(define (procedure-definition procedure env)
+  (imap-ref/default (environment-procedure-definitions env) procedure #f))

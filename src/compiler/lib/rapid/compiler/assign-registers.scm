@@ -23,7 +23,14 @@
   (append (vector->list (get-callee-save-registers))
 	  (vector->list (get-caller-save-registers))))
 
+(define *registers*
+  (apply iset eq? (append (vector->list (get-callee-save-registers))
+			  (vector->list (get-caller-save-registers)))))
+
 (define (assign-registers! definitions env)
+  (for-each (lambda (definition)
+	      (store-procedure-definition! definition env))
+	    definitions)
   (for-each (lambda (definition)
 	      (%assign-registers! definition env))
 	    definitions))
@@ -32,7 +39,7 @@
   (match definition
     ((define (,name ,formal* ...) ,body)
      (unless (get-argument-registers name env)
-       (let* ((registers (if (continuation-procedure? name)
+       (let* ((registers (if (continuation-procedure? name env)
 			    continuation-registers
 			    escaping-registers))
 	      (registers (map (lambda (formal register)
@@ -48,10 +55,42 @@
     ((if ,test ,consequent ,alternate)
      (assign-registers-body! consequent env)
      (assign-registers-body! alternate env))
-    ((,operator ,operand*)
-     ;; check whether operator is well-known; etc...
-     ;; sonst mache mit operator weiter...
-     ;; was, wenn operand* kein register ist?
-     )
-    
+    ((,operator ,operand* ...)
+     (cond
+      ((procedure-definition operator env)
+       => (lambda (definition)
+	    (match definition
+	      ((define (,name ,formal* ...) ,body)
+	       (unless (or (get-argument-registers name env)
+			   (escaping-procedure? name env))
+		 (let*
+		     ((available-registers
+		       (let loop ((registers *registers*) (operands operand*))
+			 (if (null? operands)
+			     registers
+			     (loop (iset-delete registers (car operands))
+				   (cdr operands)))))
+		      (registers
+			(let loop ((formals formal*)
+				   (operands operand*)
+				   (used-registers (iset eq?))
+				   (registers (iset->list available-registers)))
+			  (cond
+			   ((null? formals)
+			    '())
+			   ((and-let* ((register (get-variable-location (car operands) env))
+				       ((not (iset-member? used-registers register))))
+			      register)
+			    => (lambda (register)			      
+				 (cons register (loop (cdr formals)
+						      (cdr operands)
+						      (iset-adjoin used-registers register)
+						      registers))))
+			   (else
+			    (cons (car available-registers)
+				  (loop (cdr formals)
+					(cdr operands)
+					used-registers
+					(cdr registers))))))))
+		   (set-argument-registers! name registers env)))))))))
     (,_ (error "invalid body" body))))
