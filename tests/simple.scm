@@ -5,5 +5,4 @@
 		    (jump (x)))
 	 (procedure next
 		    (halt))
-	 (variable x 0))
- (init (main x) (main next)))
+	 (variable x next)))

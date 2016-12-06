@@ -19,7 +19,9 @@
   (export make-module
 	  module?
 	  module-code
+	  module-labels
 	  module-label-offset
+	  module-relocations
 	  get-caller-save-registers
 	  get-callee-save-registers)
   (import (scheme base)

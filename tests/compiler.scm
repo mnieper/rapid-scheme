@@ -26,12 +26,12 @@
 
 (define (generate-program code)
   (let ((environment (make-environment)))
-    (assign-registers! (cdr code) environment)
+    (assign-registers! (cdr code) environment)    
     `(program
       (entry (main main))
       (module main
-	      ,@(cdr (generate-module (cdr code) environment))))))
-  
+ 	      ,@(cdr (generate-module (cdr code) environment))))))
+
 (define (main)
   (let* ((code (read))
 	 (code (if (eq? 'define (caadr code))

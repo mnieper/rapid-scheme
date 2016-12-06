@@ -19,25 +19,27 @@
 ;;; Modules
 
 (define-record-type <module>
-  (%make-module offsets code)
+  (%make-module relocations offsets code)
   module?
+  (relocations module-relocations)
   (offsets module-offsets)
   (code module-code))
 
 (define (make-module module)
   (match module
     ((module ,declaration* ...)
-     (receive (procedures data variables)
+     (receive (procedures data variables relocations)
 	 (let loop ((declaration* declaration*))
 	   (if (null? declaration*)
-	       (values '() '() '())
-	       (receive (procedures data variables)
+	       (values '() '() '() '())
+	       (receive (procedures data variables relocations)
 		   (loop (cdr declaration*))
 		 (match (car declaration*)
 		   ((procedure ,name ,code ...)
 		    (values (cons (list name code) procedures)
 			    data
-			    variables))
+			    variables
+			    relocations))
 		   ((datum ,name ,bytes)
 		    (values procedures
 			    (cons (list name (if (string? bytes)
@@ -46,16 +48,22 @@
 						  #u8(0))
 						 bytes))
 				  data)
-			    variables))
+			    variables
+			    relocations))
 		   ((variable ,name ,init)
 		    (values procedures
 			    data
-			    (cons (list name init) variables)))
+			    (cons (list name (if (identifier? init)
+						 0
+						 init)) variables)
+			    (if (identifier? init)
+				(cons (list name init) relocations)
+				relocations)))
 		   (,_ (error "invalid module declaration" (car declaration*)))))))
-       (compile-module procedures data variables)))	  
+       (compile-module procedures data variables relocations)))	  
     (,_ (error "invalid module" module))))
 
-(define (compile-module procedures datums vars)
+(define (compile-module procedures datums vars relocs)
   (let ((start-label (make-synthetic-identifier 'module-start))
 	(end-label (make-synthetic-identifier 'module-end)))
     
@@ -115,10 +123,13 @@
 	(let ((offsets (filter offsets (append (map car procedures)
 					       (map car datums)
 					       (map car vars)))))
-	  (%make-module offsets code))))))
+	  (%make-module relocs offsets code))))))
 
 (define (module-label-offset module label)
   (imap-ref (module-offsets module) label))
+
+(define (module-labels module)
+  (map car (imap->alist (module-offsets module))))
 
 (define (bytevector->assembly bytes)
   `(begin ,@(let loop ((i 0))

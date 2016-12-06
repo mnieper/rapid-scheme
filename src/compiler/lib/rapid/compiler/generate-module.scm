@@ -49,7 +49,7 @@
 	   (record-size (get-record-size body))
 	   (body (generate-body body env literals globals)))
        `(procedure ,name
-		   (alloc ,record-count ,record-size ,(get-argument-registers name env))
+		   (alloc ,record-count ,record-size ,@(get-argument-registers name env))
 		   ,@body)))))
 
 (define (generate-body body env literals globals)
@@ -66,6 +66,8 @@
 	   ,consequent-label
 	   ,consequent
 	   ,after-if-label)))
+      ((halt)
+       '((halt)))
       ((,operator ,(generate-expression -> operand*) ...)
        (let ((target-registers (get-argument-registers operator env)))
 	 (let ((operator (generate-expression operator)))
@@ -77,10 +79,11 @@
   (cond
    ((number? exp) exp)
    ((literal-label exp literals))
-   ((global-label exp globals))
+   ((global-label exp globals) => list)
    ((get-variable-location exp env))
+   ((identifier? exp) exp)
    (else
-    (error "invalid expression" exp)))) ;;; XXX: what is with next?
+    (error "invalid expression" exp))))
 
 (define (get-globals* definitions env)
   (match definitions
@@ -132,6 +135,7 @@
        (apply iset-union body operand*)))
     ((if ,(test) ,(consequent) ,(alternate))
      (apply iset-union test consequent alternate))
+    ((halt) (iset eq?))
     ((,(operator) ,(operand*) ...)
      (apply iset-union operator operand*))
     (,_ (error "invalid expression" exp))))
@@ -145,6 +149,7 @@
      (apply iset-union body operand*))
     ((if ,(test) ,(consequent) ,(alternate))
      (iset-union test consequent alternate))
+    ((halt) (iset eq?))
     ((,(operator) ,(operand*) ...)
      (apply iset-union operator operand*))
     (,_ (error "invalid expression" exp))))

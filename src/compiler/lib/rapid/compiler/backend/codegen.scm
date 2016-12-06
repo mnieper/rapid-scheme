@@ -15,34 +15,31 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;;; TODO: main will become the sole entry point
+;;;; TODO: we probably don't need module names anymore when identifiers are unique
+
 (define (codegen-emit filename program)
   (match program
     ((program ,declaration* ...)
-     (receive (modules inits entry)
+     (receive (modules entry)
 	 (let loop ((declaration* declaration*))
 	   (if (null? declaration*)
-	       (values '() '() #f)
-	       (receive (modules inits entry)
+	       (values '() #f)
+	       (receive (modules entry)
 		   (loop (cdr declaration*))		 
 		 (match (car declaration*)
 		   ((module ,name ,module-declaration* ...)
 		    (values (cons (list name (make-module `(module ,@module-declaration*)))
 				  modules)
-			    inits
-			    entry))
-		   ((init ,var ,reference)
-		    (values modules
-			    (cons (list var reference) inits)
 			    entry))
 		   ((entry (,module ,name))
 		    (values modules
-			    inits
 			    (list module name)))		  
 		   (,_ (error "invalid program declaration" (car declaration*)))))))
-       (%codegen-emit filename modules inits entry)))
-     (,_ (error "invalid program" program))))
+       (%codegen-emit filename modules entry)))
+    (,_ (error "invalid program" program))))
 
-(define (%codegen-emit filename modules inits entry)
+(define (%codegen-emit filename modules entry)
   (let-values (((offsets size) (get-module-offsets modules)))
     (define (module-offset module)
       (imap-ref offsets module))
@@ -50,8 +47,34 @@
       (let ((module (cadr (assq (car reference) modules)))
 	    (offset (module-offset (car reference))))
 	(+ offset (module-label-offset module (cadr reference)))))
+    (define module-map
+      (let loop1 ((map (imap eq?)) (modules modules))
+	(if (null? modules)
+	    map
+	    (let loop2 ((map map) (module-labels (module-labels (cadar modules))))
+	      (if (null? module-labels)
+		  (loop1 map (cdr modules))
+		  (loop2 (imap-replace map (car module-labels) (caar modules))
+			 (cdr module-labels)))))))
+    (define (find-module label)
+      (imap-ref module-map label))    
     (define (entry-global)
       `("rapid_run" ,(reference-address entry)))
+    ;; TODO: Rewrite the following code
+    (define inits
+      (let loop1 ((modules modules))
+	(if (null? modules)
+	    '()
+	    (let ((module (cadar modules)))
+	      (let loop2 ((relocations (module-relocations module)))
+		(if (null? relocations)
+		    (loop1 (cdr modules))
+		    (let ((relocation (car relocations)))
+		      (let ((var (car relocation))
+			    (reference (cadr relocation)))
+			(cons (list (list (caar modules) var)
+				    (list (find-module reference) reference))
+			      (loop2 (cdr relocations)))))))))))   
     (define (init->reloc init)
       (let ((var (car init))
 	    (reference (cadr init)))
@@ -70,7 +93,7 @@
        (lambda (init)
 	 (let ((var (car init)))
 	   (bytevector-integer-set! progbits (reference-address var) 0 8)))
-       inits)      
+       inits)
       (output-object-file
        filename
        `(object-file

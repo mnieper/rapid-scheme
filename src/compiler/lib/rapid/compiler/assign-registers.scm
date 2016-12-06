@@ -55,6 +55,7 @@
     ((if ,test ,consequent ,alternate)
      (assign-registers-body! consequent env)
      (assign-registers-body! alternate env))
+    ((halt) #f)
     ((,operator ,operand* ...)
      (cond
       ((procedure-definition operator env)
