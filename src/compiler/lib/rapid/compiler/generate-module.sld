@@ -28,5 +28,6 @@
 	  (rapid compiler mark-free-variables)
 	  (rapid compiler environment)
 	  (rapid compiler parallel-move)
+	  (rapid compiler assign-registers)
 	  (rapid compiler backend module))
   (include "generate-module.scm"))

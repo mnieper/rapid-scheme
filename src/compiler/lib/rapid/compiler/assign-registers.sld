@@ -16,7 +16,8 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid compiler assign-registers)
-  (export assign-registers!)
+  (export assign-registers!
+	  default-argument-registers)
   (import (scheme base)
 	  (rapid and-let)
 	  (rapid match)

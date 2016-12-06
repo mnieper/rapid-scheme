@@ -27,6 +27,9 @@
   (apply iset eq? (append (vector->list (get-callee-save-registers))
 			  (vector->list (get-caller-save-registers)))))
 
+(define (default-argument-registers)
+  escaping-registers)
+
 (define (assign-registers! definitions env)
   (for-each (lambda (definition)
 	      (store-procedure-definition! definition env))

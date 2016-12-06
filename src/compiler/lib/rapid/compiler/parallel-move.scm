@@ -19,7 +19,7 @@
   (let*
       ((target-map
 	(let loop ((map (imap equal?)) (sources sources) (targets targets))
-	  (if (null? sources)
+	  (if (or (null? sources) (null? targets))
 	      map
 	      (loop (imap-replace map
 				  (car sources)

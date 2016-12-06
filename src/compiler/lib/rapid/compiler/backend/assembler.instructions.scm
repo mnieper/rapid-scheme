@@ -39,3 +39,5 @@
 (define-instruction (ret)                  #xC3       )
 (define-instruction (ret imm16)            #xC2 iw    )
 (define-instruction (sarq reg/mem64)   rex #xD1 / 7   )
+(define-instruction (xchgq reg/mem64 reg64) rex #x87 /r)
+(define-instruction (xchgq reg64 reg/mem64) rex #x87 /r)

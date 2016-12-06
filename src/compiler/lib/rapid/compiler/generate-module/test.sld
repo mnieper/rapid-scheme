@@ -20,15 +20,17 @@
   (import (scheme base)
 	  (rapid test)
 	  (rapid compiler environment)
+	  (rapid compiler assign-registers)
 	  (rapid compiler generate-module))
   (begin
     (define (run-tests)
       (test-begin "rapid compiler generate-module")
 
-      ;; FIXME
-      #;(test-equal "generate-module"	
-	(generate-module
-	 '((define (f x y z) (if x y z)))
-	 (make-environment)))
+      (test-assert "generate-module"
+	(let ((environment (make-environment)))
+	  (define definitions
+	    '((define (f x y z) (if x (y x) (z)))))
+	  (assign-registers! definitions environment)
+	  (generate-module definitions environment)))
       
       (test-end))))
