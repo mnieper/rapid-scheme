@@ -28,7 +28,7 @@
   (let ((environment (make-environment)))
     (assign-registers! (cdr code) environment)    
     `(program
-      (entry (main main))
+      (entry main)
       (module main
  	      ,@(cdr (generate-module (cdr code) environment))))))
 
