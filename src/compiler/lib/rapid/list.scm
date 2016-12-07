@@ -15,18 +15,9 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module)
-  (export generate-module)
-  (import (scheme base)
-	  (rapid receive)
-	  (rapid match)
-	  (rapid iset)
-	  (rapid imap)
-	  (rapid sort)
-	  (rapid graph)
-	  (rapid compiler identifier)
-	  (rapid compiler environment)
-	  (rapid compiler parallel-move)
-	  (rapid compiler assign-registers)
-	  (rapid compiler backend module))
-  (include "generate-module.scm"))
+(define (fold kons knil lis)
+  (let loop ((lis lis))
+    (if (null? lis)
+	knil
+	(kons (car lis)
+	      (loop (cdr lis))))))

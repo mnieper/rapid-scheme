@@ -94,8 +94,6 @@
 		      (let-values (((var ..1) (map-values (lambda (expr)
 							    (matcher expr failure))
 							  head (length '(var ..1)))))
-			;; FIXME: head = '(). Was dann? brauche Anzahl => map-values beigeben
-			
 			(apply values var ..1 v*)))))))
     
     ((match-aux "pattern" loop (pattern1 pattern2 ..1 . pattern*) (k ..1))

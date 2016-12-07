@@ -15,29 +15,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler mark-free-variables test)
-  (export run-tests)
+(define-library (rapid compiler free-variables)
+  (export make-free-variables-environment
+	  free-variables)
   (import (scheme base)
-	  (rapid test)
 	  (rapid receive)
-	  (rapid compiler mark-free-variables))
-  (begin
-    (define (run-tests)
-      (test-begin "Mark free variables")
-
-      (test-equal "mark-free-variables"
-	'((if x (let (free x) ((y (+ x a)))
-	 	   (let (free y x) ((z (- 1 2)))
-		      (f x y z)))
-              y)
-	  (y x))
-	(receive result	
-	    (mark-free-variables
-	     '(if x (let ((y (+ x a)))
-		      (let ((z (- 1 2)))
-			(f x y z)))
-		  y)
-	     '(x y z))
-	  result))
-
-      (test-end))))
+	  (rapid match)
+	  (rapid list)
+	  (rapid iset)
+	  (rapid imap)
+	  (rapid compiler identifier)
+	  (rapid compiler environment))
+  (include "free-variables.scm"))

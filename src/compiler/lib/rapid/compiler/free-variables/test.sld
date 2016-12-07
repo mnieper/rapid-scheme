@@ -15,18 +15,36 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module)
-  (export generate-module)
+(define-library (rapid compiler free-variables test)
+  (export run-tests)
   (import (scheme base)
-	  (rapid receive)
-	  (rapid match)
-	  (rapid iset)
-	  (rapid imap)
+	  (rapid test)
 	  (rapid sort)
-	  (rapid graph)
-	  (rapid compiler identifier)
-	  (rapid compiler environment)
-	  (rapid compiler parallel-move)
-	  (rapid compiler assign-registers)
-	  (rapid compiler backend module))
-  (include "generate-module.scm"))
+	  (rapid iset)
+	  (rapid receive)	 
+	  (rapid compiler free-variables))
+  (begin
+    (define (run-tests)
+      
+      (test-begin "Free variables")
+
+      (test-equal "free-variables"
+	'(a z)
+	(let ((expr '(if x
+			 (receive (y) (+ x a)
+			   (receive (z) (- 1 2)
+			     (letrec ((a (lambda (x)
+					   (f a x z))))			      
+			       (f x y z))))
+			 y)))
+	  (receive (env)
+	      (make-free-variables-environment expr)
+	    (normalize-iset (free-variables 'a env)))))
+      
+      (test-end))
+
+    (define (normalize-iset set)
+      (sort (iset->list set)
+	    (lambda (x y)
+	      (string<? (symbol->string x)
+			(symbol->string y)))))))

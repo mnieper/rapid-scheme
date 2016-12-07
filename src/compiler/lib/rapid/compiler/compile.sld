@@ -19,6 +19,7 @@
   (export compile)
   (import (scheme base)
 	  (rapid compiler environment)
+	  (rapid compiler spill-registers)
 	  (rapid compiler assign-registers)
 	  (rapid compiler generate-module))
   (include "compile.scm"))

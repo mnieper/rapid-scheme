@@ -15,18 +15,19 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler generate-module)
-  (export generate-module)
+(define-library (rapid list test)
+  (export run-tests)
   (import (scheme base)
-	  (rapid receive)
-	  (rapid match)
-	  (rapid iset)
-	  (rapid imap)
-	  (rapid sort)
-	  (rapid graph)
-	  (rapid compiler identifier)
-	  (rapid compiler environment)
-	  (rapid compiler parallel-move)
-	  (rapid compiler assign-registers)
-	  (rapid compiler backend module))
-  (include "generate-module.scm"))
+	  (rapid test)
+	  (rapid list))
+  (begin
+    (define (run-tests)
+      (test-begin "Lists")
+
+      (test-equal "fold"
+	4
+	(fold (lambda (x count) (if (symbol? x) (+ count 1) count))
+	      0
+	      '(1 a b 2 c 3 4 d 5 6)))      
+      
+      (test-end))))

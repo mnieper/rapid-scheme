@@ -82,7 +82,18 @@
 		 (values (cons x odds)
 			 (cons y evens))))))
 	  result))
-      
+
+      (test-equal "More catamorphisms"
+	'(2 3 4)
+	(let ((add1 (lambda (x)
+		      (+ x 1))))
+	  (match '(if 1 2 3)
+	    ((if ,(add1 -> x)
+		 ,(add1 -> y)
+		 ,(add1 -> z))
+	     (list x y z))
+	    (,_ #f))))
+           
       (test-end)
       
       (test-begin "Guard expressions")

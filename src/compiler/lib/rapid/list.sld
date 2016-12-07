@@ -15,11 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler mark-free-variables)
-  (export mark-free-variables)
-  (import (scheme base)
-	  (rapid receive)
-	  (rapid match)
-	  (rapid iset)
-	  (rapid compiler identifier))
-  (include "mark-free-variables.scm"))
+(define-library (rapid list)
+  (export fold)
+  (import (scheme base))
+  (include "list.scm"))

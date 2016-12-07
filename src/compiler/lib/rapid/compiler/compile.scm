@@ -17,5 +17,6 @@
 
 (define (compile definitions)
   (let ((environment (make-environment)))
-    (assign-registers! definitions environment)
-    (generate-module definitions environment)))
+    (let ((definitions (spill-registers definitions)))
+      (assign-registers! definitions environment)
+      (generate-module definitions environment))))
