@@ -15,25 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(import (scheme base)
-	(scheme cxr)
-	(scheme read)
-	(scheme process-context)
-	(rapid compiler backend codegen))
-
-(define (generate-program code)
-  (let ((module (compile (cdr code))))
-    `(program
-      (entry main)
-      (module main
-	      ,@(cdr module)))))
-
-(define (main)
-  (let* ((code (read))
-	 (code (if (eq? 'define (caadr code))
-		   (generate-program code)
-		   code)))	
-    (let ((output-file-name (list-ref (command-line) 1)))
-      (codegen-emit output-file-name code))))
-
-(main)
+(define (compile definitions)
+  (let ((environment (make-environment)))
+    (assign-registers! definitions environment)
+    (generate-module definitions environment)))
