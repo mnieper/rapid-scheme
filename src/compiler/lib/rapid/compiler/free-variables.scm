@@ -28,7 +28,6 @@
 					(iset eq? x)
 					(iset eq?)))
 	((receive (,var* ...) ,(init-variables) ,body)
-	 (error "receive: expr" expr) ;; FIXME
 	 (receive (body-variables)
 	     (loop body (iset-adjoin* variables var*))
 	   (let ((variables (iset-union (iset-delete* body-variables var*)
@@ -41,25 +40,26 @@
 	 (receive (variables) (iset-adjoin* variables name*)
 	   (let ((expr-variables
 		  (loop expr variables))
-		 (body-variables*
+		 (lambda-variables*
 		  (map (lambda (formals body)
-			 (loop body (iset-adjoin* variables formals)))			  
+			 (iset-delete* (loop body (iset-adjoin* variables formals))
+				       formals))			  
 		       formal** body*)))
 	     (for-each (lambda (name variables)
 			 (set-free-variables! name variables env))
-		       name* body-variables*)		
+		       name* lambda-variables*)		
 	     (receive (free-variables)
-		 (iset-delete* (apply iset-union expr-variables body-variables*)
+		 (iset-delete* (apply iset-union expr-variables lambda-variables*)
 			       name*)
 	       variables))))
-	((if ,(x) ,(y) ,(z)) (error "FIXME" x y z))
 	((if ,(test-variables)
 	     ,(consequent-variables)
 	     ,(alternate-variables))
 	 (iset-union test-variables consequent-variables alternate-variables))
-	((,(operator-variables) ,(operand-variables*))
+	((,(operator-variables) ,(operand-variables*) ...)
 	 (apply iset-union operator-variables operand-variables*))
-	(,_ (error "???" expr variables)
+	(,x #;
+	 (error "???" x variables)
 	    (iset eq?))))
     env))
 
