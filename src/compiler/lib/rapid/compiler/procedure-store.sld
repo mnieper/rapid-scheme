@@ -15,17 +15,20 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-library (rapid compiler environment)
-  (export make-environment
+(define-library (rapid compiler procedure-store)
+  (export make-store
+	  mark-escaping-procedure!
+	  escaping-procedure?
+	  
+          make-environment
 	  set-variable-location!
 	  set-argument-registers!
 	  get-variable-location
 	  get-argument-registers
-	  escaping-procedure?
 	  continuation-procedure?
 	  store-procedure-definition!
 	  procedure-definition)
   (import (scheme base)
 	  (rapid match)
 	  (rapid imap))
-  (include "environment.scm"))
+  (include "procedure-store.scm"))

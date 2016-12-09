@@ -15,6 +15,35 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+(define-record-type <procedure-store>
+  (%make-procedure-store map)
+  procedure-store?
+  (map procedure-store-map procedure-store-set-map!))
+
+(define (store-get name store)
+  (let ((map (procedure-store-map store)))
+    (or (imap-ref/default map name #f)
+	(let ((record (make-procedure-record)))
+	  (procedure-store-set-map! (imap-replace map name record))
+	  record))))
+
+(define-record-type <procedure-record>
+  (%make-procedure-record escaping-flag)
+  procedure-record?
+  (escaping-flag procedure-record-escaping-flag procedure-record-set-escaping-flag!))
+
+(define (make-procedure-record)
+  (%make-procedure-record #f))
+
+(define (escaping-procedure? name store)
+  (procedure-record-escaping-flag (store-get name store)))
+
+(define (mark-escaping-procedure! name store)
+  (let ((record (store-get name store)))
+    (procedure-record-set-escaping-flag! record #t)))
+
+
+
 (define-record-type <environment>
   (%make-environment variable-locations
 		     argument-registers
@@ -50,20 +79,12 @@
 (define (get-argument-registers proc env)
   (imap-ref/default (environment-argument-registers env) proc #f))
 
-(define (mark-escaping! proc env)
-  (environment-set-escaping-procedures! env
-					(imap-replace (environment-escaping-procedures env)
-						      proc
-						      #t)))
 
 (define (mark-continuation! proc env)
   (environment-set-continuation-procedures! env
 					    (imap-replace (environment-continuation-procedures env)
 							  proc
 							  #t)))
-
-(define (escaping-procedure? proc env)
-  (imap-ref/default (environment-escaping-procedures env) proc #f))
 
 (define (continuation-procedure? proc env)
   (imap-ref/default (environment-continuation-procedures env) proc #f))
