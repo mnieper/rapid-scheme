@@ -47,7 +47,7 @@
   (codegen-emit
    "bootstrap.s"
    `(program
-     (entry (main proc))
+     (entry proc)
      (module main
 	     (procedure proc
 			,@code)

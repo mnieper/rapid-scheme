@@ -24,6 +24,5 @@
 	  (rapid list)
 	  (rapid iset)
 	  (rapid imap)
-	  (rapid compiler identifier)
-	  (rapid compiler environment))
+	  (rapid compiler identifier))
   (include "free-variables.scm"))

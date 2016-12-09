@@ -18,7 +18,7 @@
 (define-library (rapid compiler compile)
   (export compile)
   (import (scheme base)
-	  (rapid compiler environment)
+	  (rapid compiler procedure-store)
 	  (rapid compiler spill-registers)
 	  (rapid compiler assign-registers)
 	  (rapid compiler generate-module))

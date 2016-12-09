@@ -16,12 +16,15 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid compiler assign-registers)
-  (export assign-registers!
+  (export variable-environment?
+	  variable-location
+	  assign-registers
 	  default-argument-registers)
   (import (scheme base)
 	  (rapid and-let)
 	  (rapid match)
 	  (rapid iset)
-	  (rapid compiler environment)
+	  (rapid imap)
+	  (rapid compiler procedure-store)
 	  (rapid compiler backend module))
   (include "assign-registers.scm"))

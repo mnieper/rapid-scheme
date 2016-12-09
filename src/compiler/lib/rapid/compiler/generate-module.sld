@@ -25,7 +25,7 @@
 	  (rapid sort)
 	  (rapid graph)
 	  (rapid compiler identifier)
-	  (rapid compiler environment)
+	  (rapid compiler procedure-store)
 	  (rapid compiler parallel-move)
 	  (rapid compiler assign-registers)
 	  (rapid compiler backend module))

@@ -20,28 +20,15 @@
   procedure-store?
   (map procedure-store-map procedure-store-set-map!))
 
+(define (make-procedure-store)
+  (%make-procedure-store (imap eq?)))
+
 (define (store-get name store)
   (let ((map (procedure-store-map store)))
     (or (imap-ref/default map name #f)
 	(let ((record (make-procedure-record)))
-	  (procedure-store-set-map! (imap-replace map name record))
+	  (procedure-store-set-map! store (imap-replace map name record))
 	  record))))
-
-(define-record-type <procedure-record>
-  (%make-procedure-record escaping-flag)
-  procedure-record?
-  (escaping-flag procedure-record-escaping-flag procedure-record-set-escaping-flag!))
-
-(define (make-procedure-record)
-  (%make-procedure-record #f))
-
-(define (escaping-procedure? name store)
-  (procedure-record-escaping-flag (store-get name store)))
-
-(define (mark-escaping-procedure! name store)
-  (let ((record (store-get name store)))
-    (procedure-record-set-escaping-flag! record #t)))
-
 
 
 (define-record-type <environment>
@@ -58,47 +45,38 @@
 			   environment-set-continuation-procedures!)
   (procedure-definitions environment-procedure-definitions environment-set-procedure-definitions!))
 
-(define (make-environment)
-  (%make-environment (imap eq?) (imap eq?) (imap eq?) (imap eq?) (imap eq?)))
+(define-record-type <procedure-record>
+  (%make-procedure-record escaping-flag argument-registers)
+  procedure-record?
+  (escaping-flag procedure-record-escaping-flag procedure-record-set-escaping-flag!)
+  (definition procedure-record-definition procedure-record-set-definition!)
+  (argument-registers procedure-record-argument-registers procedure-record-set-argument-registers!))
 
-(define (set-variable-location! variable location env)
-  (environment-set-variable-locations! env
-				       (imap-replace (environment-variable-locations env)
-						     variable
-						     location)))
+(define (make-procedure-record)
+  (%make-procedure-record #f #f))
 
-(define (get-variable-location variable env)
-  (imap-ref/default (environment-variable-locations env) variable #f))
+(define (escaping-procedure? name store)
+  (procedure-record-escaping-flag (store-get name store)))
 
-(define (set-argument-registers! proc register env)
-  (environment-set-argument-registers! env
-				       (imap-replace (environment-argument-registers env)
-						     proc
-						     register)))
+(define (mark-escaping-procedure! name store)
+  (let ((record (store-get name store)))
+    (procedure-record-set-escaping-flag! record #t)))
 
-(define (get-argument-registers proc env)
-  (imap-ref/default (environment-argument-registers env) proc #f))
+(define (procedure-definition name store)
+  (procedure-record-definition (store-get name store)))
 
-
-(define (mark-continuation! proc env)
-  (environment-set-continuation-procedures! env
-					    (imap-replace (environment-continuation-procedures env)
-							  proc
-							  #t)))
-
-(define (continuation-procedure? proc env)
-  (imap-ref/default (environment-continuation-procedures env) proc #f))
-
-(define (store-procedure-definition! definition env)
+(define (store-procedure-definition! definition store)
   (let ((name
 	 (match definition
 	   ((define (,name ,formal* ...) ,body)
 	    name)
 	   (,_ (error "invalid procedure definition" definition)))))
-    (environment-set-procedure-definitions! env
-					    (imap-replace (environment-procedure-definitions env)
-							  name
-							  definition))))
+    (let ((record (store-get name store)))
+      (procedure-record-set-definition! record definition ))))
 
-(define (procedure-definition procedure env)
-  (imap-ref/default (environment-procedure-definitions env) procedure #f))
+(define (set-argument-registers! name registers store)
+  (let ((record (store-get name store)))
+    (procedure-record-set-argument-registers! record registers)))
+
+(define (get-argument-registers name store)
+  (procedure-record-argument-registers (store-get name store)))

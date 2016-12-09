@@ -16,18 +16,13 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-library (rapid compiler procedure-store)
-  (export make-store
+  (export make-procedure-store
 	  mark-escaping-procedure!
 	  escaping-procedure?
-	  
-          make-environment
-	  set-variable-location!
-	  set-argument-registers!
-	  get-variable-location
-	  get-argument-registers
-	  continuation-procedure?
 	  store-procedure-definition!
-	  procedure-definition)
+	  procedure-definition
+	  set-argument-registers!
+	  get-argument-registers)
   (import (scheme base)
 	  (rapid match)
 	  (rapid imap))

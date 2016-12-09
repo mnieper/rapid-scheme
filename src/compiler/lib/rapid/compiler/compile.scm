@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define (compile definitions)
-  (let ((environment (make-environment)))
+  (let ((store (make-procedure-store)))
     (let ((definitions (spill-registers definitions)))
-      (assign-registers! definitions environment)
-      (generate-module definitions environment))))
+      (let ((env (assign-registers definitions store)))
+	(generate-module definitions store env)))))

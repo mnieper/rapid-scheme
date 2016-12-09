@@ -15,10 +15,27 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+(define-record-type <variable-environment>
+  (%make-variable-environment map)
+  variable-environment?
+  (map variable-environment-map variable-environment-set-map!))
+
+(define (make-variable-environment)
+  (%make-variable-environment (imap eq?)))
+
+(define (variable-location name env)
+  (imap-ref (variable-environment-map env) name))
+
+(define (set-variable-location! name register env)
+  (variable-environment-set-map! env
+				 (imap-replace (variable-environment-map env)
+					       name register)))
+
 (define escaping-registers
   (append (vector->list (get-callee-save-registers))
 	  (vector->list (get-caller-save-registers))))
 
+#;
 (define continuation-registers
   (append (vector->list (get-callee-save-registers))
 	  (vector->list (get-caller-save-registers))))
@@ -30,43 +47,43 @@
 (define (default-argument-registers)
   escaping-registers)
 
-(define (assign-registers! definitions env)
-  (for-each (lambda (definition)
-	      (store-procedure-definition! definition env))
-	    definitions)
-  (for-each (lambda (definition)
-	      (%assign-registers! definition env))
-	    definitions))
 
-(define (%assign-registers! definition env)
+(define (assign-registers definitions store)
+  (for-each (lambda (definition)
+	      (store-procedure-definition! definition store))
+	    definitions)
+  (let ((env (make-variable-environment)))  
+    (for-each (lambda (definition)
+		(%assign-registers! definition store env))
+	      definitions)
+    env))
+
+(define (%assign-registers! definition store env)
   (match definition
     ((define (,name ,formal* ...) ,body)
-     (unless (get-argument-registers name env)
-       (let* ((registers (if (continuation-procedure? name env)
-			    continuation-registers
-			    escaping-registers))
-	      (registers (map (lambda (formal register)
+     (unless (get-argument-registers name store)
+       (let* ((registers (map (lambda (formal register)
 				(set-variable-location! formal register env)
 				register)
-			      formal* registers)))
-	 (set-argument-registers! name registers env)
-	 (assign-registers-body! body env))))
+			      formal* escaping-registers)))
+	 (set-argument-registers! name registers store)
+	 (assign-registers-body! body store env))))
     (,_ (error "invalid definition" definition))))
 
-(define (assign-registers-body! body env)
+(define (assign-registers-body! body store env)
   (match body
     ((if ,test ,consequent ,alternate)
-     (assign-registers-body! consequent env)
-     (assign-registers-body! alternate env))
+     (assign-registers-body! consequent store env)
+     (assign-registers-body! alternate store env))
     ((halt) #f)
     ((,operator ,operand* ...)
      (cond
-      ((procedure-definition operator env)
+      ((procedure-definition operator store)
        => (lambda (definition)
 	    (match definition
 	      ((define (,name ,formal* ...) ,body)
-	       (unless (or (get-argument-registers name env)
-			   (escaping-procedure? name env))
+	       (unless (or (get-argument-registers name store)
+			   (escaping-procedure? name store))
 		 (let*
 		     ((available-registers
 		       (let loop ((registers *registers*) (operands operand*))
@@ -82,7 +99,7 @@
 			  (cond
 			   ((null? formals)
 			    '())
-			   ((and-let* ((register (get-variable-location (car operands) env))
+			   ((and-let* ((register (variable-location (car operands) env))
 				       ((not (iset-member? used-registers register))))
 			      register)
 			    => (lambda (register)			      
@@ -96,5 +113,5 @@
 					(cdr operands)
 					used-registers
 					(cdr registers))))))))
-		   (set-argument-registers! name registers env)))))))))
+		   (set-argument-registers! name registers store)))))))))
     (,_ (error "invalid body" body))))

@@ -15,10 +15,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define (generate-module definitions env)
-  (let ((literals (get-literals* definitions env))
-	(globals (get-globals* definitions env)))
-    (let ((procedures (generate-procedures definitions env literals globals)))
+(define (generate-module definitions store env)
+  (let ((literals (get-literals* definitions))
+	(globals (get-globals* definitions)))
+    (let ((procedures (generate-procedures definitions store env literals globals)))
       `(module ,@procedures
 	       ,@(generate-literals literals)
 	       ,@(generate-globals globals)))))
@@ -37,25 +37,25 @@
 	   `(variable ,name ,global)))
        (imap->alist globals)))
 
-(define (generate-procedures definitions env literals globals)
+(define (generate-procedures definitions store env literals globals)
   (map (lambda (definition)
-	 (generate-procedure definition env literals globals))
+	 (generate-procedure definition store env literals globals))
        definitions))
 
-(define (generate-procedure definition env literals globals)
+(define (generate-procedure definition store env literals globals)
   (match definition
     ((define (,name ,formal* ...) ,body)
      (let ((record-count (get-record-count body))
 	   (record-size (get-record-size body))
-	   (body (generate-body body env literals globals)))
+	   (body (generate-body body store env literals globals)))
        `(procedure ,name
-		   (alloc ,record-count ,record-size ,@(get-argument-registers name env))
+		   (alloc ,record-count ,record-size ,@(get-argument-registers name store))
 		   ,@body)))))
 
-(define (generate-body body env literals globals)
+(define (generate-body body store env literals globals)
   (let ((generate-expression
 	 (lambda (exp)
-	   (generate-expression exp env literals globals))))  
+	   (generate-expression exp store env literals globals))))  
     (match body
       ((if ,(generate-expression -> test) ,(consequent) ,(alternate))
        (let ((consequent-label (make-synthetic-identifier 'consequent))
@@ -69,24 +69,24 @@
       ((halt)
        '((halt)))
       ((,operator ,(generate-expression -> operand*) ...)
-       (let ((target-registers (or (get-argument-registers operator env)
+       (let ((target-registers (or (get-argument-registers operator store)
 				   (default-argument-registers))))
 	 (let ((operator (generate-expression operator)))
 	   `(,@(parallel-move* operand* target-registers)
 	     (jump ,operator)))))
       (,_ (error "invalid body" body)))))
 
-(define (generate-expression exp env literals globals)
+(define (generate-expression exp store env literals globals)
   (cond
    ((number? exp) exp)
    ((literal-label exp literals))
    ((global-label exp globals) => list)
-   ((get-variable-location exp env))
+   ((variable-location exp env))
    ((identifier? exp) exp)
    (else
     (error "invalid expression" exp))))
 
-(define (get-globals* definitions env)
+(define (get-globals* definitions)
   (match definitions
     (((define (,name* ,formal** ...) ,body*) ...)
      (let ((names (apply iset eq? name*)))  
@@ -99,7 +99,7 @@
 	 (make-global-map globals))))
     (,_ (error "invalid definitions" definitions))))
 
-(define (get-literals* definitions env)
+(define (get-literals* definitions)
   (match definitions
     (((define (,name* ,formal** ...) ,body*) ...)
      (let ((literals (apply iset-union

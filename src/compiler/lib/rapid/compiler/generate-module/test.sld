@@ -19,7 +19,7 @@
   (export run-tests)
   (import (scheme base)
 	  (rapid test)
-	  (rapid compiler environment)
+	  (rapid compiler procedure-store)
 	  (rapid compiler assign-registers)
 	  (rapid compiler generate-module))
   (begin
@@ -27,10 +27,10 @@
       (test-begin "rapid compiler generate-module")
 
       (test-assert "generate-module"
-	(let ((environment (make-environment)))
+	(let ((store (make-procedure-store)))
 	  (define definitions
 	    '((define (f x y z) (if x (y x) (z)))))
-	  (assign-registers! definitions environment)
-	  (generate-module definitions environment)))
+	  (let ((env (assign-registers definitions store)))
+	    (generate-module definitions store env))))
       
       (test-end))))
