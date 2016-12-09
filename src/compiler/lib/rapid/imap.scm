@@ -24,6 +24,9 @@
 (define (imap->alist map)
   (list-copy (imap-alist map)))
 
+(define (alist->imap compare alist)
+  (%make-imap compare alist))
+
 (define (make-imap compare . items)
   (let loop ((items items))
     (if (null? items)  

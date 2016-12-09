@@ -25,9 +25,29 @@
     (define (run-tests)
       (test-begin "Partition Bindings")
 
-      (test-equal "partition-bindings"
+      (test-equal "partition-bindings: Basic example"
 	'x
 	(let ((expr 'x))
+	  (let ((env (make-free-variables-environment expr)))
+	    (partition-bindings expr env))))
+
+      (test-equal "partition-bindings: Keep, Hearn, Dybvig example"
+	'(letrec ((main
+		   (lambda (x)
+		     (letrec ((f (lambda (a) (a x))))
+		       (letrec ((g (lambda () (f (h x))))
+				(h (lambda (z) (g))))
+			 (letrec ((q (lambda (y) (+ (length y) 1))))
+			   (q (g))))))))
+	   main)
+	(let ((expr '(letrec ((main
+			       (lambda (x)
+				 (letrec ((f (lambda (a) (a x)))
+					  (g (lambda () (f (h x))))
+					  (h (lambda (z) (g)))
+					  (q (lambda (y) (+ (length y) 1))))
+				   (q (g))))))
+		       main)))
 	  (let ((env (make-free-variables-environment expr)))
 	    (partition-bindings expr env))))
       

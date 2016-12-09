@@ -23,6 +23,7 @@
 	  imap-ref/default
 	  imap-replace
 	  imap->alist
+	  alist->imap
 	  imap-for-each)
   (import (scheme base)
 	  (scheme case-lambda))

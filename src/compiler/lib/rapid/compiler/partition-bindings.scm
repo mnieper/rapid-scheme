@@ -17,49 +17,38 @@
 
 (define (partition-bindings expr env)
   (match expr
-    ((receive (,var* ...) (,operator ,(operand*) ...)
-       `(receive ,@var* (,operator ,@operand*))))
+    ((receive (,var* ...) (,operator ,(operand*) ...))
+     `(receive ,var* (,operator ,@operand*)))
     ((if ,(test) ,(consequent) ,(alternate))
      `(if ,test ,consequent ,alternate))
     ((letrec ((,name* (lambda (,formal** ...) ,(body*)))
 	      ...)
        ,(expr))
-     (let ((graph ))
-
-       )
-
-       
-     ,expr
-     ()
-     
-     'FIXME:TODO)
-     
+     (let ((definitions (alist->imap eq? (map list name* formal** body*)))
+	   (free-vars* (map (lambda (name) (free-variables name env)) name*)))
+       (let ((graph (map (lambda (name)
+			   (cons name
+				 (let loop ((names name*) (free-vars* free-vars*))
+				   (cond
+				    ((null? names)
+				     '())
+				    ((or (eq? (car names) name)
+					 (not (iset-member? (car free-vars*) name)))
+				     (loop (cdr names) (cdr free-vars*)))
+				    (else
+				     (cons (car names)
+					   (loop (cdr names) (cdr free-vars*))))))))
+			 name*)))
+	 (receive (scc) (graph-scc graph eq?)
+	   (let loop ((scc scc))
+	     (if (null? scc)
+		 expr
+		 `(letrec ,(map (lambda (name)
+				  (receive (formals body)
+				      (apply values (imap-ref definitions name))
+				    `(,name (lambda ,formals ,body))))
+				(car scc))
+		    ,(loop (cdr scc)))))))))
     (((,operator) ,(operand*) ...)
      `(,operator ,@operand*))
-    (,x x))))
-
-
-;; (if (letrec ((x (lambda (y) ...))) 
-
-
-(define get-bindings expr
-  (let loop ((expr expr))
-    (match expr
-      ((receive (,var* ...) (,operator ,(operand*) ...)
-	 ,(body))
-       (apply imap-union body operand*))
-      ((if ,(test) ,(consequent) ,(alternate))
-       (imap-union test consequent alternate))
-      ((letrec ((,name* (lambda (,formal** ...) ,body*))
-		...)
-	 (let )
-
-	 
-	 ,expr)
-       ()
-       
-       'FIXME:TODO
-       )
-      (((,operator) ,(operand*) ...)
-       (apply imap-union operator operand*))
-      (,x (imap eq?)))))
+    (,x x)))
