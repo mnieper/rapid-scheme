@@ -25,8 +25,8 @@
     (let loop ((expr expr) (variables (iset eq?)))
       (match expr
 	(,x (guard (identifier? x)) (if (iset-member? variables x)
-					(iset eq? x)
-					(iset eq?)))
+	(iset eq? x)
+	(iset eq?)))
 	((receive (,var* ...) ,(init-variables) ,body)
 	 (receive (body-variables)
 	     (loop body (iset-adjoin* variables var*))
