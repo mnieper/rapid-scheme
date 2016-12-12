@@ -19,6 +19,7 @@
   (export compile)
   (import (scheme base)
 	  (rapid compiler procedure-store)
+	  (rapid compiler mark-escaping-procedures!)
 	  (rapid compiler spill-registers)
 	  (rapid compiler assign-registers)
 	  (rapid compiler generate-module))

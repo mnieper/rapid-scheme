@@ -46,14 +46,15 @@
   (procedure-definitions environment-procedure-definitions environment-set-procedure-definitions!))
 
 (define-record-type <procedure-record>
-  (%make-procedure-record escaping-flag argument-registers)
+  (%make-procedure-record escaping-flag continuation-flag argument-registers)
   procedure-record?
   (escaping-flag procedure-record-escaping-flag procedure-record-set-escaping-flag!)
+  (continuation-flag procedure-record-continuation-flag procedure-record-set-continuation-flag!)
   (definition procedure-record-definition procedure-record-set-definition!)
   (argument-registers procedure-record-argument-registers procedure-record-set-argument-registers!))
 
 (define (make-procedure-record)
-  (%make-procedure-record #f #f))
+  (%make-procedure-record #f #f #f))
 
 (define (escaping-procedure? name store)
   (procedure-record-escaping-flag (store-get name store)))
@@ -61,6 +62,13 @@
 (define (mark-escaping-procedure! name store)
   (let ((record (store-get name store)))
     (procedure-record-set-escaping-flag! record #t)))
+
+(define (continuation? name store)
+  (procedure-record-continuation-flag (store-get name store)))
+
+(define (mark-continuation! name store)
+  (let ((record (store-get name store)))
+    (procedure-record-set-continuation-flag! record #t)))
 
 (define (procedure-definition name store)
   (procedure-record-definition (store-get name store)))

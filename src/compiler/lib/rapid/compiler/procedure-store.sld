@@ -18,7 +18,9 @@
 (define-library (rapid compiler procedure-store)
   (export make-procedure-store
 	  mark-escaping-procedure!
+	  mark-continuation!
 	  escaping-procedure?
+	  continuation?
 	  store-procedure-definition!
 	  procedure-definition
 	  set-argument-registers!
