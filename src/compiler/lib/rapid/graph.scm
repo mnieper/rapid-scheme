@@ -131,3 +131,25 @@
    (lambda (scc)
      (reverse (unbox scc)))
    sccs))
+
+
+
+#;
+(define (digraph comparator successors)
+  
+  'TODO
+
+  )
+
+
+#;(define (di))
+
+;;; the graph is a set of nodes and for each node, we have a set of successors
+;;;
+;;; Each node is implemented as a pair.  Car is node name. cdr is set of nodes...
+
+#;
+  (define (graph-interval comparator graph header)
+
+
+    )
