@@ -119,24 +119,26 @@
 ;; Updaters
 
 (define (map-set! map . args)
-  (let loop ((map map)
+   (let loop ((map map)
 	     (args args))
     (if (null? args)
 	map
-	(receive (map obj)
-	    (map-search! map
-			 (car args)
-			 (lambda (insert ignore)
-			   (insert (cadr args)
-				   #f))
-			 (lambda (key value update remove)
-			   (update (car args)
-				   (cadr args)
-				   #f)))
-	  (loop map (cddr args))))))
+	(loop (map-update! map
+			   (car args)
+			   (lambda (obj) (cadr args))
+			   (lambda () #f))
+	      (cddr args)))))
 
 (define (map-set map . args)
-  (apply map-set! (map-copy map) args))
+   (let loop ((map map)
+	     (args args))
+    (if (null? args)
+	map
+	(loop (map-update map
+			  (car args)
+			  (lambda (obj) (cadr args))
+			  (lambda () #f))
+	      (cddr args)))))
 
 (define (map-delete map . keys)
   (%make-map (map-key-comparator map) (set-delete-all (map-items map)
@@ -157,44 +159,74 @@
 			   (make-item key value))))
 
 (define (map-intern! map key failure)
-  (map-search! map
-	       key
-	       (lambda (insert ignore)
-		 (insert key (failure)))
-	       (lambda (key value update ignore)
-		 (update key value value))))
+  (call-with-current-continuation
+   (lambda (return)
+     (values map 
+	     (map-ref map
+		      key
+		      (lambda ()
+			(return (map-set! map key (failure)))))))))
 
 (define (map-intern map key failure)
-  (map-intern! (map-copy map)
-	       key
-	       failure))
+  (call-with-current-continuation
+   (lambda (return)
+     (values map 
+	     (map-ref map
+		      key
+		      (lambda ()
+			(return (map-set map key (failure)))))))))
 
 (define map-update!
   (case-lambda
     ((map key updater)
-     (map-update! map key updater (lambda ()
+     (map-update map key updater (lambda ()
 				    (error "map-update!: key not in map" key))))
     ((map key updater failure)
-     (map-update! map key updater failure (lambda (value)
+     (map-update map key updater failure (lambda (value)
 					    value)))
     ((map key updater failure success)
-     (receive (map obj)
-	 (map-search! map
-		      key
-		      (lambda (insert ignore)
-			(insert (updater (failure))
-				#f))
-		      (lambda (key value update remove)
-			(update key
-				(updater value)
-				#f)))
-       map))))
+     (let ((items (map-items map)))
+       (receive (items)
+	   (call-with-current-continuation
+	    (lambda (return)
+	      (set-replace! items
+			    (make-item key
+				       (updater (map-ref map
+							 key
+							 (lambda ()
+							   (return
+							    (set-adjoin items
+									(make-item
+									 key
+									 (updater (failure))))))
+							 success))))))
+	 (%make-map (map-key-comparator map) items))))))
 
-(define (map-update map key updater . args)
-  (apply map-update! (map-copy map)
-	 key
-	 updater
-	 args))
+(define map-update
+  (case-lambda
+    ((map key updater)
+     (map-update map key updater (lambda ()
+				    (error "map-update!: key not in map" key))))
+    ((map key updater failure)
+     (map-update map key updater failure (lambda (value)
+					    value)))
+    ((map key updater failure success)
+     (let ((items (map-items map)))
+       (receive (items)
+	   (call-with-current-continuation
+	    (lambda (return)
+	      (set-replace items
+			   (make-item key
+				      (updater (map-ref map
+							key
+							(lambda ()
+							  (return (set-adjoin
+								   items
+								   (make-item
+								    key
+								    (updater (failure))))))
+							success))))))
+	 (%make-map (map-key-comparator map) items))))))
 
 (define (map-update!/default map key updater default)
   (map-update! map key updater (lambda ()
@@ -203,24 +235,32 @@
 (define (map-update/default map key updater default)
   (map-update!/default (map-copy map) key updater default))
 
-(define (map-search! map key failure success)
+#;
+(define (map-search! map key failure success)  
   (receive (items obj)
-      (set-search! (map-items map)
-		   key
-		   (lambda (insert ignore)
-		     (failure (lambda (value obj)
-				(insert (make-item key value) pbk))
-			      ignore))
-		   (lambda (item update remove)
-		     (success (item-key item)
-			      (item-value item)
-			      (lambda (key value obj)
-				(update (make-item key value) obj))
-			      remove)))
+      (call-with-current-continuation
+       (lambda (return)
+	 (set-search! (map-items map)
+		      key
+		      (lambda (insert ignore)
+			(failure (lambda (value obj)
+				   (return (set-adjoin ))
+
+				   
+				   (insert (make-item key value) 
+					   ))
+				 ignore))
+		      (lambda (item update remove)
+			(success (item-key item)
+				 (item-value item)
+				 (lambda (key value obj)
+				   (update (make-item key value) obj))
+				 remove)))))
     (values (%make-map (map-key-comparator map)
-		       items)
+ 		       items)
 	    obj)))
 
+#;
 (define (map-search map key failure success)
   (map-search! (map-copy map) key failure success))	       
 
@@ -240,14 +280,14 @@
 
 (define (map-keys map)
   (set-fold (lambda (item keys)
-	      (cons (item-key key)
+	      (cons (item-key item)
 		    keys))
 	    '()
 	    (map-items map)))
 
 (define (map-values map)
   (set-fold (lambda (item keys)
-	      (cons (item-value key)
+	      (cons (item-value item)
 		    keys))
 	    '()
 	    (map-items map)))

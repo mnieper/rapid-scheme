@@ -113,8 +113,9 @@
 
 (define (digraph-fold proc nil digraph)
   (map-fold (lambda (label node result)
-	      (proc (label (node-successors node)
-			   (node-predecessors node))))
+	      (proc label
+		    (node-successors node)
+		    (node-predecessors node)))
 	    nil (digraph-nodes digraph)))
 
 ;; Copying and conversion

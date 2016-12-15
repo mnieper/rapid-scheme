@@ -24,8 +24,7 @@
 	  map-intern map-intern!
 	  map-update map-update!
 	  map-replace map-replace!
-	  map-search!
-	  map-size map-find map-count map-keys map-values map-entries
+      	  map-size map-find map-count map-keys map-values map-entries
 	  map-map map-for-each map-fold map-filter map-filter! map-remove map-remove!
 	  map-map->list
 	  map-partition map-partition!
