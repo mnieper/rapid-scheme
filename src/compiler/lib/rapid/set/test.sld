@@ -112,7 +112,6 @@
 	    (test-eq 10 (set-fold + 3 nums))
 	    (set! nums (set eqv-comparator 10 20 30 40 50))
 	    ;; nums is now {10, 20, 30, 40, 50}
-	    (test-skip 1) ;; FIXME: --> mailing list XXX
 	    (test-assert
 		(set=? nums (set-unfold
 			     (lambda (i) (= i 0))
@@ -351,7 +350,6 @@
 	    (test-eqv 12 (bag-fold + 3 nums))
 	    (set! nums (bag eqv-comparator 10 20 30 40 50))
 	    ;; nums is now {10, 20, 30, 40, 50}
-	    #;  ; XXX -> mailing list
 	    (test-assert
 		(bag=? nums (bag-unfold
 			     (lambda (i) (= i 0))

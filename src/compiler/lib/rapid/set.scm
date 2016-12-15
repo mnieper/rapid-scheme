@@ -32,18 +32,15 @@
 ;; Constructors
 
 (define (set comparator . elements)
-  (unless (comparator? comparator)
-    (error "???" comparator elements))
-  
   (%sob comparator #f elements))
 (define (bag comparator . elements)
   (%sob comparator #t elements))
 (define (%sob comparator multi? elements)
   (sob-unfold comparator multi? null? car cdr elements))
 
-(define (set-unfold comparator stop? mapper successor seed)
+(define (set-unfold stop? mapper successor seed comparator)
   (sob-unfold comparator #f stop? mapper successor seed))
-(define (bag-unfold comparator stop? mapper successor seed)
+(define (bag-unfold stop? mapper successor seed comparator)
   (sob-unfold comparator #t stop? mapper successor seed))
 (define (sob-unfold comparator multi? stop? mapper successor seed)
   (let loop ((sob (make-sob comparator (make-tree) multi?))
