@@ -21,9 +21,6 @@
   digraph?
   (nodes digraph-nodes))
 
-(define (node-comparator digraph)
-  (set-comparator (digraph-nodes digraph)))
-
 (define-record-type <digraph-node>
   (%make-node successors predecessors)
   node?
@@ -39,7 +36,7 @@
 	      (node-predecessors node)))
 
 (define (node-adjoin-predecessor node . predecessors)
-  (%make-node (node-predecessors node)
+  (%make-node (node-successors node)
 	      (apply set-adjoin (node-predecessors node) predecessors)))
 
 ;; Constructors
@@ -103,11 +100,14 @@
 ;; The whole graph
 
 (define (digraph-find predicate digraph failure)
-  (map-find (lambda (label node)
-	      (predicate label (node-successors node)
-			 (node-predecessors node)))
-	    (digraph-nodes digraph)
-	    failure))
+  (receive (label node)
+      (map-find (lambda (label node)
+		  (predicate label
+			     (node-successors node)
+			     (node-predecessors node)))
+		(digraph-nodes digraph)
+		failure)
+    label))
 
 ;; Mapping and folding
 
@@ -115,7 +115,8 @@
   (map-fold (lambda (label node result)
 	      (proc label
 		    (node-successors node)
-		    (node-predecessors node)))
+		    (node-predecessors node)
+		    result))
 	    nil (digraph-nodes digraph)))
 
 ;; Copying and conversion
@@ -135,17 +136,16 @@
 
 ;; Graph algorithms
 
-(define (digraph-interval digraph header)
-  (call-with-current-continuation
-   (lambda (return)
-     (let loop ((interval (set (digraph-node-comparator digraph) header)))
-       (loop
-	(call-with-current-continuation
-	 (lambda (loop)
-	   (digraph-find (lambda (label successors predecessors)
-			   (and (not (set-empty? predecessors))
-				(set<=? predecessors interval)
-				(loop (set-adjoin interval label) label)))
-			 digraph
-			 (lambda ()
-			   (return interval))))))))))
+(define (digraph-interval digraph start header)
+  (let ((compare (comparator-equality-predicate (digraph-node-comparator digraph))))  
+    (call-with-current-continuation
+     (lambda (return)
+       (let loop ((interval (set (digraph-node-comparator digraph) header)))       
+	 (loop (set-adjoin interval
+			   (digraph-find (lambda (label successors predecessors)
+					   (and (not (compare start label))
+						(not (set-contains? interval label))
+						(set<=? predecessors interval)))
+					 digraph
+					 (lambda ()
+					   (return interval))))))))))

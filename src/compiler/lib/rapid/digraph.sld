@@ -26,7 +26,9 @@
 	  alist->digraph
 	  digraph-find
 	  digraph-interval)
-  (import (scheme base)
+  (import (scheme base)    (scheme write)
+	  
+	  (rapid receive)
 	  (rapid list)
 	  (rapid comparator)
 	  (rapid set)
